@@ -10,16 +10,16 @@ use super::{
     ManifestationKey, VoxelMaterializationRuntime,
     VoxelMaterializationRuntimeRegistry,
 };
-use super::super::VoxelWorld;
+use super::super::{VoxelStreaming, VoxelWorld};
 
 pub(in crate::voxel) fn sync_manifestation_membership(
     mut commands: Commands,
-    mut worlds: Query<(Entity, &mut VoxelWorld)>,
+    mut worlds: Query<(Entity, &mut VoxelWorld, Option<&VoxelStreaming>)>,
     runtimes: Query<&VoxelMaterializationRuntime>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
-    'worlds: for (world_entity, mut world) in &mut worlds {
+    'worlds: for (world_entity, mut world, streaming) in &mut worlds {
         loop {
             let Some(work_token) =
                 frame_budget.begin(ReconstructibleWorkClass::Publication)
@@ -37,11 +37,21 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 world: world_entity,
                 key: materialization_key,
             };
-            let surface_revision = world
-                .materializations()
-                .active_surface(materialization_key)
-                .filter(|cache| cache.surface.has_triangles())
-                .map(|cache| cache.revision);
+            // demand-owned-render-membership-v1
+            let presentation_requested = streaming.is_none_or(|streaming| {
+                streaming
+                    .effective_roles(materialization_key)
+                    .contains(crate::spatial::UsfScaleRoleMask::PRESENTATION)
+            });
+            let surface_revision = presentation_requested
+                .then(|| {
+                    world
+                        .materializations()
+                        .active_surface(materialization_key)
+                        .filter(|cache| cache.surface.has_triangles())
+                        .map(|cache| cache.revision)
+                })
+                .flatten();
 
             if let Some(revision) = surface_revision {
                 registry.revisions.insert(key, revision);

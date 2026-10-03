@@ -118,8 +118,8 @@ pub(in crate::voxel) fn sync_capability_realizations(
         world,
         layer,
         logical_realization,
-        _streaming,
-        _collision_disabled,
+        streaming,
+        collision_disabled,
         editing_disabled,
     ) in &worlds
     {
@@ -132,8 +132,8 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
         let mut records = Vec::<UsfCapabilityCoverageRecord>::new();
         for key in keys {
-            let Some(revision) =
-                world.materializations().active_derived_revision(key)
+            let Some(dense_revision) =
+                world.materializations().active_dense_revision(key)
             else {
                 continue;
             };
@@ -148,9 +148,38 @@ pub(in crate::voxel) fn sync_capability_realizations(
                 continue;
             };
 
-            let mut roles =
-                UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
-            if editing_disabled.is_none() {
+            let requested = streaming.map_or_else(
+                || {
+                    let mut roles =
+                        UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
+                    if collision_disabled.is_none() {
+                        roles = roles.union(UsfScaleRoleMask::COLLISION);
+                    }
+                    if editing_disabled.is_none() {
+                        roles = roles.union(UsfScaleRoleMask::EDITING);
+                    }
+                    roles
+                },
+                |streaming| streaming.effective_roles(key),
+            );
+
+            // demand-owned-capability-publication-v1
+            let mut roles = UsfScaleRoleMask::REALIZATION;
+            let derived_current =
+                world.materializations().active_derived_revision(key)
+                    == Some(dense_revision);
+
+            // A derived-current no-surface result is a positive fact: there is
+            // nothing to draw/collide here, so requested presentation is ready.
+            if derived_current
+                && requested.contains(UsfScaleRoleMask::PRESENTATION)
+            {
+                roles = roles.union(UsfScaleRoleMask::PRESENTATION);
+            }
+            if requested.contains(UsfScaleRoleMask::EDITING)
+                && editing_disabled.is_none()
+            {
+                // Editing owns dense semantic working data, not a mesh.
                 roles = roles.union(UsfScaleRoleMask::EDITING);
             }
 
@@ -160,7 +189,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
                 center,
                 half_extent,
                 roles,
-                revision,
+                dense_revision,
             ));
         }
 
@@ -216,6 +245,21 @@ pub(in crate::voxel) fn sync_capability_realizations(
             .active_derived_revision(runtime.key())
             == Some(runtime.revision());
 
+        let requested = streaming.map_or_else(
+            || {
+                let mut roles =
+                    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
+                if collision_disabled.is_none() {
+                    roles = roles.union(UsfScaleRoleMask::COLLISION);
+                }
+                if editing_disabled.is_none() {
+                    roles = roles.union(UsfScaleRoleMask::EDITING);
+                }
+                roles
+            },
+            |streaming| streaming.effective_roles(runtime.key()),
+        );
+
         let mut roles = UsfScaleRoleMask::NONE;
         if derived_current {
             let collision_current = collision_registry.member_current(
@@ -241,7 +285,8 @@ pub(in crate::voxel) fn sync_capability_realizations(
             // Known-empty, translucent/non-rigid, contextual-only and explicitly
             // collision-disabled materializations keep their independent
             // presentation semantics.
-            let collision_required = collision_disabled.is_none()
+            let collision_required = requested.contains(UsfScaleRoleMask::COLLISION)
+                && collision_disabled.is_none()
                 && rigid_current
                 && streaming.is_some_and(|streaming| {
                     collision_requested(
@@ -259,13 +304,19 @@ pub(in crate::voxel) fn sync_capability_realizations(
             // presentation becomes publishable only after its collision
             // readiness contract is satisfied.
             roles = UsfScaleRoleMask::REALIZATION;
-            if !collision_required || collision_current {
+            if requested.contains(UsfScaleRoleMask::PRESENTATION)
+                && (!collision_required || collision_current)
+            {
                 roles = roles.union(UsfScaleRoleMask::PRESENTATION);
             }
-            if collision_current {
+            if requested.contains(UsfScaleRoleMask::COLLISION)
+                && collision_current
+            {
                 roles = roles.union(UsfScaleRoleMask::COLLISION);
             }
-            if editing_disabled.is_none() {
+            if requested.contains(UsfScaleRoleMask::EDITING)
+                && editing_disabled.is_none()
+            {
                 roles = roles.union(UsfScaleRoleMask::EDITING);
             }
         }

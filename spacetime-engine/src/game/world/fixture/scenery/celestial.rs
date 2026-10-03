@@ -64,15 +64,21 @@ pub(super) fn spawn_body(
 
     audit_canonical_surface_relief(name, field);
 
-    // Decimal USF Scale Slices are numerical charts, not collision LOD.
-    // Until #49/#41 owns an independent collision-resolution ladder, only the
-    // authored detailed surface-contact scale may publish terrain response.
-    // Coarse celestial realizations remain useful realization/cache evidence,
-    // but they must never become kilometre-offset physical walls.
-    let surface_contact_scale = scale(HUMAN_SURFACE_INTERACTION_SCALE);
+    // interaction-scale-physical-capability-domain-v1
+    //
+    // The domain describes where this semantic body *can* realize a capability;
+    // it does not select which Scale is currently physical. That selection is
+    // demand/control policy in voxel::realization::roles_for_scale().
+    //
+    // Hard-coding collision to human S0 made an explicitly S+1-controlled ship
+    // incapable of ever receiving terrain collision. Every supported terrain
+    // chart may provide physical capability, but only the current controlled
+    // interaction Scale is granted COLLISION/EDITING roles.
+    let physical_slices =
+        UsfChartMask::inclusive_range(SpatialScale::MIN, detail_root);
     let scale_domain = VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root)
-        .with_collision_slices(UsfChartMask::from_scale(surface_contact_scale))
-        .with_editing_slices(UsfChartMask::from_scale(surface_contact_scale));
+        .with_collision_slices(physical_slices)
+        .with_editing_slices(physical_slices);
 
     let nav_scale = celestial_coarsest_scale(radius_metres);
     let semantic = commands

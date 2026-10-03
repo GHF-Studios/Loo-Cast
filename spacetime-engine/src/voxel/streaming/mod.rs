@@ -15,6 +15,11 @@ use demand::{DemandedChunk, VoxelDemandPlanKey};
 mod demand;
 mod generation;
 
+fn roles_require_surface(roles: UsfScaleRoleMask) -> bool {
+    roles.contains(UsfScaleRoleMask::PRESENTATION)
+        || roles.contains(UsfScaleRoleMask::COLLISION)
+}
+
 pub(super) use demand::refresh_voxel_residency;
 pub(super) use generation::{
     finish_chunk_generation, retire_stale_generation_tasks, schedule_voxel_generation,
@@ -46,6 +51,9 @@ pub struct VoxelStreaming {
     effective_desired: HashSet<VoxelMaterializationKey>,
     residency_activate: HashSet<VoxelMaterializationKey>,
     residency_deactivate: HashSet<VoxelMaterializationKey>,
+    /// Addresses whose capability-role change may require surface derivation
+    /// and/or renderer membership to be reconsidered without regeneration.
+    role_refresh: HashSet<VoxelMaterializationKey>,
 }
 
 impl VoxelStreaming {
@@ -61,6 +69,7 @@ impl VoxelStreaming {
             effective_desired: HashSet::new(),
             residency_activate: HashSet::new(),
             residency_deactivate: HashSet::new(),
+            role_refresh: HashSet::new(),
         }
     }
 
@@ -84,6 +93,7 @@ impl VoxelStreaming {
         self.pending_desired.clear();
         self.cached_desired_roles.clear();
         self.migration_original_roles.clear();
+        self.role_refresh.clear();
         self.demand_key.clear();
 
         let retiring = self.effective_desired.drain().collect::<Vec<_>>();
@@ -185,6 +195,7 @@ impl VoxelStreaming {
         }
         self.cached_desired_roles = desired;
         for key in changed {
+            self.role_refresh.insert(key);
             self.reconcile_changed_key(key);
         }
 
@@ -206,6 +217,7 @@ impl VoxelStreaming {
             // has left demand and should retire immediately.
             self.migration_original_roles.remove(&key);
             self.cached_desired_roles.remove(&key);
+            self.role_refresh.insert(key);
             self.reconcile_changed_key(key);
             changed = true;
         }
@@ -218,6 +230,7 @@ impl VoxelStreaming {
             }
             // A newly entered address has no committed representation to keep.
             self.cached_desired_roles.insert(key, roles);
+            self.role_refresh.insert(key);
             self.reconcile_changed_key(key);
             self.pending_desired.push_back(demanded);
             changed = true;
@@ -278,6 +291,7 @@ impl VoxelStreaming {
         let previous =
             std::mem::take(&mut self.migration_original_roles);
         for (key, original) in previous {
+            self.role_refresh.insert(key);
             if original.is_some()
                 && !self.cached_desired_roles.contains_key(&key)
                 && self.effective_desired.remove(&key)
@@ -293,6 +307,38 @@ impl VoxelStreaming {
 
     pub(in crate::voxel) const fn collision_policy_revision(&self) -> u64 {
         self.policy_revision
+    }
+
+    // role-aware-surface-work-v1
+    pub(in crate::voxel) fn effective_roles(
+        &self,
+        key: VoxelMaterializationKey,
+    ) -> UsfScaleRoleMask {
+        let mut roles = self
+            .cached_desired_roles
+            .get(&key)
+            .copied()
+            .unwrap_or(UsfScaleRoleMask::NONE);
+        if let Some(committed) = self
+            .migration_original_roles
+            .get(&key)
+            .copied()
+            .flatten()
+        {
+            roles = roles.union(committed);
+        }
+        roles
+    }
+
+    pub(in crate::voxel) fn surface_required(
+        &self,
+        key: VoxelMaterializationKey,
+    ) -> bool {
+        roles_require_surface(self.effective_roles(key))
+    }
+
+    fn take_role_refresh(&mut self) -> Vec<VoxelMaterializationKey> {
+        self.role_refresh.drain().collect()
     }
 
     pub(in crate::voxel) fn retains_committed_role_during_migration(

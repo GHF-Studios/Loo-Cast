@@ -628,7 +628,14 @@ fn candidate_plan_ready(
     let _span = bevy::log::info_span!("voxel_residency.candidate_ready").entered();
     streaming.migration_candidate_addresses().all(|(key, requested_roles)| {
         let store = world.materializations();
-        if !store.is_derived_current(key) {
+        // dense-readiness-without-surface-v1
+        // REALIZATION-only context is ready when dense truth is current. A
+        // derived surface is required only for roles that actually consume one.
+        if super::roles_require_surface(requested_roles) {
+            if !store.is_derived_current(key) {
+                return false;
+            }
+        } else if store.active_dense_revision(key).is_none() {
             return false;
         }
 
@@ -708,6 +715,9 @@ fn reconcile_materialization_residency(
         let _span = bevy::log::info_span!("voxel_residency.delta_collect").entered();
         streaming.take_residency_delta()
     };
+    let activated = activate.clone();
+    let role_refresh = streaming.take_role_refresh();
+
     {
         let _span = bevy::log::info_span!("voxel_residency.store_delta").entered();
         world.materializations_mut().apply_residency_delta(
@@ -716,6 +726,16 @@ fn reconcile_materialization_residency(
             warm_inactive_materialization_limit,
         );
     }
+
+    // Role changes are capability-pipeline changes, not regeneration events.
+    // Reuse resident dense truth and wake only the products now requested.
+    for key in activated.into_iter().chain(role_refresh) {
+        if streaming.surface_required(key) {
+            world.materializations_mut().ensure_derived_dirty(key);
+        }
+        world.materializations_mut().refresh_render_membership(key);
+    }
+
     {
         let _span = bevy::log::info_span!("voxel_residency.pending_retain").entered();
         streaming.pending_desired.retain(|demanded| !world.materializations().is_active(demanded.key));

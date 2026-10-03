@@ -1032,6 +1032,7 @@ struct CelestialClipmapPlanInput {
 fn derive_plan_input(
     field: CelestialVoxelField,
     observer_local: DVec3,
+    interaction_scale: SpatialScale,
     observer_speed_metres_per_second: f64,
     expected_build_seconds: f64,
     policy_revision: u64,
@@ -1051,14 +1052,24 @@ fn derive_plan_input(
         return None;
     }
 
+    // interaction-scale-binary-floor-v1
+    //
+    // Binary presentation LOD is automatic, but it must not silently cross into
+    // a finer semantic interaction domain than the controlled subject owns.
+    // Power-of-two resolution quantization then supplies the local ladder above
+    // this physical floor.
+    let interaction_floor_metres =
+        interaction_scale.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
+    let maximum_spacing_metres =
+        MAX_FINE_SAMPLE_SPACING_METRES.max(interaction_floor_metres);
     let desired_spacing = (clearance / 64.0).clamp(
-        MIN_SAMPLE_SPACING_METRES,
-        MAX_FINE_SAMPLE_SPACING_METRES,
+        interaction_floor_metres,
+        maximum_spacing_metres,
     );
     let granularity = SpatialRealizationGranularityRequest::new(
         desired_spacing,
-        MIN_SAMPLE_SPACING_METRES,
-        MAX_FINE_SAMPLE_SPACING_METRES,
+        interaction_floor_metres,
+        maximum_spacing_metres,
         BLOCK_SUBDIVISIONS as u32,
         CLIPMAP_VALIDITY_AGGREGATES_ACROSS,
         observer_speed_metres_per_second,
@@ -1442,6 +1453,7 @@ fn sync_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
     authorities: Query<(
@@ -1502,6 +1514,7 @@ fn sync_celestial_clipmap_realizations(
             let Some(input) = derive_plan_input(
                 *field,
                 observer_local,
+                interaction.scale(),
                 observer_speed,
                 expected_build_seconds,
                 policy_revision,
@@ -2221,6 +2234,27 @@ pub(super) fn configure(app: &mut App) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn binary_finest_floor_tracks_interaction_scale() {
+        let s0_floor =
+            SpatialScale::ZERO.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
+        let s1 =
+            SpatialScale::new(1).expect("S1");
+        let s1_floor =
+            s1.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
+
+        assert_eq!(s0_floor, MIN_SAMPLE_SPACING_METRES);
+        assert!(s1_floor >= 10.0);
+
+        let player_binary =
+            VoxelPresentationResolution::at_least_metres(s0_floor).unwrap();
+        let ship_binary =
+            VoxelPresentationResolution::at_least_metres(s1_floor).unwrap();
+
+        assert!(ship_binary > player_binary);
+        assert!(ship_binary.sample_spacing_metres() >= s1_floor);
+    }
 
     #[test]
     fn ten_to_one_decimal_gap_requires_binary_bridge_levels() {

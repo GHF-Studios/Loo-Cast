@@ -15,8 +15,10 @@ pub(super) struct VoxelGenerationJob {
     pub(super) recipe: VoxelChunkRecipe,
 }
 
+// critical-generation-batches-v1
 pub(super) struct PendingGenerationBatch {
     pub(super) scope: VoxelGenerationScope,
+    pub(super) critical: bool,
     pub(super) jobs: Vec<VoxelGenerationJob>,
 }
 
@@ -58,12 +60,15 @@ pub(super) fn plan_generation_batches(
             continue;
         };
 
-        if !generation_batch_can_accept(
-            &batches,
-            scope,
-            max_batches,
-            max_chunks_per_batch,
-        ) {
+        let demanded_critical =
+            demanded.roles.contains(crate::spatial::UsfScaleRoleMask::COLLISION)
+                || demanded.roles.contains(crate::spatial::UsfScaleRoleMask::EDITING);
+        let can_join_existing = batches.iter().any(|batch| {
+            batch.scope == scope
+                && batch.critical == demanded_critical
+                && batch.jobs.len() < max_chunks_per_batch
+        });
+        if !can_join_existing && batches.len() >= max_batches {
             streaming.pending_desired.push_front(demanded);
             break;
         }
@@ -81,9 +86,11 @@ pub(super) fn plan_generation_batches(
                 world.chunk_recipe_from_authority(address, authority, domain, frame_snapshot)
             },
         );
+        let critical = demanded_critical;
         push_generation_job(
             &mut batches,
             scope,
+            critical,
             max_chunks_per_batch,
             VoxelGenerationJob { key, token, recipe },
         );
@@ -93,27 +100,20 @@ pub(super) fn plan_generation_batches(
     batches
 }
 
-fn generation_batch_can_accept(
-    batches: &[PendingGenerationBatch],
-    scope: VoxelGenerationScope,
-    max_batches: usize,
-    max_chunks_per_batch: usize,
-) -> bool {
-    batches
-        .iter()
-        .any(|batch| batch.scope == scope && batch.jobs.len() < max_chunks_per_batch)
-        || batches.len() < max_batches
-}
-
 fn push_generation_job(
     batches: &mut Vec<PendingGenerationBatch>,
     scope: VoxelGenerationScope,
+    critical: bool,
     max_chunks_per_batch: usize,
     job: VoxelGenerationJob,
 ) {
     if let Some(batch) = batches
         .iter_mut()
-        .find(|batch| batch.scope == scope && batch.jobs.len() < max_chunks_per_batch)
+        .find(|batch| {
+            batch.scope == scope
+                && batch.critical == critical
+                && batch.jobs.len() < max_chunks_per_batch
+        })
     {
         batch.jobs.push(job);
         return;
@@ -121,6 +121,7 @@ fn push_generation_job(
 
     batches.push(PendingGenerationBatch {
         scope,
+        critical,
         jobs: vec![job],
     });
 }

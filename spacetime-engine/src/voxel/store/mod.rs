@@ -108,4 +108,15 @@ impl VoxelMaterializationStore {
             self.dirty_render.push_back(key);
         }
     }
+
+
+    // role-refresh-render-membership-v1
+    pub(in crate::voxel) fn refresh_render_membership(
+        &mut self,
+        key: VoxelMaterializationKey,
+    ) {
+        if self.entries.get(&key).is_some_and(|entry| entry.active) {
+            self.mark_render_dirty(key);
+        }
+    }
 }

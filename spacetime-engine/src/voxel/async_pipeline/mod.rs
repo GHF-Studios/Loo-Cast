@@ -131,7 +131,12 @@ pub(super) fn retire_stale_chunk_builds(
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     workers: Res<VoxelWorkerPool>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
+    mut worlds: Query<(
+        Entity,
+        &mut VoxelWorld,
+        &UsfScaleLayer,
+        Option<&super::streaming::VoxelStreaming>,
+    )>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
@@ -139,7 +144,7 @@ pub(super) fn queue_dirty_chunk_builds(
     let mut started = 0;
     let mut empty_published = 0;
 
-    'worlds: for (world_entity, mut world, layer) in &mut worlds {
+    'worlds: for (world_entity, mut world, layer, streaming) in &mut worlds {
         while started < task_budget
             || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
         {
@@ -149,10 +154,36 @@ pub(super) fn queue_dirty_chunk_builds(
                 break 'worlds;
             };
 
-            let Some(key) = world.materializations_mut().pop_dirty_derived() else {
+            // collision-first-derived-scheduling-v1
+            // Find interaction-critical surfaces first without inventing a
+            // second queue or duplicating surface ownership.
+            let critical_key = streaming.and_then(|streaming| {
+                world.materializations_mut().pop_dirty_derived_matching(|key| {
+                    let roles = streaming.effective_roles(key);
+                    roles.contains(crate::spatial::UsfScaleRoleMask::COLLISION)
+                        || roles.contains(crate::spatial::UsfScaleRoleMask::EDITING)
+                })
+            });
+            let Some(key) =
+                critical_key.or_else(|| world.materializations_mut().pop_dirty_derived())
+            else {
                 frame_budget.finish(work_token);
                 break;
             };
+
+            if streaming.is_some_and(|streaming| !streaming.surface_required(key)) {
+                // This address became REALIZATION-only while waiting in the
+                // dirty queue. Dense truth remains valid; no mesh is required.
+                frame_budget.finish(work_token);
+                continue;
+            }
+
+            let critical = streaming.is_some_and(|streaming| {
+                let roles = streaming.effective_roles(key);
+                roles.contains(crate::spatial::UsfScaleRoleMask::COLLISION)
+                    || roles.contains(crate::spatial::UsfScaleRoleMask::EDITING)
+            });
+
             let Some((revision, snapshot)) =
                 world.materializations_mut().begin_surface_build(key)
             else {
@@ -180,10 +211,16 @@ pub(super) fn queue_dirty_chunk_builds(
                 continue;
             };
             let debug_color = debug_chunk_color(address, layer.scale());
-            let Some(task) = workers.try_submit(VoxelWorkerLane::Derivation, move || {
+            let build = move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
                 VoxelDerivedOutput { surface, debug_color }
-            }) else {
+            };
+            let task = if critical {
+                workers.try_submit_critical(VoxelWorkerLane::Derivation, build)
+            } else {
+                workers.try_submit(VoxelWorkerLane::Derivation, build)
+            };
+            let Some(task) = task else {
                 world.materializations_mut().cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
                 break;
@@ -191,7 +228,7 @@ pub(super) fn queue_dirty_chunk_builds(
 
             telemetry.derived_started();
             commands.spawn((
-                Name::new("Voxel Surface Derivation"),
+                Name::new(if critical { "Voxel Critical Surface Derivation" } else { "Voxel Surface Derivation" }),
                 VoxelWorkerTask,
                 VoxelDerivedTask {
                     world: world_entity,

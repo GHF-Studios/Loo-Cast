@@ -1,4 +1,5 @@
 //! Multiscale voxel realization policy.
+// interaction-terrain-readiness-megapass-v1
 //!
 //! Generic spatial interest says where gameplay currently cares about reality.
 //! [`SpatialRefinementDemand`] says how fine nearby capability realization is
@@ -313,25 +314,25 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
         .union(UsfScaleRoleMask::EDITING)
 }
 
+// interaction-scale-dense-role-ownership-v1
 fn roles_for_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
-    _interaction_scale: SpatialScale,
+    interaction_scale: SpatialScale,
 ) -> UsfScaleRoleMask {
-    // A refinement branch is presentation-capable at every participating
-    // Scale Slice. Visibility is decided later by the interaction/view
-    // composition contract:
+    // Decimal USF Scale is an interaction/numerical domain, not graphical LOD.
+    // Binary voxel resolution owns automatic visual refinement.
     //
-    //   coarser than interaction -> contextual ancestor presentation
-    //   interaction              -> physical/local presentation
-    //   finer than interaction   -> staged ahead, not yet visible
-    //
-    // This preserves the coarse->fine "stalactite" without conflating Scale
-    // with graphical LOD. Each Scale still owns a bounded capability
-    // realization; immediately-finer ready coverage clips only its parent
-    // aperture in the presentation compositor.
-    let mut roles = presentation_roles();
+    // Keep ancestor/future Scale worlds as reusable REALIZATION context only.
+    // The controlled source Scale is the one dense world allowed to own local
+    // presentation, collision and editing capability.
+    let mut roles = UsfScaleRoleMask::REALIZATION;
 
+    if target_scale != interaction_scale {
+        return roles;
+    }
+
+    roles = roles.union(UsfScaleRoleMask::PRESENTATION);
     if domain.collides(target_scale) {
         roles = roles.union(UsfScaleRoleMask::COLLISION);
     }
@@ -735,25 +736,30 @@ mod tests {
     }
 
     #[test]
-    fn refinement_branch_requests_presentation_for_every_participating_scale() {
+    fn only_interaction_scale_requests_dense_physical_presentation() {
         let s0 = SpatialScale::ZERO;
+        let s1 = SpatialScale::new(1).unwrap();
         let s3 = SpatialScale::new(3).unwrap();
         let s5 = SpatialScale::new(5).unwrap();
         let s6 = SpatialScale::new(6).unwrap();
-        let domain = VoxelScaleDomain::contiguous(s0, s6);
+        let physical = UsfChartMask::inclusive_range(s0, s6);
+        let domain = VoxelScaleDomain::contiguous(s0, s6)
+            .with_collision_slices(physical)
+            .with_editing_slices(physical);
 
-        // Ancestor presentation must not disappear merely because another
-        // Scale owns interaction.
-        let ancestor = roles_for_scale(domain, s5, s3);
-        assert!(ancestor.contains(UsfScaleRoleMask::REALIZATION));
-        assert!(ancestor.contains(UsfScaleRoleMask::PRESENTATION));
+        for context in [s0, s1, s5] {
+            let roles = roles_for_scale(domain, context, s3);
+            assert!(roles.contains(UsfScaleRoleMask::REALIZATION));
+            assert!(!roles.contains(UsfScaleRoleMask::PRESENTATION));
+            assert!(!roles.contains(UsfScaleRoleMask::COLLISION));
+            assert!(!roles.contains(UsfScaleRoleMask::EDITING));
+        }
 
-        // Predictive finer realization is also presentation-capable so it can
-        // become visible immediately when interaction reaches it. Actual
-        // visibility remains staged by the presentation projector.
-        let staged_fine = roles_for_scale(domain, s0, s3);
-        assert!(staged_fine.contains(UsfScaleRoleMask::REALIZATION));
-        assert!(staged_fine.contains(UsfScaleRoleMask::PRESENTATION));
+        let interaction = roles_for_scale(domain, s3, s3);
+        assert!(interaction.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(interaction.contains(UsfScaleRoleMask::PRESENTATION));
+        assert!(interaction.contains(UsfScaleRoleMask::COLLISION));
+        assert!(interaction.contains(UsfScaleRoleMask::EDITING));
     }
 
     #[test]

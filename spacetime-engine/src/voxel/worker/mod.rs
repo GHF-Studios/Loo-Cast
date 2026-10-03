@@ -17,6 +17,13 @@ use bevy::{
 
 type VoxelWorkerJob = Box<dyn FnOnce() + Send + 'static>;
 
+// critical-interaction-worker-priority-v1
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum VoxelWorkerPriority {
+    Normal,
+    Critical,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum VoxelWorkerLane {
     Generation,
@@ -52,16 +59,20 @@ impl VoxelWorkerLane {
 }
 
 struct VoxelWorkerQueueState {
-    lanes: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
+    normal: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
+    critical: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
     service_cursor: usize,
+    critical_cursor: usize,
     closed: bool,
 }
 
 impl Default for VoxelWorkerQueueState {
     fn default() -> Self {
         Self {
-            lanes: std::array::from_fn(|_| VecDeque::new()),
+            normal: std::array::from_fn(|_| VecDeque::new()),
+            critical: std::array::from_fn(|_| VecDeque::new()),
             service_cursor: 0,
+            critical_cursor: 0,
             closed: false,
         }
     }
@@ -77,6 +88,7 @@ impl VoxelWorkerQueue {
     fn push(
         &self,
         lane: VoxelWorkerLane,
+        priority: VoxelWorkerPriority,
         job: VoxelWorkerJob,
     ) -> Result<(), VoxelWorkerJob> {
         let Ok(mut state) = self.state.lock() else {
@@ -85,7 +97,14 @@ impl VoxelWorkerQueue {
         if state.closed {
             return Err(job);
         }
-        state.lanes[lane.index()].push_back(job);
+        match priority {
+            VoxelWorkerPriority::Normal => {
+                state.normal[lane.index()].push_back(job);
+            }
+            VoxelWorkerPriority::Critical => {
+                state.critical[lane.index()].push_back(job);
+            }
+        }
         self.ready.notify_one();
         Ok(())
     }
@@ -97,11 +116,23 @@ impl VoxelWorkerQueue {
                 return None;
             }
 
+            // Physical interaction work gets first claim on the next free
+            // worker, but FIFO is preserved inside each lane.
+            for offset in 0..VoxelWorkerLane::COUNT {
+                let lane_index =
+                    (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
+                if let Some(job) = state.critical[lane_index].pop_front() {
+                    state.critical_cursor =
+                        (lane_index + 1) % VoxelWorkerLane::COUNT;
+                    return Some(job);
+                }
+            }
+
             for offset in 0..VoxelWorkerLane::SERVICE_WHEEL.len() {
                 let wheel_index =
                     (state.service_cursor + offset) % VoxelWorkerLane::SERVICE_WHEEL.len();
                 let lane = VoxelWorkerLane::SERVICE_WHEEL[wheel_index];
-                if let Some(job) = state.lanes[lane.index()].pop_front() {
+                if let Some(job) = state.normal[lane.index()].pop_front() {
                     state.service_cursor =
                         (wheel_index + 1) % VoxelWorkerLane::SERVICE_WHEEL.len();
                     return Some(job);
@@ -115,7 +146,10 @@ impl VoxelWorkerQueue {
     fn close(&self) {
         if let Ok(mut state) = self.state.lock() {
             state.closed = true;
-            for lane in &mut state.lanes {
+            for lane in &mut state.normal {
+                lane.clear();
+            }
+            for lane in &mut state.critical {
                 lane.clear();
             }
         }
@@ -198,11 +232,39 @@ impl VoxelWorkerAdmission {
     }
 }
 
+// voxel-compute-admission-lifetime-v1
+/// RAII lease for one queued/running worker computation.
+///
+/// Admission is compute pressure only. It must end when worker computation
+/// ends, not when its result is eventually published on the main thread.
+struct VoxelWorkerComputeAdmission {
+    admission: Option<Arc<VoxelWorkerAdmission>>,
+    lane: VoxelWorkerLane,
+}
+
+impl VoxelWorkerComputeAdmission {
+    fn new(
+        admission: Arc<VoxelWorkerAdmission>,
+        lane: VoxelWorkerLane,
+    ) -> Self {
+        Self {
+            admission: Some(admission),
+            lane,
+        }
+    }
+}
+
+impl Drop for VoxelWorkerComputeAdmission {
+    fn drop(&mut self) {
+        if let Some(admission) = self.admission.take() {
+            admission.release(self.lane);
+        }
+    }
+}
+
 pub(super) struct VoxelWorkerTicket<T: Send + 'static> {
     receiver: Mutex<Receiver<T>>,
     cancelled: Arc<AtomicBool>,
-    admission: Arc<VoxelWorkerAdmission>,
-    lane: VoxelWorkerLane,
 }
 
 impl<T: Send + 'static> VoxelWorkerTicket<T> {
@@ -220,8 +282,10 @@ impl<T: Send + 'static> VoxelWorkerTicket<T> {
 
 impl<T: Send + 'static> Drop for VoxelWorkerTicket<T> {
     fn drop(&mut self) {
+        // Result lifetime and compute-admission lifetime are independent.
+        // Dropping the ticket prevents publication of stale output, while the
+        // queued/running worker closure owns releasing compute admission.
         self.cancelled.store(true, Ordering::Release);
-        self.admission.release(self.lane);
     }
 }
 
@@ -300,6 +364,31 @@ pub(super) fn try_submit<T, F>(
         T: Send + 'static,
         F: FnOnce() -> T + Send + 'static,
     {
+        self.try_submit_with_priority(lane, VoxelWorkerPriority::Normal, job)
+    }
+
+    pub(super) fn try_submit_critical<T, F>(
+        &self,
+        lane: VoxelWorkerLane,
+        job: F,
+    ) -> Option<VoxelWorkerTicket<T>>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> T + Send + 'static,
+    {
+        self.try_submit_with_priority(lane, VoxelWorkerPriority::Critical, job)
+    }
+
+    fn try_submit_with_priority<T, F>(
+        &self,
+        lane: VoxelWorkerLane,
+        priority: VoxelWorkerPriority,
+        job: F,
+    ) -> Option<VoxelWorkerTicket<T>>
+    where
+        T: Send + 'static,
+        F: FnOnce() -> T + Send + 'static,
+    {
         if !self.admission.try_acquire(lane) {
             return None;
         }
@@ -310,6 +399,12 @@ pub(super) fn try_submit<T, F>(
         let admission_for_job = Arc::clone(&self.admission);
 
         let worker_job: VoxelWorkerJob = Box::new(move || {
+            // The compute lease is created inside the durable worker job so it
+            // is released on every closure exit path, including cancellation
+            // before execution and panic unwind.
+            let _compute_admission =
+                VoxelWorkerComputeAdmission::new(admission_for_job, lane);
+
             if worker_cancelled.load(Ordering::Acquire) {
                 return;
             }
@@ -344,7 +439,7 @@ pub(super) fn try_submit<T, F>(
             }
         });
 
-        if self.queue.push(lane, worker_job).is_err() {
+        if self.queue.push(lane, priority, worker_job).is_err() {
             self.admission.release(lane);
             return None;
         }
@@ -352,8 +447,6 @@ pub(super) fn try_submit<T, F>(
         Some(VoxelWorkerTicket {
             receiver: Mutex::new(result_receiver),
             cancelled,
-            admission: Arc::clone(&self.admission),
-            lane,
         })
     }
 
@@ -401,7 +494,14 @@ pub(super) struct VoxelWorkerTask;
 
 #[cfg(test)]
 mod tests {
-    use super::{VoxelWorkerAdmission, VoxelWorkerLane, recommended_worker_threads};
+    use std::sync::{Arc, Mutex};
+
+    use std::sync::Arc;
+
+    use super::{
+        VoxelWorkerAdmission, VoxelWorkerComputeAdmission, VoxelWorkerLane,
+        recommended_worker_threads,
+    };
 
     #[test]
     fn dedicated_worker_pool_uses_three_quarters_available_parallelism() {
@@ -409,6 +509,35 @@ mod tests {
         assert_eq!(recommended_worker_threads(2), 1);
         assert_eq!(recommended_worker_threads(4), 3);
         assert_eq!(recommended_worker_threads(8), 6);
+    }
+
+    #[test]
+    fn critical_worker_queue_preempts_normal_backlog() {
+        let queue = VoxelWorkerQueue::default();
+        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
+
+        let normal_order = Arc::clone(&order);
+        queue
+            .push(
+                VoxelWorkerLane::Generation,
+                VoxelWorkerPriority::Normal,
+                Box::new(move || normal_order.lock().unwrap().push(1)),
+            )
+            .unwrap();
+
+        let critical_order = Arc::clone(&order);
+        queue
+            .push(
+                VoxelWorkerLane::Generation,
+                VoxelWorkerPriority::Critical,
+                Box::new(move || critical_order.lock().unwrap().push(2)),
+            )
+            .unwrap();
+
+        queue.pop().unwrap()();
+        queue.pop().unwrap()();
+
+        assert_eq!(*order.lock().unwrap(), vec![2, 1]);
     }
 
     #[test]
@@ -425,5 +554,39 @@ mod tests {
 
         admission.release(VoxelWorkerLane::Generation);
         assert!(admission.try_acquire(VoxelWorkerLane::Generation));
+    }
+
+    #[test]
+    fn compute_admission_ends_with_compute_not_result_ticket_lifetime() {
+        let admission = Arc::new(VoxelWorkerAdmission::new(1));
+        let lane = VoxelWorkerLane::Generation;
+        let full_capacity = admission.available(lane);
+
+        assert!(admission.try_acquire(lane));
+        assert_eq!(admission.available(lane), full_capacity - 1);
+
+        {
+            let _compute =
+                VoxelWorkerComputeAdmission::new(Arc::clone(&admission), lane);
+            // The actual submission path acquires before constructing this
+            // lease. Dropping the compute lease models the worker closure
+            // finishing while a separate result ticket may remain alive.
+        }
+
+        assert_eq!(admission.available(lane), full_capacity);
+    }
+
+    #[test]
+    fn cancelled_compute_still_releases_its_admission_lease() {
+        let admission = Arc::new(VoxelWorkerAdmission::new(1));
+        let lane = VoxelWorkerLane::Derivation;
+        let full_capacity = admission.available(lane);
+
+        assert!(admission.try_acquire(lane));
+        let compute =
+            VoxelWorkerComputeAdmission::new(Arc::clone(&admission), lane);
+        drop(compute);
+
+        assert_eq!(admission.available(lane), full_capacity);
     }
 }

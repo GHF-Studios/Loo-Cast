@@ -53,7 +53,8 @@ use crate::{
     spatial::{
         SpatialDemandSet, SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfLocalScalePresentation,
-        UsfPosition, UsfScaleLayer, UsfSpatialFrame, UsfTravelNeighborhood,
+        UsfPosition, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
+        UsfTravelNeighborhood,
     },
     view::ViewSubjectPresentation,
     voxel::VoxelMaterializationDemand,
@@ -256,7 +257,10 @@ fn spawn_reference_spacecraft(
                 
                 UsfLogicalRealizationOf(ship_partition),
                 UsfScaleLayer::new(body_layer.scale()),
-                UsfInteractionScaleAffinity::new(ship_interaction_scale),
+                // spacecraft-interaction-terrain-readiness-v1
+                UsfInteractionScaleAffinity::new(ship_interaction_scale).requiring(
+                    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+                ),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),
                 SpatialRefinementDemand::cuboid(SHIP_DEMAND_HALF_EXTENT),

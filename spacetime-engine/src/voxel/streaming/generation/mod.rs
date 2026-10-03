@@ -47,26 +47,31 @@ impl VoxelGenerationTask {
     fn submit(
         workers: &VoxelWorkerPool,
         world: Entity,
+        critical: bool,
         jobs: Vec<VoxelGenerationJob>,
     ) -> Self {
         debug_assert!(!jobs.is_empty());
         let keys = jobs.iter().map(|job| job.key).collect();
-        let task = workers
-            .try_submit(VoxelWorkerLane::Generation, move || {
-                jobs.into_iter()
-                    .map(|job| {
-                        let applied_edit_count = job.recipe.applied_edit_count();
-                        let chunk = job.recipe.materialize();
-                        VoxelGeneratedChunk {
-                            key: job.key,
-                            token: job.token,
-                            applied_edit_count,
-                            chunk,
-                        }
-                    })
-                    .collect()
-            })
-            .expect("generation admission was reserved before batch submission");
+        let build = move || {
+            jobs.into_iter()
+                .map(|job| {
+                    let applied_edit_count = job.recipe.applied_edit_count();
+                    let chunk = job.recipe.materialize();
+                    VoxelGeneratedChunk {
+                        key: job.key,
+                        token: job.token,
+                        applied_edit_count,
+                        chunk,
+                    }
+                })
+                .collect()
+        };
+        let task = if critical {
+            workers.try_submit_critical(VoxelWorkerLane::Generation, build)
+        } else {
+            workers.try_submit(VoxelWorkerLane::Generation, build)
+        }
+        .expect("generation admission was reserved before batch submission");
         Self {
             world,
             keys,
@@ -81,7 +86,11 @@ pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
     mut commands: Commands,
-    mut worlds: Query<(&mut VoxelWorld, Option<&UsfLogicalRealizationOf>)>,
+    mut worlds: Query<(
+        &mut VoxelWorld,
+        Option<&UsfLogicalRealizationOf>,
+        Option<&VoxelStreaming>,
+    )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame, &VoxelAuthority, &VoxelScaleDomain)>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
@@ -102,7 +111,9 @@ pub(in crate::voxel) fn finish_chunk_generation(
             generation.ready = completed.into();
         }
 
-        let Ok((mut world, logical_realization)) = worlds.get_mut(generation.world) else {
+        let Ok((mut world, logical_realization, streaming)) =
+            worlds.get_mut(generation.world)
+        else {
             generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
@@ -140,10 +151,13 @@ pub(in crate::voxel) fn finish_chunk_generation(
                 &mut output.chunk,
             );
             generation.keys.retain(|key| *key != output.key);
+            let needs_surface =
+                streaming.is_none_or(|streaming| streaming.surface_required(output.key));
             if world.materializations_mut().publish_generated(
                 output.key,
                 output.token,
                 output.chunk,
+                needs_surface,
             ) {
                 published += 1;
             }
@@ -271,7 +285,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
                     VoxelFrameSnapshot::new(*origin, *frame, world.origin().leaf_scale()),
                 )
             });
-        let batches = plan_generation_batches(
+        let mut batches = plan_generation_batches(
             &mut world,
             &mut streaming,
             authority,
@@ -279,14 +293,26 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             generation_slots,
             streaming_config.max_chunks_per_generation_task,
         );
+        // critical-generation-worker-submit-v1
+        // Keep physical batches ahead even if grouping produced multiple scopes.
+        batches.sort_by_key(|batch| !batch.critical);
         let scheduled = batches.len();
 
         for batch in batches {
             telemetry.generation_started();
             commands.spawn((
-                Name::new("Voxel Generation Task"),
+                Name::new(if batch.critical {
+                    "Voxel Critical Generation Task"
+                } else {
+                    "Voxel Generation Task"
+                }),
                 VoxelWorkerTask,
-                VoxelGenerationTask::submit(&workers, world_entity, batch.jobs),
+                VoxelGenerationTask::submit(
+                    &workers,
+                    world_entity,
+                    batch.critical,
+                    batch.jobs,
+                ),
             ));
         }
 

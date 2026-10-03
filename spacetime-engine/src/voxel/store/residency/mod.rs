@@ -30,17 +30,12 @@ impl VoxelMaterializationStore {
     /// resident data and therefore needs no generation reservation.
     pub(in crate::voxel) fn reactivate(&mut self, address: VoxelMaterializationKey) -> bool {
         let mut render_dirty = false;
-        let mut derived_dirty = false;
         let found = match self.entries.get_mut(&address) {
             Some(entry) => {
                 if !entry.active {
                     entry.active = true;
                     self.inactive_count = self.inactive_count.saturating_sub(1);
                     render_dirty = true;
-                }
-                if let Some(chunk) = entry.dense() {
-                    derived_dirty = entry.derived_revision != Some(chunk.revision())
-                        && entry.derived_in_flight != Some(chunk.revision());
                 }
                 true
             }
@@ -51,9 +46,8 @@ impl VoxelMaterializationStore {
             self.bump_capability_revision();
             self.mark_render_dirty(address);
         }
-        if derived_dirty {
-            self.mark_derived_dirty(address);
-        }
+        // Surface derivation is intentionally not inferred from residency.
+        // Streaming role intent re-arms it via ensure_derived_dirty().
         found
     }
 
@@ -129,11 +123,13 @@ impl VoxelMaterializationStore {
 
     /// Publishes a worker generation result only if its reservation is still
     /// current. Demand migration therefore cannot resurrect retired work.
+    // role-gated-generated-surface-v1
     pub(in crate::voxel) fn publish_generated(
         &mut self,
         address: VoxelMaterializationKey,
         token: u64,
         chunk: VoxelChunk,
+        needs_surface: bool,
     ) -> bool {
         let Some(entry) = self.entries.get_mut(&address) else {
             return false;
@@ -167,14 +163,29 @@ impl VoxelMaterializationStore {
         if uniform_revision.is_some() {
             self.bump_capability_revision();
             self.mark_render_dirty(address);
-        } else {
+        } else if needs_surface {
             self.mark_derived_dirty(address);
+        } else {
+            // Dense REALIZATION truth is ready even though no surface consumer
+            // exists. Capability publication observes active_dense_revision().
+            self.bump_capability_revision();
         }
         true
     }
 
     pub(in crate::voxel) fn is_active(&self, address: VoxelMaterializationKey) -> bool {
         self.entries.get(&address).is_some_and(|entry| entry.active)
+    }
+
+    pub(in crate::voxel) fn active_dense_revision(
+        &self,
+        address: VoxelMaterializationKey,
+    ) -> Option<u64> {
+        let entry = self.entries.get(&address)?;
+        if !entry.active {
+            return None;
+        }
+        entry.dense().map(VoxelChunk::revision)
     }
 
     pub(in crate::voxel) fn active_keys(
@@ -249,7 +260,7 @@ mod segmented_materialization_tests {
             let token = store.reserve_generation(key).unwrap();
             let chunk = VoxelChunk::filled(sample);
 
-            assert!(store.publish_generated(key, token, chunk));
+            assert!(store.publish_generated(key, token, chunk, true));
             assert_eq!(store.active_derived_revision(key), Some(0));
             assert!(store.surface(key).is_none());
             assert!(store.pop_dirty_derived().is_none());
