@@ -1938,8 +1938,28 @@ fn sync_celestial_clipmap_transforms(
             continue;
         };
 
+        // clipmap-eye-relative-projection-v1
+        // Mesh scale and block placement share the same view similarity frame.
+        // The physical eye/boom offset is removed before view-chart scaling so
+        // clipmap terrain and the local physical pass retain identical rays.
+        let relative_metres64 = DVec3::new(
+            f64::from(relative_metres.x),
+            f64::from(relative_metres.y),
+            f64::from(relative_metres.z),
+        );
+        let Some(projected_relative) =
+            view.project_relative_metres_from_eye(relative_metres64)
+        else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        let projected_relative = Vec3::new(
+            projected_relative.x as f32,
+            projected_relative.y as f32,
+            projected_relative.z as f32,
+        );
         let translation =
-            view.presentation_origin() + relative_metres * metre_to_view;
+            view.presentation_origin() + projected_relative;
         if !translation.is_finite() {
             *visibility = Visibility::Hidden;
             continue;

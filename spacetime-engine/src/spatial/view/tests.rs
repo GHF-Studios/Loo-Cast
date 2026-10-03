@@ -100,3 +100,62 @@ fn presentation_probe_filters_passes_without_changing_default_composition() {
     assert!(!context.physical_enabled());
     assert!(context.context_enabled());
 }
+
+// projection-similarity-invariant-v1
+#[test]
+fn same_semantic_point_projects_identically_from_different_source_scales() {
+    let mut view = UsfViewContext::default();
+    view.set_continuous_exponent(2.5);
+    view.set_projection_eye_offset_metres(DVec3::new(0.0, 1.7, -4.0));
+
+    let semantic_relative_metres = DVec3::new(12_345.0, -87.0, 456.0);
+
+    let s0 = SpatialScale::ZERO;
+    let s3 = SpatialScale::new(3).unwrap();
+
+    let s0_native = Vec3::new(
+        semantic_relative_metres.x as f32,
+        semantic_relative_metres.y as f32,
+        semantic_relative_metres.z as f32,
+    );
+    let s3_native = Vec3::new(
+        (semantic_relative_metres.x / s3.metres_per_native()) as f32,
+        (semantic_relative_metres.y / s3.metres_per_native()) as f32,
+        (semantic_relative_metres.z / s3.metres_per_native()) as f32,
+    );
+
+    let from_s0 = view
+        .project_relative_native_from_eye(s0_native, s0)
+        .unwrap();
+    let from_s3 = view
+        .project_relative_native_from_eye(s3_native, s3)
+        .unwrap();
+
+    assert!(
+        (from_s0 - from_s3).length() < 1.0e-4,
+        "representation Scale must not change projected semantic position: {from_s0:?} vs {from_s3:?}",
+    );
+}
+
+#[test]
+fn presentation_exponent_preserves_physical_camera_ray() {
+    let eye = DVec3::new(0.25, 1.7, -4.0);
+    let point = DVec3::new(23.0, -2.0, 91.0);
+    let physical_ray = (point - eye).normalize();
+
+    for exponent in [0.0_f32, 0.5, 3.25, 6.0, 20.0] {
+        let mut view = UsfViewContext::default();
+        view.set_continuous_exponent(exponent);
+        view.set_projection_eye_offset_metres(eye);
+
+        let projected = view
+            .project_relative_metres_from_eye(point)
+            .unwrap();
+        let projected_ray = projected.normalize();
+
+        assert!(
+            (projected_ray - physical_ray).length() < 1.0e-12,
+            "presentation exponent {exponent} changed the camera ray: {projected_ray:?} vs {physical_ray:?}",
+        );
+    }
+}

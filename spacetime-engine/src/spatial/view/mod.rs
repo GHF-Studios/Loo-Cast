@@ -284,8 +284,14 @@ pub struct UsfViewContext {
     runtime_anchor: Vec3,
     /// Canonical SI motion of the semantic observer anchor.
     velocity_metres_per_second: DVec3,
-    /// Render-space position of the active primary camera.
+    /// Render-space position of the dedicated USF projection camera.
     render_anchor: Vec3,
+    /// Physical camera-eye offset from the semantic observer anchor, in SI metres.
+    ///
+    /// This is presentation-only state. It must participate in the same
+    /// similarity transform as contextual geometry without becoming semantic
+    /// observer motion or world-demand authority.
+    projection_eye_offset_metres: DVec3,
     scale: SpatialScale,
     zoom: f32,
 }
@@ -327,6 +333,7 @@ impl Default for UsfViewContext {
             runtime_anchor: Vec3::ZERO,
             velocity_metres_per_second: DVec3::ZERO,
             render_anchor: Vec3::ZERO,
+            projection_eye_offset_metres: DVec3::ZERO,
             scale: SpatialScale::MAX,
             zoom: 0.0,
         }
@@ -355,9 +362,23 @@ impl UsfViewContext {
         self.runtime_anchor
     }
 
-    /// Render-space position of the active primary camera.
+    /// Render-space position of the dedicated USF projection camera.
     pub const fn render_anchor(&self) -> Vec3 {
         self.render_anchor
+    }
+
+    /// Physical camera-eye offset from the semantic observer anchor.
+    pub const fn projection_eye_offset_metres(&self) -> DVec3 {
+        self.projection_eye_offset_metres
+    }
+
+    /// Publishes view-only eye/boom placement without moving semantic authority.
+    pub(crate) fn set_projection_eye_offset_metres(&mut self, offset: DVec3) {
+        self.projection_eye_offset_metres = if offset.is_finite() {
+            offset
+        } else {
+            DVec3::ZERO
+        };
     }
 
     pub const fn scale(&self) -> SpatialScale {
@@ -422,9 +443,63 @@ impl UsfViewContext {
         scale >= self.scale
     }
 
+    // projection-eye-similarity-frame-v1
+    /// f64 scale conversion at the final presentation-chart boundary.
+    ///
+    /// Keep the scale algebra in f64 until the final render transform so the
+    /// 71-slice stack never relies on an intermediate f32 factor being finite.
+    pub(crate) fn projection_factor_f64(&self, scale: SpatialScale) -> Option<f64> {
+        let exponent_delta =
+            f64::from(scale.exponent()) - f64::from(self.continuous_exponent());
+        let factor = 10.0_f64.powf(exponent_delta);
+        (factor.is_finite() && factor > 0.0).then_some(factor)
+    }
+
     /// Converts geometry authored in `scale`-native units into current view units.
     pub fn projection_factor(&self, scale: SpatialScale) -> f32 {
-        10.0_f32.powf(scale.exponent() as f32 - self.continuous_exponent())
+        self.projection_factor_f64(scale)
+            .map_or(f32::INFINITY, |factor| factor as f32)
+    }
+
+    /// Projects a semantic-observer-relative SI vector into the bounded view
+    /// chart while preserving the physical camera ray.
+    ///
+    /// The camera rig offset is subtracted *before* chart scaling. Therefore
+    /// changing only the presentation exponent uniformly rescales the complete
+    /// camera-relative scene and cannot manufacture parallax.
+    pub(crate) fn project_relative_metres_from_eye(
+        &self,
+        relative_metres: DVec3,
+    ) -> Option<DVec3> {
+        let metres_to_view =
+            10.0_f64.powf(-f64::from(self.continuous_exponent()));
+        let projected =
+            (relative_metres - self.projection_eye_offset_metres) * metres_to_view;
+        (metres_to_view.is_finite()
+            && metres_to_view > 0.0
+            && projected.is_finite())
+            .then_some(projected)
+    }
+
+    /// Same mapping for one vector expressed in an arbitrary Scale's native units.
+    pub(crate) fn project_relative_native_from_eye(
+        &self,
+        relative_native: Vec3,
+        scale: SpatialScale,
+    ) -> Option<DVec3> {
+        if !relative_native.is_finite() {
+            return None;
+        }
+        let metres_per_native = scale.metres_per_native();
+        if !metres_per_native.is_finite() || metres_per_native <= 0.0 {
+            return None;
+        }
+        let relative_metres = DVec3::new(
+            f64::from(relative_native.x) * metres_per_native,
+            f64::from(relative_native.y) * metres_per_native,
+            f64::from(relative_native.z) * metres_per_native,
+        );
+        self.project_relative_metres_from_eye(relative_metres)
     }
 
     /// Scale factor for the bounded *direct* contextual composition path.
@@ -434,13 +509,8 @@ impl UsfViewContext {
     /// from escaping the final f32 render chart through an enormous Scale
     /// Stack projection factor.
     pub fn direct_projection_factor(&self, scale: SpatialScale) -> Option<f32> {
-        let exponent_delta =
-            f64::from(scale.exponent()) - f64::from(self.continuous_exponent());
-        let factor = 10.0_f64.powf(exponent_delta);
-        (factor.is_finite()
-            && factor > 0.0
-            && factor <= DIRECT_PRESENTATION_SCALE_BOUND)
-            .then_some(factor as f32)
+        let factor = self.projection_factor_f64(scale)?;
+        (factor <= DIRECT_PRESENTATION_SCALE_BOUND).then_some(factor as f32)
     }
 
 }

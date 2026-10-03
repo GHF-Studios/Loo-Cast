@@ -304,17 +304,26 @@ pub(in crate::spatial) fn project_scenery_presentations(
             continue;
         }
 
-        let exponent_delta =
-            f64::from(presentation.scale().exponent()) - f64::from(view.continuous_exponent());
-        let native_to_view = 10.0_f64.powf(exponent_delta);
-        let raw_relative = DVec3::new(
-            f64::from(relative.x) * native_to_view,
-            f64::from(relative.y) * native_to_view,
-            f64::from(relative.z) * native_to_view,
-        );
+        // eye-relative-context-projection-v1
+        // Position and size use one similarity frame. Camera eye/boom offset is
+        // removed before projection so changing view exponent cannot change
+        // parallax. Far-field radial compression then operates on that true
+        // camera-relative vector.
+        let Some(native_to_view) =
+            view.projection_factor_f64(presentation.scale())
+        else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        let Some(raw_relative) =
+            view.project_relative_native_from_eye(relative, presentation.scale())
+        else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
         let raw_distance = raw_relative.length();
 
-        if !raw_distance.is_finite() || !native_to_view.is_finite() {
+        if !raw_distance.is_finite() {
             *visibility = Visibility::Hidden;
             continue;
         }
@@ -508,10 +517,24 @@ pub(in crate::spatial) fn project_scale_presentations(
             *visibility = Visibility::Hidden;
             continue;
         };
-        let projected_relative = relative * factor;
-        if !projected_relative.is_finite()
-            || projected_relative.abs().max_element() > PRESENTATION_RELATIVE_BOUND
+        let Some(projected_relative64) =
+            view.project_relative_native_from_eye(relative, presentation.scale())
+        else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        if projected_relative64.abs().max_element()
+            > f64::from(PRESENTATION_RELATIVE_BOUND)
         {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+        let projected_relative = Vec3::new(
+            projected_relative64.x as f32,
+            projected_relative64.y as f32,
+            projected_relative64.z as f32,
+        );
+        if !projected_relative.is_finite() {
             *visibility = Visibility::Hidden;
             continue;
         }
