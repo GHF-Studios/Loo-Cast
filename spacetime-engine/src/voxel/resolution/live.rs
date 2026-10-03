@@ -24,8 +24,11 @@ use crate::reconstructible::{
     ReconstructibleFrameBudget, ReconstructibleWorkClass,
 };
 use crate::view::USF_PRESENTATION_LAYER;
-use crate::voxel::developer_policy::{
-    presentation_surface_radius_bounds_metres,
+use crate::voxel::{
+    developer_policy::{
+        presentation_surface_radius_bounds_metres,
+    },
+    VoxelWorld,
 };
 
 use crate::{
@@ -64,6 +67,11 @@ const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
 // spherical surface representation.
 const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
+// volumetric-boundary-continuity-visual-handoff-v1
+const TARGET_CELLS_PER_CLEARANCE: f64 = 128.0;
+const DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE: f64 = 64.0;
+const DENSE_VISUAL_MIN_DISTANCE_NATIVE: f64 = 96.0;
+
 // local-error-driven-binary-refinement-v1
 // A real planet->local binary ladder needs room for 2:1 transition support
 // around a deeply refined focus. These are planner/frontier limits, not dense
@@ -924,6 +932,23 @@ impl CelestialClipmapCoverageSnapshot {
             .unwrap_or(&[])
     }
 
+    /// Finest actually-visible contextual spacing covering one body-local point.
+    ///
+    /// This is intentionally post-composition coverage; a hidden/unpublished
+    /// binary block cannot be used as evidence to retire dense presentation.
+    pub(in crate::voxel) fn finest_spacing_covering(
+        &self,
+        authority: Entity,
+        point_local_metres: DVec3,
+    ) -> Option<f64> {
+        self.for_authority(authority)
+            .iter()
+            .copied()
+            .filter(|cell| cell.contains_local_point(point_local_metres))
+            .map(CelestialClipmapCoverageCell::sample_spacing_metres)
+            .min_by(f64::total_cmp)
+    }
+
     fn replace_authority(
         &mut self,
         authority: Entity,
@@ -1100,6 +1125,37 @@ fn block_may_intersect_presentation_shell(
         && farthest >= (volumetric_minimum - conservative_extra).max(0.0)
 }
 
+// binary-can-replace-dense-visual-v1
+fn binary_spacing_is_adequate_for_dense_handoff(
+    sample_spacing_metres: f64,
+    distance_metres: f64,
+    interaction_scale: SpatialScale,
+) -> bool {
+    if !sample_spacing_metres.is_finite()
+        || sample_spacing_metres <= 0.0
+        || !distance_metres.is_finite()
+        || distance_metres < 0.0
+    {
+        return false;
+    }
+
+    let interaction_floor =
+        interaction_scale.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
+    let minimum_dense_visual_distance =
+        interaction_scale.metres_per_native()
+            * DENSE_VISUAL_MIN_DISTANCE_NATIVE;
+
+    if distance_metres < minimum_dense_visual_distance {
+        return false;
+    }
+
+    let acceptable_spacing =
+        (distance_metres / DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE)
+            .max(interaction_floor);
+
+    sample_spacing_metres <= acceptable_spacing
+}
+
 fn target_resolution_at_distance(
     finest: VoxelPresentationResolution,
     distance_metres: f64,
@@ -1252,9 +1308,14 @@ fn derive_plan_input(
         return None;
     }
 
-    let clearance = field
-        .signed_distance_local_metres(observer_local)?
-        .abs();
+    // boundary-focused-binary-refinement-v1
+    //
+    // Refine the semantic terrain boundary, not empty space around the camera.
+    // Full SDF projection means this follows cave walls as well as the outer
+    // planetary surface.
+    let (planning_anchor_local, signed_clearance_metres) =
+        field.nearest_boundary_local_metres(observer_local, f64::MAX)?;
+    let clearance = signed_clearance_metres.abs();
     if !clearance.is_finite() {
         return None;
     }
@@ -1264,7 +1325,8 @@ fn derive_plan_input(
         interaction_scale.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
     let maximum_spacing_metres =
         MAX_FINE_SAMPLE_SPACING_METRES.max(interaction_floor_metres);
-    let desired_spacing = (clearance / 64.0).clamp(
+    let desired_spacing =
+        (clearance / TARGET_CELLS_PER_CLEARANCE).clamp(
         interaction_floor_metres,
         maximum_spacing_metres,
     );
@@ -1322,7 +1384,7 @@ fn derive_plan_input(
             coarsest_exponent: coarsest.binary_exponent(),
             policy_revision,
         },
-        planning_anchor_local: observer_local,
+        planning_anchor_local,
         validity_radius_metres,
         clearance_metres: clearance,
         finest,
@@ -2389,7 +2451,28 @@ fn sync_celestial_clipmap_transforms(
             .get(&block.authority)
             .is_some_and(|plan| plan.committed_specs.contains(&block.spec));
 
+        let observer_local = body_frame
+            .world_to_local_metres(
+                body_origin,
+                view.anchor(),
+                SpatialScale::ZERO,
+                f64::MAX,
+            )
+            .ok();
+        let distance_to_block = observer_local
+            .map(|observer_local| {
+                block_distance_to_point(block.spec.key, observer_local)
+            })
+            .unwrap_or(f64::INFINITY);
+        let binary_can_replace_dense =
+            binary_spacing_is_adequate_for_dense_handoff(
+                block.spec.key.spacing_metres(),
+                distance_to_block,
+                physical_target_scale,
+            );
+
         let dense_yields_context = committed
+            && !binary_can_replace_dense
             && dense_apertures
                 .get(&block.authority)
                 .is_some_and(|apertures| {
@@ -2403,6 +2486,10 @@ fn sync_celestial_clipmap_transforms(
             yielded_blocks = yielded_blocks.saturating_add(1);
         }
 
+        // Near: dense child owns the aperture.
+        // Medium/far: once this committed binary block is fine enough for the
+        // view distance, keep it visible so it can become the proven parent
+        // replacement before dense rendering retires.
         let visible = committed && !dense_yields_context;
         *visibility = if visible {
             Visibility::Inherited
@@ -2472,13 +2559,18 @@ fn sync_celestial_clipmap_transforms(
 
 /// Dense physical/current-interaction presentation is the terminal refinement
 /// child. Binary context may yield to it; this function never does the reverse.
+// dense-visual-make-before-break-v1
 fn enforce_dense_interaction_presentation(
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
+    clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     runtimes: Query<&VoxelMaterializationRuntime>,
     worlds: Query<(
         &CelestialVoxelRealization,
         &UsfScaleLayer,
+        &VoxelWorld,
     )>,
+    authorities: Query<(&UsfPosition, &UsfSemanticFrame), With<CelestialVoxelField>>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
@@ -2488,19 +2580,67 @@ fn enforce_dense_interaction_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((_realization, layer)) = worlds.get(runtime.world()) else {
+        let Ok((realization, layer, world)) =
+            worlds.get(runtime.world())
+        else {
             continue;
         };
 
-        // Destination presentation is allowed to become ready/visible
-        // before the interaction transaction commits. This is the visual half
-        // of make-before-break.
-        *visibility =
-            if layer.scale() == interaction.target_scale() && runtime.active() {
-                Visibility::Inherited
-            } else {
-                Visibility::Hidden
-            };
+        let target_scale = interaction.target_scale();
+        if layer.scale() != target_scale || !runtime.active() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        let binary_replacement_ready = (|| {
+            let (body_origin, body_frame) =
+                authorities.get(realization.authority()).ok()?;
+            let center = world
+                .materialization_address(runtime.key())
+                .ok()?
+                .center()
+                .ok()?;
+            let center_local = body_frame
+                .world_to_local_metres(
+                    body_origin,
+                    &center,
+                    SpatialScale::ZERO,
+                    f64::MAX,
+                )
+                .ok()?;
+            let observer_local = body_frame
+                .world_to_local_metres(
+                    body_origin,
+                    view.anchor(),
+                    SpatialScale::ZERO,
+                    f64::MAX,
+                )
+                .ok()?;
+            let distance_metres =
+                (center_local - observer_local).length();
+            let spacing = clipmap_coverage
+                .finest_spacing_covering(
+                    realization.authority(),
+                    center_local,
+                )?;
+
+            binary_spacing_is_adequate_for_dense_handoff(
+                spacing,
+                distance_metres,
+                target_scale,
+            )
+            .then_some(())
+        })()
+        .is_some();
+
+        // Physical dense residency may stay alive for collision/editing while
+        // rendering yields. If binary coverage disappears or is too coarse,
+        // dense becomes visible again automatically.
+        *visibility = if binary_replacement_ready {
+            Visibility::Hidden
+        } else {
+            Visibility::Inherited
+        };
     }
 }
 
@@ -2526,6 +2666,56 @@ pub(super) fn configure(app: &mut App) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn binary_visual_handoff_requires_distance_and_resolution() {
+        let s0 = SpatialScale::ZERO;
+
+        assert!(!binary_spacing_is_adequate_for_dense_handoff(
+            2.0,
+            20.0,
+            s0,
+        ));
+        assert!(binary_spacing_is_adequate_for_dense_handoff(
+            8.0,
+            1_000.0,
+            s0,
+        ));
+        assert!(!binary_spacing_is_adequate_for_dense_handoff(
+            64.0,
+            1_000.0,
+            s0,
+        ));
+    }
+
+    #[test]
+    fn clipmap_focus_projects_to_semantic_boundary() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            crate::voxel::CelestialBodyProfile::Rocky,
+        );
+        let surface = field.surface_local_metres(Vec3::Y).unwrap();
+        let observer = surface + DVec3::Y * 4_000.0;
+
+        let input = derive_plan_input(
+            field,
+            observer,
+            SpatialScale::ZERO,
+            0.0,
+            0.05,
+            0,
+        )
+        .unwrap();
+
+        assert!(
+            (input.planning_anchor_local - surface).length() < 5.0,
+            "binary focus must follow terrain boundary, not empty observer space",
+        );
+        assert!(input.clearance_metres > 3_000.0);
+    }
 
     #[test]
     fn local_refinement_candidate_beats_far_coarse_candidate() {

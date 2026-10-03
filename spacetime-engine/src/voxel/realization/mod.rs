@@ -396,14 +396,24 @@ pub(super) fn collect_voxel_realization_intent(
         // demand. Camera/view visibility never manufactures voxel worlds.
 
         for source in sources.iter().copied() {
+            let Some((boundary_center, signed_clearance_metres)) =
+                field.boundary_near(
+                    body_origin,
+                    *body_frame,
+                    &source.scope.center(),
+                    f64::MAX,
+                )
+            else {
+                continue;
+            };
+
             let plan = realization_plan(source, *domain);
             for step in plan.steps_coarse_to_fine() {
                 let scale = step.scale();
                 let target = VoxelRealizationTarget::new(authority, scale);
-                let candidate = celestial_surface_demand(
-                    *body_origin,
-                    *body_frame,
-                    *field,
+                let candidate = celestial_boundary_demand(
+                    boundary_center,
+                    signed_clearance_metres,
                     *domain,
                     source.scope,
                     scale,
@@ -609,32 +619,37 @@ fn realization_requests_scale(
     .requests_scale(target_scale)
 }
 
-fn celestial_surface_demand(
-    body_origin: UsfPosition,
-    body_frame: UsfSemanticFrame,
-    field: CelestialVoxelField,
+// volumetric-boundary-demand-v1
+fn celestial_boundary_demand(
+    boundary_center: UsfPosition,
+    signed_clearance_metres: f64,
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
     priority: i32,
 ) -> Option<SpatialDemandScope> {
-    let body = field.realization(body_origin, body_frame, target_scale);
-    let activation = domain.refinement_activation_native;
-    let search_bound =
-        activation + half_extent_native.length() + MATERIALIZATION_CHUNK_SIZE as f32;
+    let metres_per_native = target_scale.metres_per_native();
+    let activation_metres =
+        f64::from(domain.refinement_activation_native.max(0.0))
+            * metres_per_native;
 
-    let (center, _up, signed_clearance) =
-        body.surface_near(&source.center(), search_bound)?;
-
-    if signed_clearance.abs() > activation {
+    // Keep one footprint worth of overlap beyond the nominal activation
+    // threshold so the binary parent has time/space to become the visible
+    // replacement before dense residency retires.
+    let overlap_metres =
+        f64::from(half_extent_native.length() + MATERIALIZATION_CHUNK_SIZE as f32)
+            * metres_per_native;
+    if signed_clearance_metres.abs()
+        > activation_metres + overlap_metres
+    {
         return None;
     }
 
     Some(SpatialDemandScope::at_scale(
         source.source(),
         target_scale,
-        center,
+        boundary_center,
         half_extent_native,
         priority,
     ))
@@ -643,6 +658,44 @@ fn celestial_surface_demand(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn volumetric_boundary_demand_is_symmetric_across_surface() {
+        let mut ecs = World::new();
+        let source_entity = ecs.spawn_empty().id();
+        let scale = SpatialScale::ZERO;
+        let boundary = UsfPosition::zero(scale);
+        let source = SpatialDemandScope::at_scale(
+            source_entity,
+            scale,
+            boundary,
+            Vec3::splat(8.0),
+            100,
+        );
+        let domain = VoxelScaleDomain::contiguous(scale, scale)
+            .with_refinement_activation_native(1_000.0);
+
+        assert!(celestial_boundary_demand(
+            boundary,
+            500.0,
+            domain,
+            source,
+            scale,
+            Vec3::splat(8.0),
+            100,
+        )
+        .is_some());
+        assert!(celestial_boundary_demand(
+            boundary,
+            -500.0,
+            domain,
+            source,
+            scale,
+            Vec3::splat(8.0),
+            100,
+        )
+        .is_some());
+    }
 
     #[test]
     fn refinement_demand_tracks_the_current_location_immediately() {
