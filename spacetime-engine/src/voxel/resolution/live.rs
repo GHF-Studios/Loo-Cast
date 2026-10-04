@@ -364,6 +364,7 @@ struct CelestialClipmapSurfaceCache {
 const MIN_EXACT_PLANNER_BLOCK_EXTENT_METRES: f64 = 262_144.0;
 const EXACT_PLANNER_SHELL_MULTIPLIER: f64 = 2.0;
 
+// presentation-planner-classifier-owner-repair-v1
 struct ClipmapBoundaryClassifier<'a> {
     field: CelestialVoxelField,
     planning_anchor_local: DVec3,
@@ -431,35 +432,26 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
     }
 
 
+
     fn refinement_intersects(
-        &mut self,
+        &self,
         key: CelestialClipmapBlockKey,
-        classifier: &ClipmapBoundaryClassifier<'_>,
     ) -> bool {
-        if block_contains_local_point(key, classifier.planning_anchor_local) {
+        if block_contains_local_point(key, self.planning_anchor_local) {
+            return true;
+        }
+        if !block_may_intersect_presentation_shell(self.field, key) {
+            return false;
+        }
+        if !self.needs_exact_boundary(key) {
             return true;
         }
 
-        if let Some(entry) = self.classifications.get_mut(&key)
-            && let Some(value) = entry.refinement
-        {
-            entry.touched_generation = self.generation;
-            self.hits = self.hits.saturating_add(1);
-            return value;
-        }
-
-        self.misses = self.misses.saturating_add(1);
-        let value = classifier.refinement_intersects(key);
-        if !value
-            && !block_may_intersect_presentation_shell(classifier.field, key)
-        {
-            self.cheap_rejects = self.cheap_rejects.saturating_add(1);
-        }
-
-        let entry = self.classifications.entry(key).or_default();
-        entry.refinement = Some(value);
-        entry.touched_generation = self.generation;
-        value
+        block_intersects_refinement_boundary_with_sampler(
+            self.field,
+            key,
+            self.sampler,
+        )
     }
 }
 
@@ -508,14 +500,13 @@ impl CelestialClipmapSurfaceCache {
         value
     }
 
+
     fn refinement_intersects(
         &mut self,
-        field: CelestialVoxelField,
         key: CelestialClipmapBlockKey,
-        planning_anchor_local: DVec3,
-        sampler: &CelestialPresentationFieldSampler,
+        classifier: &ClipmapBoundaryClassifier<'_>,
     ) -> bool {
-        if block_contains_local_point(key, planning_anchor_local) {
+        if block_contains_local_point(key, classifier.planning_anchor_local) {
             return true;
         }
 
@@ -528,11 +519,13 @@ impl CelestialClipmapSurfaceCache {
         }
 
         self.misses = self.misses.saturating_add(1);
-        let value = block_intersects_refinement_boundary_with_sampler(
-            field,
-            key,
-            sampler,
-        );
+        let value = classifier.refinement_intersects(key);
+        if !value
+            && !block_may_intersect_presentation_shell(classifier.field, key)
+        {
+            self.cheap_rejects = self.cheap_rejects.saturating_add(1);
+        }
+
         let entry = self.classifications.entry(key).or_default();
         entry.refinement = Some(value);
         entry.touched_generation = self.generation;

@@ -23,8 +23,6 @@ pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
 pub(crate) use noise::{
-    SemanticNoiseDiagnosticSnapshot,
-    semantic_noise_diagnostic_snapshot,
     value_noise_3d as script_value_noise_3d,
 };
 
