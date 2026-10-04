@@ -2074,7 +2074,7 @@ fn plan_requires_refresh(
     let displacement = observer_displacement.max(surface_displacement);
     let fine_extent =
         input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    if plan.visibility.requires_refresh(input.visibility, fine_extent) {
+    if plan.visibility.requires_refresh(&input.visibility, fine_extent) {
         return true;
     }
 
