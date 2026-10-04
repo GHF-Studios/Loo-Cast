@@ -3228,7 +3228,7 @@ fn replace_clipmap_mesh_in_place(
     replacement: Mesh,
     meshes: &mut Assets<Mesh>,
 ) {
-    if let Some(existing) = meshes.get_mut(&mesh3d.0) {
+    if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
         *existing = replacement;
     } else {
         commands
@@ -3931,7 +3931,6 @@ fn sync_celestial_clipmap_realizations(
                     break 'authorities;
                 };
                 let field = plan.field;
-                let policy = plan.policy.clone();
                 let policy_revision = plan.key.policy_revision;
                 let boundary_proven =
                     spec.key.resolution.binary_exponent()
@@ -4101,9 +4100,10 @@ fn binary_frontier_projection_complete(
 }
 
 #[derive(Debug, Clone, Copy)]
+// runtime-pooling-transform-compile-repair-v1
 struct ClipmapProjectedAuthorityFrame {
     relative_metres: DVec3,
-    orientation: DQuat,
+    orientation: bevy::math::DQuat,
     rotation: Quat,
 }
 
