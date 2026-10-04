@@ -49,6 +49,8 @@ use crate::procedural_assets::{
     DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
 };
 use crate::view::USF_PRESENTATION_LAYER;
+// fine-residual-microdiagnostics-v1
+use crate::voxel::base::semantic_noise_diagnostic_snapshot;
 use crate::voxel::{
     developer_policy::{
         presentation_surface_radius_bounds_metres,
@@ -3442,6 +3444,9 @@ fn build_clipmap_mesh(
             )
             .entered();
 
+            let semantic_diagnostics_before =
+                semantic_noise_diagnostic_snapshot();
+
             let interior =
                 sample_cache.central_lattice_get_or_compute(
                     spec.key,
@@ -3453,6 +3458,54 @@ fn build_clipmap_mesh(
                         )
                     },
                 );
+
+            let semantic_diagnostics =
+                semantic_noise_diagnostic_snapshot()
+                    .delta_since(semantic_diagnostics_before);
+
+            trace!(
+                prepared_point_attempts =
+                    semantic_diagnostics.prepared_point_attempts,
+                prepared_point_successes =
+                    semantic_diagnostics.prepared_point_successes,
+                prepared_point_nonfinite_failures =
+                    semantic_diagnostics
+                        .prepared_point_nonfinite_failures,
+                prepared_point_range_failures =
+                    semantic_diagnostics
+                        .prepared_point_range_failures,
+                prepared_point_overflow_failures =
+                    semantic_diagnostics
+                        .prepared_point_overflow_failures,
+                prepared_cell_address_failures =
+                    semantic_diagnostics
+                        .prepared_cell_address_failures,
+                fast_path_completions =
+                    semantic_diagnostics.fast_path_completions,
+                generic_fallbacks =
+                    semantic_diagnostics.generic_fallbacks,
+                cell_20_hits = semantic_diagnostics.cell_20_hits,
+                cell_20_misses = semantic_diagnostics.cell_20_misses,
+                cell_5_hits = semantic_diagnostics.cell_5_hits,
+                cell_5_misses = semantic_diagnostics.cell_5_misses,
+                cell_empty_misses =
+                    semantic_diagnostics.cell_empty_misses,
+                cell_collision_misses =
+                    semantic_diagnostics.cell_collision_misses,
+                corner_hits = semantic_diagnostics.corner_hits,
+                corner_misses = semantic_diagnostics.corner_misses,
+                corner_empty_misses =
+                    semantic_diagnostics.corner_empty_misses,
+                corner_collision_misses =
+                    semantic_diagnostics.corner_collision_misses,
+                corner_hash_computes =
+                    semantic_diagnostics.corner_hash_computes,
+                compact_axis_decompositions =
+                    semantic_diagnostics.compact_axis_decompositions,
+                compact_digit_steps =
+                    semantic_diagnostics.compact_digit_steps,
+                "fine residual density-lattice microdiagnostics"
+            );
 
             ClipmapCentralBlock::from_lattice(
                 &central_shared_density,

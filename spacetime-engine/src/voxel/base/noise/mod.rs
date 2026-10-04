@@ -252,6 +252,246 @@ impl SemanticNoiseCellEntry {
     };
 }
 
+// fine-residual-microdiagnostics-v1
+//
+// PERFORMANCE DIAGNOSTICS, NOT SEMANTIC STATE.
+//
+// Fine residuals are currently the dominant first-touch presentation kernel.
+// Keep the hot-path instrumentation deliberately simple: worker-thread-local
+// integer counters plus coarse Tracy spans only for the expensive miss/fallback
+// branches. Do NOT replace these with a span around every corner hit; that would
+// perturb the exact kernel we are trying to measure.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct SemanticNoiseDiagnosticSnapshot {
+    pub(crate) prepared_point_attempts: u64,
+    pub(crate) prepared_point_successes: u64,
+    pub(crate) prepared_point_nonfinite_failures: u64,
+    pub(crate) prepared_point_range_failures: u64,
+    pub(crate) prepared_point_overflow_failures: u64,
+    pub(crate) prepared_cell_address_failures: u64,
+
+    pub(crate) fast_path_completions: u64,
+    pub(crate) generic_fallbacks: u64,
+
+    pub(crate) cell_20_hits: u64,
+    pub(crate) cell_20_misses: u64,
+    pub(crate) cell_5_hits: u64,
+    pub(crate) cell_5_misses: u64,
+    pub(crate) cell_empty_misses: u64,
+    pub(crate) cell_collision_misses: u64,
+
+    pub(crate) corner_hits: u64,
+    pub(crate) corner_misses: u64,
+    pub(crate) corner_empty_misses: u64,
+    pub(crate) corner_collision_misses: u64,
+    pub(crate) corner_hash_computes: u64,
+    pub(crate) compact_axis_decompositions: u64,
+    pub(crate) compact_digit_steps: u64,
+}
+
+impl SemanticNoiseDiagnosticSnapshot {
+    pub(crate) fn delta_since(self, before: Self) -> Self {
+        macro_rules! delta {
+            ($field:ident) => {
+                self.$field.saturating_sub(before.$field)
+            };
+        }
+
+        Self {
+            prepared_point_attempts: delta!(prepared_point_attempts),
+            prepared_point_successes: delta!(prepared_point_successes),
+            prepared_point_nonfinite_failures:
+                delta!(prepared_point_nonfinite_failures),
+            prepared_point_range_failures:
+                delta!(prepared_point_range_failures),
+            prepared_point_overflow_failures:
+                delta!(prepared_point_overflow_failures),
+            prepared_cell_address_failures:
+                delta!(prepared_cell_address_failures),
+            fast_path_completions: delta!(fast_path_completions),
+            generic_fallbacks: delta!(generic_fallbacks),
+            cell_20_hits: delta!(cell_20_hits),
+            cell_20_misses: delta!(cell_20_misses),
+            cell_5_hits: delta!(cell_5_hits),
+            cell_5_misses: delta!(cell_5_misses),
+            cell_empty_misses: delta!(cell_empty_misses),
+            cell_collision_misses: delta!(cell_collision_misses),
+            corner_hits: delta!(corner_hits),
+            corner_misses: delta!(corner_misses),
+            corner_empty_misses: delta!(corner_empty_misses),
+            corner_collision_misses: delta!(corner_collision_misses),
+            corner_hash_computes: delta!(corner_hash_computes),
+            compact_axis_decompositions:
+                delta!(compact_axis_decompositions),
+            compact_digit_steps: delta!(compact_digit_steps),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct SemanticNoiseDiagnosticsStorage {
+    prepared_point_attempts: Cell<u64>,
+    prepared_point_successes: Cell<u64>,
+    prepared_point_nonfinite_failures: Cell<u64>,
+    prepared_point_range_failures: Cell<u64>,
+    prepared_point_overflow_failures: Cell<u64>,
+    prepared_cell_address_failures: Cell<u64>,
+
+    fast_path_completions: Cell<u64>,
+    generic_fallbacks: Cell<u64>,
+
+    cell_20_hits: Cell<u64>,
+    cell_20_misses: Cell<u64>,
+    cell_5_hits: Cell<u64>,
+    cell_5_misses: Cell<u64>,
+    cell_empty_misses: Cell<u64>,
+    cell_collision_misses: Cell<u64>,
+
+    corner_hits: Cell<u64>,
+    corner_misses: Cell<u64>,
+    corner_empty_misses: Cell<u64>,
+    corner_collision_misses: Cell<u64>,
+    corner_hash_computes: Cell<u64>,
+    compact_axis_decompositions: Cell<u64>,
+    compact_digit_steps: Cell<u64>,
+}
+
+impl SemanticNoiseDiagnosticsStorage {
+    fn new() -> Self {
+        Self {
+            prepared_point_attempts: Cell::new(0),
+            prepared_point_successes: Cell::new(0),
+            prepared_point_nonfinite_failures: Cell::new(0),
+            prepared_point_range_failures: Cell::new(0),
+            prepared_point_overflow_failures: Cell::new(0),
+            prepared_cell_address_failures: Cell::new(0),
+            fast_path_completions: Cell::new(0),
+            generic_fallbacks: Cell::new(0),
+            cell_20_hits: Cell::new(0),
+            cell_20_misses: Cell::new(0),
+            cell_5_hits: Cell::new(0),
+            cell_5_misses: Cell::new(0),
+            cell_empty_misses: Cell::new(0),
+            cell_collision_misses: Cell::new(0),
+            corner_hits: Cell::new(0),
+            corner_misses: Cell::new(0),
+            corner_empty_misses: Cell::new(0),
+            corner_collision_misses: Cell::new(0),
+            corner_hash_computes: Cell::new(0),
+            compact_axis_decompositions: Cell::new(0),
+            compact_digit_steps: Cell::new(0),
+        }
+    }
+
+    #[inline]
+    fn bump(counter: &Cell<u64>) {
+        counter.set(counter.get().saturating_add(1));
+    }
+
+    #[inline]
+    fn add(counter: &Cell<u64>, amount: u64) {
+        counter.set(counter.get().saturating_add(amount));
+    }
+
+    fn snapshot(&self) -> SemanticNoiseDiagnosticSnapshot {
+        SemanticNoiseDiagnosticSnapshot {
+            prepared_point_attempts: self.prepared_point_attempts.get(),
+            prepared_point_successes: self.prepared_point_successes.get(),
+            prepared_point_nonfinite_failures:
+                self.prepared_point_nonfinite_failures.get(),
+            prepared_point_range_failures:
+                self.prepared_point_range_failures.get(),
+            prepared_point_overflow_failures:
+                self.prepared_point_overflow_failures.get(),
+            prepared_cell_address_failures:
+                self.prepared_cell_address_failures.get(),
+            fast_path_completions: self.fast_path_completions.get(),
+            generic_fallbacks: self.generic_fallbacks.get(),
+            cell_20_hits: self.cell_20_hits.get(),
+            cell_20_misses: self.cell_20_misses.get(),
+            cell_5_hits: self.cell_5_hits.get(),
+            cell_5_misses: self.cell_5_misses.get(),
+            cell_empty_misses: self.cell_empty_misses.get(),
+            cell_collision_misses: self.cell_collision_misses.get(),
+            corner_hits: self.corner_hits.get(),
+            corner_misses: self.corner_misses.get(),
+            corner_empty_misses: self.corner_empty_misses.get(),
+            corner_collision_misses: self.corner_collision_misses.get(),
+            corner_hash_computes: self.corner_hash_computes.get(),
+            compact_axis_decompositions:
+                self.compact_axis_decompositions.get(),
+            compact_digit_steps: self.compact_digit_steps.get(),
+        }
+    }
+
+    #[inline]
+    fn record_cell_hit(&self, cell_size: i32) {
+        match cell_size {
+            20 => Self::bump(&self.cell_20_hits),
+            5 => Self::bump(&self.cell_5_hits),
+            _ => {}
+        }
+    }
+
+    #[inline]
+    fn record_cell_miss(
+        &self,
+        cell_size: i32,
+        occupied: bool,
+    ) {
+        match cell_size {
+            20 => Self::bump(&self.cell_20_misses),
+            5 => Self::bump(&self.cell_5_misses),
+            _ => {}
+        }
+        if occupied {
+            Self::bump(&self.cell_collision_misses);
+        } else {
+            Self::bump(&self.cell_empty_misses);
+        }
+    }
+
+    #[inline]
+    fn record_corner_hit(&self) {
+        Self::bump(&self.corner_hits);
+    }
+
+    #[inline]
+    fn record_corner_miss(&self, occupied: bool) {
+        Self::bump(&self.corner_misses);
+        if occupied {
+            Self::bump(&self.corner_collision_misses);
+        } else {
+            Self::bump(&self.corner_empty_misses);
+        }
+    }
+}
+
+pub(crate) fn semantic_noise_diagnostic_snapshot(
+) -> SemanticNoiseDiagnosticSnapshot {
+    SEMANTIC_NOISE_DIAGNOSTICS.with(
+        SemanticNoiseDiagnosticsStorage::snapshot,
+    )
+}
+
+#[inline]
+pub(crate) fn record_fine_residual_fast_path_completion() {
+    SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+        SemanticNoiseDiagnosticsStorage::bump(
+            &diagnostics.fast_path_completions,
+        );
+    });
+}
+
+#[inline]
+pub(crate) fn record_fine_residual_generic_fallback() {
+    SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+        SemanticNoiseDiagnosticsStorage::bump(
+            &diagnostics.generic_fallbacks,
+        );
+    });
+}
+
 #[derive(Debug)]
 struct SemanticNoiseCellCacheStorage {
     slots: Box<[Cell<SemanticNoiseCellEntry>]>,
@@ -305,10 +545,41 @@ impl SemanticNoiseCellCacheStorage {
         let entry = slot.get();
         if entry.occupied && entry.key == key {
             self.hits.set(self.hits.get().saturating_add(1));
+            SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                diagnostics.record_cell_hit(key.cell_size);
+            });
             return entry.corners;
         }
 
         self.misses.set(self.misses.get().saturating_add(1));
+        SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+            diagnostics.record_cell_miss(
+                key.cell_size,
+                entry.occupied,
+            );
+        });
+
+        // Misses are the fan-out point: one cell miss may require eight corner
+        // lookups, and cold/colliding corner misses then pay canonical digit
+        // decomposition. Span ONLY misses so ordinary hits stay cheap.
+        let _miss_span = if key.cell_size == 20 {
+            Some(
+                bevy::log::info_span!(
+                    "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.semantic_cell_miss.20_native"
+                )
+                .entered(),
+            )
+        } else if key.cell_size == 5 {
+            Some(
+                bevy::log::info_span!(
+                    "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.semantic_cell_miss.5_native"
+                )
+                .entered(),
+            )
+        } else {
+            None
+        };
+
         let corners = compute();
         slot.set(SemanticNoiseCellEntry {
             key,
@@ -335,7 +606,18 @@ impl PreparedSemanticNoisePoint {
         native: DVec3,
         scale: SpatialScale,
     ) -> Option<Self> {
+        SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+            SemanticNoiseDiagnosticsStorage::bump(
+                &diagnostics.prepared_point_attempts,
+            );
+        });
+
         if !native.is_finite() {
+            SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                SemanticNoiseDiagnosticsStorage::bump(
+                    &diagnostics.prepared_point_nonfinite_failures,
+                );
+            });
             return None;
         }
 
@@ -345,6 +627,11 @@ impl PreparedSemanticNoisePoint {
             let carry_f =
                 ((value + SEMANTIC_NATIVE_HALF_CHUNK) / chunk_size).floor();
             if carry_f < i64::MIN as f64 || carry_f > i64::MAX as f64 {
+                SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                    SemanticNoiseDiagnosticsStorage::bump(
+                        &diagnostics.prepared_point_range_failures,
+                    );
+                });
                 return None;
             }
 
@@ -352,6 +639,11 @@ impl PreparedSemanticNoisePoint {
             let remainder = value - chunk as f64 * chunk_size;
             let stored = remainder as f32;
             if !stored.is_finite() {
+                SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                    SemanticNoiseDiagnosticsStorage::bump(
+                        &diagnostics.prepared_point_nonfinite_failures,
+                    );
+                });
                 return None;
             }
 
@@ -362,14 +654,38 @@ impl PreparedSemanticNoisePoint {
             let carry2 = carry2_f as i64;
             let mut local =
                 (stored_f64 - carry2 as f64 * chunk_size) as f32;
-            chunk = chunk.checked_add(carry2)?;
+            let Some(next_chunk) = chunk.checked_add(carry2) else {
+                SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                    SemanticNoiseDiagnosticsStorage::bump(
+                        &diagnostics.prepared_point_overflow_failures,
+                    );
+                });
+                return None;
+            };
+            chunk = next_chunk;
 
             if local >= 500.0 {
                 local -= 1_000.0;
-                chunk = chunk.checked_add(1)?;
+                let Some(next_chunk) = chunk.checked_add(1) else {
+                    SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                        SemanticNoiseDiagnosticsStorage::bump(
+                            &diagnostics.prepared_point_overflow_failures,
+                        );
+                    });
+                    return None;
+                };
+                chunk = next_chunk;
             } else if local < -500.0 {
                 local += 1_000.0;
-                chunk = chunk.checked_sub(1)?;
+                let Some(next_chunk) = chunk.checked_sub(1) else {
+                    SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                        SemanticNoiseDiagnosticsStorage::bump(
+                            &diagnostics.prepared_point_overflow_failures,
+                        );
+                    });
+                    return None;
+                };
+                chunk = next_chunk;
             }
 
             Some((chunk, local))
@@ -378,6 +694,12 @@ impl PreparedSemanticNoisePoint {
         let (cx, ox) = canonical_axis(native.x)?;
         let (cy, oy) = canonical_axis(native.y)?;
         let (cz, oz) = canonical_axis(native.z)?;
+
+        SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+            SemanticNoiseDiagnosticsStorage::bump(
+                &diagnostics.prepared_point_successes,
+            );
+        });
 
         Some(Self {
             leaf_exponent: scale.exponent(),
@@ -392,10 +714,15 @@ impl PreparedSemanticNoisePoint {
         cell_size: i64,
         seed: u32,
     ) -> Option<(SemanticNoiseCellKey, Vec3)> {
-        if cell_size <= 0 || cell_size > i64::from(i32::MAX) {
-            return None;
-        }
-        if SEMANTIC_NATIVE_CHUNK_SIZE % cell_size != 0 {
+        if cell_size <= 0
+            || cell_size > i64::from(i32::MAX)
+            || SEMANTIC_NATIVE_CHUNK_SIZE % cell_size != 0
+        {
+            SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                SemanticNoiseDiagnosticsStorage::bump(
+                    &diagnostics.prepared_cell_address_failures,
+                );
+            });
             return None;
         }
 
@@ -430,27 +757,36 @@ impl PreparedSemanticNoisePoint {
                 self.chunk_coordinate[0],
                 self.offset.x,
                 remainder.x,
-            )?,
+            ),
             lower_axis(
                 self.chunk_coordinate[1],
                 self.offset.y,
                 remainder.y,
-            )?,
+            ),
             lower_axis(
                 self.chunk_coordinate[2],
                 self.offset.z,
                 remainder.z,
-            )?,
+            ),
         ];
+
+        let [Some(x), Some(y), Some(z)] = base else {
+            SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                SemanticNoiseDiagnosticsStorage::bump(
+                    &diagnostics.prepared_cell_address_failures,
+                );
+            });
+            return None;
+        };
 
         Some((
             SemanticNoiseCellKey {
                 leaf_exponent: self.leaf_exponent,
                 cell_size: cell_size as i32,
                 seed,
-                x: base[0],
-                y: base[1],
-                z: base[2],
+                x,
+                y,
+                z,
             },
             smooth,
         ))
@@ -498,6 +834,24 @@ fn semantic_corner_noise_3d_compact(
             - i16::from(key.leaf_exponent)
             + 1) as usize;
     debug_assert!(digit_count <= COMPACT_SEMANTIC_DIGITS);
+
+    // One corner miss performs three balanced-decimal decompositions, each
+    // walking `digit_count` levels, followed by one hash pass over the same
+    // depth. Count the work explicitly; this tells us whether the "slow path"
+    // is genuinely cache-cold or dominated by canonical hierarchy walking.
+    SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+        SemanticNoiseDiagnosticsStorage::bump(
+            &diagnostics.corner_hash_computes,
+        );
+        SemanticNoiseDiagnosticsStorage::add(
+            &diagnostics.compact_axis_decompositions,
+            3,
+        );
+        SemanticNoiseDiagnosticsStorage::add(
+            &diagnostics.compact_digit_steps,
+            (digit_count as u64).saturating_mul(3),
+        );
+    });
 
     let (x_digits, x_offset) =
         decompose_compact_semantic_axis(key.x, digit_count);
@@ -587,10 +941,17 @@ impl SemanticNoiseCornerCacheStorage {
         let entry = slot.get();
         if entry.occupied && entry.key == key {
             self.hits.set(self.hits.get().saturating_add(1));
+            SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+                diagnostics.record_corner_hit();
+            });
             return entry.value;
         }
 
         self.misses.set(self.misses.get().saturating_add(1));
+        SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
+            diagnostics.record_corner_miss(entry.occupied);
+        });
+
         let value = compute();
         slot.set(SemanticNoiseCornerEntry {
             key,
@@ -612,6 +973,9 @@ std::thread_local! {
     static SEMANTIC_NOISE_CELL_CACHE:
         SemanticNoiseCellCacheStorage =
         SemanticNoiseCellCacheStorage::new();
+    static SEMANTIC_NOISE_DIAGNOSTICS:
+        SemanticNoiseDiagnosticsStorage =
+        SemanticNoiseDiagnosticsStorage::new();
 }
 
 /// Lightweight per-sampler view into the durable worker-thread cache.
