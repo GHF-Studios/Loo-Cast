@@ -40,7 +40,8 @@ use crate::{
          SpatialRealizationGranularityRequest, SpatialScale, UsfCapabilitySet,
         UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
         UsfScaleRoleMask, UsfSemanticFrame, UsfSpatialSet,
-        UsfViewContext, UsfViewDemandSnapshot, UsfViewRenderAnchor,
+        UsfViewContext, UsfViewDemand, UsfViewDemandSnapshot,
+        UsfViewRenderAnchor,
     },
 };
 
@@ -295,6 +296,7 @@ struct CelestialClipmapPlan {
     /// observer-distance LOD selection.
     planning_anchor_local: DVec3,
     validity_radius_metres: f64,
+    visibility: ClipmapVisibilityDemand,
     generation: u64,
     stages: Vec<Vec<CelestialClipmapBlockSpec>>,
     stage_index: usize,
@@ -369,6 +371,7 @@ struct ClipmapBoundaryClassifier<'a> {
     field: CelestialVoxelField,
     planning_anchor_local: DVec3,
     sampler: &'a CelestialPresentationFieldSampler,
+    visibility: ClipmapVisibilityDemand,
     exact_extent_metres: f64,
 }
 
@@ -377,6 +380,7 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
         field: CelestialVoxelField,
         planning_anchor_local: DVec3,
         sampler: &'a CelestialPresentationFieldSampler,
+        visibility: ClipmapVisibilityDemand,
     ) -> Self {
         let (surface_minimum, surface_maximum) =
             presentation_surface_radius_bounds_metres(field);
@@ -403,6 +407,7 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
             field,
             planning_anchor_local,
             sampler,
+            visibility,
             exact_extent_metres,
         }
     }
@@ -721,6 +726,9 @@ fn refine_leaf_indexed(
     };
 
     for child in children {
+        if !classifier.visibility.demands_block(child) {
+            continue;
+        }
         if surface_cache.refinement_intersects(child, classifier) {
             leaves.insert(child);
             inserted.push(child);
@@ -1706,12 +1714,241 @@ fn target_resolution_at_distance(
     requested.max(finest)
 }
 
+const CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS: f64 =
+    0.261_799_387_799_149_4;
+const CLIPMAP_FRUSTUM_REPLAN_RADIANS: f64 =
+    0.130_899_693_899_574_7;
+const CLIPMAP_HORIZON_MARGIN_RADIANS: f64 =
+    0.008_726_646_259_971_648;
+const CLIPMAP_OCCLUDER_SAFETY_METRES: f64 = 128.0;
+
+#[derive(Debug, Clone, Copy)]
+struct ClipmapBodyFrustum {
+    forward_local: DVec3,
+    side_normals_local: [DVec3; 4],
+    horizontal_half_angle: f64,
+    vertical_half_angle: f64,
+}
+
+impl ClipmapBodyFrustum {
+    fn new(
+        forward_local: DVec3,
+        right_local: DVec3,
+        up_local: DVec3,
+        horizontal_half_angle: f64,
+        vertical_half_angle: f64,
+    ) -> Option<Self> {
+        let forward = forward_local.try_normalize()?;
+        let right = right_local.try_normalize()?;
+        let up = up_local.try_normalize()?;
+        let horizontal = (
+            horizontal_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
+        )
+            .min(std::f64::consts::PI - 1.0e-4);
+        let vertical = (
+            vertical_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
+        )
+            .min(std::f64::consts::PI - 1.0e-4);
+
+        let (sh, ch) = horizontal.sin_cos();
+        let (sv, cv) = vertical.sin_cos();
+        let side_normals_local = [
+            (forward * sh + right * ch).normalize(),
+            (forward * sh - right * ch).normalize(),
+            (forward * sv + up * cv).normalize(),
+            (forward * sv - up * cv).normalize(),
+        ];
+
+        debug_assert!(forward.is_finite());
+        debug_assert!(side_normals_local.iter().all(|n| n.is_finite()));
+
+        Some(Self {
+            forward_local: forward,
+            side_normals_local,
+            horizontal_half_angle: horizontal,
+            vertical_half_angle: vertical,
+        })
+    }
+
+    fn intersects_sphere(&self, relative_center: DVec3, radius: f64) -> bool {
+        if !relative_center.is_finite()
+            || !radius.is_finite()
+            || radius < 0.0
+        {
+            return true;
+        }
+
+        self.side_normals_local
+            .iter()
+            .all(|normal| normal.dot(relative_center) >= -radius)
+    }
+
+    fn requires_refresh(&self, next: &Self) -> bool {
+        let direction_changed = self
+            .forward_local
+            .dot(next.forward_local)
+            .clamp(-1.0, 1.0)
+            < CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos();
+        let shape_changed =
+            (self.horizontal_half_angle - next.horizontal_half_angle).abs()
+                > 0.02
+            || (self.vertical_half_angle - next.vertical_half_angle).abs()
+                > 0.02;
+
+        direction_changed || shape_changed
+    }
+
+    fn result_still_covers(&self, next: &Self) -> bool {
+        let forward_ok = self
+            .forward_local
+            .dot(next.forward_local)
+            .clamp(-1.0, 1.0)
+            >= CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS.cos();
+
+        forward_ok
+            && next.horizontal_half_angle
+                <= self.horizontal_half_angle + 0.02
+            && next.vertical_half_angle
+                <= self.vertical_half_angle + 0.02
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ClipmapVisibilityDemand {
+    eye_local: DVec3,
+    frustum: Option<ClipmapBodyFrustum>,
+    solid_occluder_radius_metres: f64,
+}
+
+impl ClipmapVisibilityDemand {
+    fn new(
+        field: CelestialVoxelField,
+        observer_local: DVec3,
+        body_frame: &UsfSemanticFrame,
+        view: &UsfViewDemand,
+    ) -> Self {
+        let local_from_world = body_frame.orientation().conjugate();
+        let eye_local = observer_local
+            + local_from_world * view.projection_eye_offset_metres();
+
+        let frustum = view
+            .perspective_basis_and_half_angles()
+            .and_then(|(forward, right, up, horizontal, vertical)| {
+                ClipmapBodyFrustum::new(
+                    local_from_world * forward,
+                    local_from_world * right,
+                    local_from_world * up,
+                    horizontal,
+                    vertical,
+                )
+            });
+
+        let (surface_minimum, _) =
+            presentation_surface_radius_bounds_metres(field);
+        let solid_occluder_radius_metres = (
+            surface_minimum
+                - field.volumetric_surface_inward_support_metres()
+                - CLIPMAP_OCCLUDER_SAFETY_METRES
+        )
+            .max(0.0);
+
+        debug_assert!(eye_local.is_finite());
+        debug_assert!(solid_occluder_radius_metres.is_finite());
+
+        Self {
+            eye_local,
+            frustum,
+            solid_occluder_radius_metres,
+        }
+    }
+
+    fn demands_block(&self, key: CelestialClipmapBlockKey) -> bool {
+        let center = key.center_local_metres();
+        let radius = key.half_extent_metres().length();
+        let relative = center - self.eye_local;
+
+        if let Some(frustum) = &self.frustum
+            && !frustum.intersects_sphere(relative, radius)
+        {
+            return false;
+        }
+
+        !self.fully_occluded_by_planet(center, radius)
+    }
+
+    fn fully_occluded_by_planet(
+        &self,
+        target_center: DVec3,
+        target_radius: f64,
+    ) -> bool {
+        let occluder = self.solid_occluder_radius_metres;
+        let observer_radius = self.eye_local.length();
+        if occluder <= 0.0
+            || observer_radius <= occluder + target_radius
+        {
+            return false;
+        }
+
+        let relative = target_center - self.eye_local;
+        let target_distance = relative.length();
+        if target_distance <= target_radius.max(f64::EPSILON) {
+            return false;
+        }
+
+        let body_direction = -self.eye_local / observer_radius;
+        let target_direction = relative / target_distance;
+        let occluder_angle =
+            (occluder / observer_radius).clamp(0.0, 1.0).asin();
+        let target_angle =
+            (target_radius / target_distance).clamp(0.0, 1.0).asin();
+        let containment = occluder_angle
+            - target_angle
+            - CLIPMAP_HORIZON_MARGIN_RADIANS;
+        if containment <= 0.0 {
+            return false;
+        }
+
+        let angularly_hidden =
+            body_direction.dot(target_direction) >= containment.cos();
+        let tangent_distance = (
+            observer_radius * observer_radius - occluder * occluder
+        )
+            .max(0.0)
+            .sqrt();
+        let behind_tangent =
+            target_distance - target_radius > tangent_distance;
+
+        angularly_hidden && behind_tangent
+    }
+
+    fn requires_refresh(&self, next: &Self, fine_extent: f64) -> bool {
+        let eye_moved =
+            (self.eye_local - next.eye_local).length() > fine_extent.max(1.0);
+        let frustum_changed = match (&self.frustum, &next.frustum) {
+            (Some(current), Some(next)) => current.requires_refresh(next),
+            (None, None) => false,
+            _ => true,
+        };
+
+        eye_moved || frustum_changed
+    }
+
+    fn result_still_relevant_to(&self, next: &Self) -> bool {
+        match (&self.frustum, &next.frustum) {
+            (Some(current), Some(next)) => current.result_still_covers(next),
+            (None, None) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct CelestialClipmapPlanInput {
     key: CelestialClipmapPlanKey,
     observer_anchor_local: DVec3,
     planning_anchor_local: DVec3,
     validity_radius_metres: f64,
+    visibility: ClipmapVisibilityDemand,
     clearance_metres: f64,
     finest: VoxelPresentationResolution,
     coarsest: VoxelPresentationResolution,
@@ -1728,6 +1965,7 @@ fn derive_plan_input(
     observer_speed_metres_per_second: f64,
     expected_build_seconds: f64,
     policy_revision: u64,
+    visibility: ClipmapVisibilityDemand,
 ) -> Option<CelestialClipmapPlanInput> {
     if !observer_local.is_finite() {
         return None;
@@ -1810,6 +2048,7 @@ fn derive_plan_input(
         observer_anchor_local: observer_local,
         planning_anchor_local,
         validity_radius_metres,
+        visibility,
         clearance_metres: clearance,
         finest,
         coarsest,
@@ -1835,6 +2074,9 @@ fn plan_requires_refresh(
     let displacement = observer_displacement.max(surface_displacement);
     let fine_extent =
         input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    if plan.visibility.requires_refresh(input.visibility, fine_extent) {
+        return true;
+    }
 
     //
     // Validity radius says how much already-built terrain remains useful; it is
@@ -1887,6 +2129,9 @@ fn plan_task_relevance(
             built.key,
             current.key,
         )
+        || !built
+            .visibility
+            .result_still_relevant_to(&current.visibility)
     {
         return ClipmapPlanTaskRelevance::Stale;
     }
@@ -2242,6 +2487,7 @@ fn build_plan_inner(
         field,
         input.planning_anchor_local,
         &sampler,
+        input.visibility,
     );
     let maximum_leaves = sparse_frontier_leaf_budget(input);
     let mut leaves = planner_root_leaves(
@@ -2301,6 +2547,9 @@ fn planner_root_leaves(
                     resolution: coarsest,
                     coord: IVec3::new(x, y, z),
                 };
+                if !classifier.visibility.demands_block(key) {
+                    continue;
+                }
                 if surface_cache.intersects(key, classifier) {
                     leaves.insert(key);
                 }
@@ -2699,6 +2948,12 @@ fn sync_celestial_clipmap_realizations(
                     + local_velocity_metres_per_second
                         * prediction_seconds;
 
+            let visibility = ClipmapVisibilityDemand::new(
+                *field,
+                predicted_observer_local,
+                body_frame,
+                view,
+            );
             let Some(input) = derive_plan_input(
                 *field,
                 predicted_observer_local,
@@ -2706,6 +2961,7 @@ fn sync_celestial_clipmap_realizations(
                 observer_speed,
                 expected_build_seconds,
                 policy_revision,
+                visibility,
             ) else {
                 continue;
             };
@@ -2836,6 +3092,7 @@ fn sync_celestial_clipmap_realizations(
                 observer_anchor_local: build.input.observer_anchor_local,
                 planning_anchor_local: build.input.planning_anchor_local,
                 validity_radius_metres: build.input.validity_radius_metres,
+                visibility: build.input.visibility,
                 generation,
                 stages,
                 stage_index,

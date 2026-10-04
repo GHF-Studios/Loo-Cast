@@ -81,6 +81,7 @@ pub struct UsfViewDemand {
     source: Entity,
     anchor: UsfPosition,
     velocity_metres_per_second: DVec3,
+    projection_eye_offset_metres: DVec3,
     finest_scale: SpatialScale,
     camera_translation: Vec3,
     camera_rotation: Quat,
@@ -98,6 +99,55 @@ impl UsfViewDemand {
         self.velocity_metres_per_second
     }
     pub const fn finest_scale(&self) -> SpatialScale { self.finest_scale }
+
+/// Physical camera-eye offset from the semantic observer anchor in SI metres.
+    pub const fn projection_eye_offset_metres(&self) -> DVec3 {
+        self.projection_eye_offset_metres
+    }
+
+    /// Perspective camera basis plus exact horizontal/vertical half angles.
+    pub fn perspective_basis_and_half_angles(
+        &self,
+    ) -> Option<(DVec3, DVec3, DVec3, f64, f64)> {
+        if !self.perspective {
+            return None;
+        }
+
+        let vertical_fov = f64::from(self.perspective_fov?);
+        let aspect = f64::from(self.perspective_aspect_ratio?);
+        if !vertical_fov.is_finite()
+            || vertical_fov <= 0.0
+            || vertical_fov >= std::f64::consts::PI
+            || !aspect.is_finite()
+            || aspect <= 0.0
+        {
+            return None;
+        }
+
+        let vertical_half = vertical_fov * 0.5;
+        let horizontal_half = (vertical_half.tan() * aspect).atan();
+
+        let forward = self.camera_rotation * Vec3::NEG_Z;
+        let right = self.camera_rotation * Vec3::X;
+        let up = self.camera_rotation * Vec3::Y;
+        if !forward.is_finite() || !right.is_finite() || !up.is_finite() {
+            return None;
+        }
+
+        debug_assert!(vertical_half > 0.0);
+        debug_assert!(horizontal_half > 0.0);
+
+        let dvec = |v: Vec3| {
+            DVec3::new(f64::from(v.x), f64::from(v.y), f64::from(v.z))
+        };
+        Some((
+            dvec(forward),
+            dvec(right),
+            dvec(up),
+            horizontal_half,
+            vertical_half,
+        ))
+    }
 
     /// Camera density is a presentation fact, not semantic Scale authority.
     ///
@@ -205,6 +255,8 @@ impl UsfViewDemand {
         self.source == other.source
             && self.anchor == other.anchor
             && self.finest_scale == other.finest_scale
+            && self.projection_eye_offset_metres
+                == other.projection_eye_offset_metres
             && self.camera_translation == other.camera_translation
             && self.camera_rotation == other.camera_rotation
             && self.perspective == other.perspective
@@ -276,6 +328,8 @@ fn capture_view_demand(
             source,
             anchor: *view.anchor(),
             velocity_metres_per_second: view.velocity_metres_per_second(),
+            projection_eye_offset_metres:
+                view.projection_eye_offset_metres(),
             finest_scale: view.scale(),
             camera_translation: transform.translation,
             camera_rotation: transform.rotation,
@@ -329,6 +383,7 @@ mod tests {
             source: Entity::PLACEHOLDER,
             anchor: UsfPosition::zero(SpatialScale::MIN),
             velocity_metres_per_second: DVec3::ZERO,
+            projection_eye_offset_metres: DVec3::ZERO,
             finest_scale,
             camera_translation: Vec3::ZERO,
             camera_rotation: Quat::IDENTITY,
