@@ -135,7 +135,13 @@ const LEAVES_PER_REQUESTED_LEVEL: usize = 640;
 // planning now does substantial work per local balance transaction and publishes
 // only a cold bootstrap plus the final balanced replacement frontier.
 const MAX_PRIMARY_REFINEMENTS_PER_WAVE: usize = 256;
-const MAX_RECORDED_FRONTIER_STAGES: usize = 2;
+// progressive-publication-and-worker-cache-lifetime-v1
+//
+// Planning remains one deep sparse solve. Publication, however, must not jump
+// from eight root bricks directly to a multi-thousand-leaf final transaction.
+// Cheap hierarchy-only stage synthesis below exposes balanced intermediate
+// frontiers without re-running canonical SDF planning.
+const MAX_RECORDED_FRONTIER_STAGES: usize = 16;
 const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
@@ -195,6 +201,26 @@ impl CelestialClipmapBlockKey {
             Self { resolution, coord: base + IVec3::new(0, 1, 1) },
             Self { resolution, coord: base + IVec3::new(1, 1, 1) },
         ])
+    }
+
+    fn ancestor_at(
+        self,
+        target: VoxelPresentationResolution,
+    ) -> Option<Self> {
+        if target < self.resolution {
+            return None;
+        }
+
+        let mut key = self;
+        while key.resolution < target {
+            key.resolution = key.resolution.coarser()?;
+            key.coord = IVec3::new(
+                key.coord.x.div_euclid(2),
+                key.coord.y.div_euclid(2),
+                key.coord.z.div_euclid(2),
+            );
+        }
+        Some(key)
     }
 }
 
@@ -2049,6 +2075,76 @@ fn specs_for_frontier(
         .collect()
 }
 
+/// Coarsen an already-balanced final frontier to one publication cap.
+///
+/// No field queries occur here. Every final leaf maps to its exact dyadic
+/// ancestor at `cap` if it is finer than the cap; duplicates collapse. Because
+/// the final frontier is 2:1 balanced, applying one common minimum-resolution
+/// cap preserves a complete balanced frontier while exposing progressively
+/// finer transactions.
+fn frontier_capped_at_resolution(
+    final_leaves: &HashSet<CelestialClipmapBlockKey>,
+    cap: VoxelPresentationResolution,
+) -> HashSet<CelestialClipmapBlockKey> {
+    let mut staged =
+        HashSet::<CelestialClipmapBlockKey>::with_capacity(
+            final_leaves.len(),
+        );
+
+    for &key in final_leaves {
+        let staged_key = if key.resolution < cap {
+            key.ancestor_at(cap).unwrap_or(key)
+        } else {
+            key
+        };
+        staged.insert(staged_key);
+    }
+
+    staged
+}
+
+fn append_progressive_frontier_stages(
+    stages: &mut Vec<Vec<CelestialClipmapBlockSpec>>,
+    final_leaves: &HashSet<CelestialClipmapBlockKey>,
+    final_stage: &[CelestialClipmapBlockSpec],
+    coarsest: VoxelPresentationResolution,
+    finest: VoxelPresentationResolution,
+    ordering_anchor_local: DVec3,
+) {
+    let stride = RECORDED_FRONTIER_BINARY_LEVEL_STRIDE.max(1);
+    let mut exponent = coarsest
+        .binary_exponent()
+        .saturating_sub(stride);
+
+    while exponent > finest.binary_exponent()
+        && stages.len().saturating_add(1)
+            < MAX_RECORDED_FRONTIER_STAGES
+    {
+        let cap = VoxelPresentationResolution::new(exponent);
+        let staged_leaves =
+            frontier_capped_at_resolution(final_leaves, cap);
+        let staged_specs = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_planning.progressive_specs"
+            )
+            .entered();
+            specs_for_frontier(
+                &staged_leaves,
+                ordering_anchor_local,
+            )
+        };
+
+        if !staged_specs.is_empty()
+            && stages.last() != Some(&staged_specs)
+            && staged_specs.as_slice() != final_stage
+        {
+            stages.push(staged_specs);
+        }
+
+        exponent = exponent.saturating_sub(stride);
+    }
+}
+
 fn sparse_frontier_leaf_budget(input: CelestialClipmapPlanInput) -> usize {
     let requested_levels =
         i32::from(input.coarsest.binary_exponent())
@@ -2361,13 +2457,26 @@ fn build_plan(
             return None;
         }
 
-        let mut stages = Vec::with_capacity(2);
+        let mut stages =
+            Vec::with_capacity(MAX_RECORDED_FRONTIER_STAGES);
         if let Some(bootstrap) = bootstrap
             && bootstrap != final_stage
         {
             stages.push(bootstrap);
         }
-        stages.push(final_stage);
+
+        append_progressive_frontier_stages(
+            &mut stages,
+            &leaves,
+            &final_stage,
+            coarsest,
+            finest,
+            observer_anchor_local,
+        );
+
+        if stages.last() != Some(&final_stage) {
+            stages.push(final_stage);
+        }
         Some(stages)
     })();
 
@@ -3748,8 +3857,15 @@ fn sync_celestial_clipmap_realizations(
                     integrity_transition_fallback,
                 );
 
-                if integrity_dropped_triangles > 0
-                    || integrity_transition_fallback
+                // Small sanitation counts are expected defensive cleanup and
+                // are already accumulated in telemetry. Emitting WARN for every
+                // 1-3 triangle cleanup became a significant main-thread/logging
+                // workload during cold refinement. Reserve WARN for genuinely
+                // exceptional geometry; keep ordinary evidence at TRACE.
+                const SERIOUS_DROPPED_TRIANGLE_WARNING: u64 = 32;
+                if integrity_transition_fallback
+                    || integrity_dropped_triangles
+                        >= SERIOUS_DROPPED_TRIANGLE_WARNING
                 {
                     warn!(
                         authority = ?build.authority,
@@ -3759,7 +3875,17 @@ fn sync_celestial_clipmap_realizations(
                         transition_faces = build.spec.transition_faces.bits(),
                         dropped_triangles = integrity_dropped_triangles,
                         transition_fallback = integrity_transition_fallback,
-                        "quarantined pathological binary clipmap geometry"
+                        "binary clipmap geometry required substantial sanitation"
+                    );
+                } else if integrity_dropped_triangles > 0 {
+                    trace!(
+                        authority = ?build.authority,
+                        resolution_exponent =
+                            build.spec.key.resolution.binary_exponent(),
+                        coord = ?build.spec.key.coord,
+                        transition_faces = build.spec.transition_faces.bits(),
+                        dropped_triangles = integrity_dropped_triangles,
+                        "binary clipmap geometry sanitation"
                     );
                 }
 

@@ -98,15 +98,22 @@ impl SemanticNoiseCornerEntry {
     };
 }
 
+// progressive-publication-and-worker-cache-lifetime-v1
+//
+// This cache belongs to worker-thread lifetime, not mesh-build lifetime.
+// `SemanticNoiseCornerKey` already contains the deterministic noise identity
+// (derived seed + Scale + exact lattice coordinate), so sharing one exact
+// direct-mapped cache across successive bodies/blocks on the same durable voxel
+// worker thread is safe. Cache collisions only recompute.
 #[derive(Debug)]
-pub(crate) struct SemanticNoiseCornerCache {
+struct SemanticNoiseCornerCacheStorage {
     slots: Box<[Cell<SemanticNoiseCornerEntry>]>,
     hits: Cell<u64>,
     misses: Cell<u64>,
 }
 
-impl SemanticNoiseCornerCache {
-    pub(crate) fn new() -> Self {
+impl SemanticNoiseCornerCacheStorage {
+    fn new() -> Self {
         debug_assert!(SEMANTIC_NOISE_CORNER_CACHE_SLOTS.is_power_of_two());
         let slots = (0..SEMANTIC_NOISE_CORNER_CACHE_SLOTS)
             .map(|_| Cell::new(SemanticNoiseCornerEntry::EMPTY))
@@ -163,8 +170,59 @@ impl SemanticNoiseCornerCache {
         value
     }
 
-    pub(crate) fn stats(&self) -> (u64, u64) {
+    fn stats(&self) -> (u64, u64) {
         (self.hits.get(), self.misses.get())
+    }
+}
+
+std::thread_local! {
+    static SEMANTIC_NOISE_CORNER_CACHE:
+        SemanticNoiseCornerCacheStorage =
+        SemanticNoiseCornerCacheStorage::new();
+}
+
+/// Lightweight per-sampler view into the durable worker-thread cache.
+///
+/// The baselines keep existing per-sampler telemetry meaningful without
+/// allocating/zeroing 4096 entries for every clipmap block.
+#[derive(Debug)]
+pub(crate) struct SemanticNoiseCornerCache {
+    baseline_hits: u64,
+    baseline_misses: u64,
+}
+
+impl SemanticNoiseCornerCache {
+    pub(crate) fn new() -> Self {
+        let (baseline_hits, baseline_misses) =
+            SEMANTIC_NOISE_CORNER_CACHE.with(
+                SemanticNoiseCornerCacheStorage::stats,
+            );
+        Self {
+            baseline_hits,
+            baseline_misses,
+        }
+    }
+
+    #[inline]
+    fn get_or_compute(
+        &self,
+        key: SemanticNoiseCornerKey,
+        compute: impl FnOnce() -> f32,
+    ) -> f32 {
+        SEMANTIC_NOISE_CORNER_CACHE.with(|cache| {
+            cache.get_or_compute(key, compute)
+        })
+    }
+
+    pub(crate) fn stats(&self) -> (u64, u64) {
+        let (hits, misses) =
+            SEMANTIC_NOISE_CORNER_CACHE.with(
+                SemanticNoiseCornerCacheStorage::stats,
+            );
+        (
+            hits.saturating_sub(self.baseline_hits),
+            misses.saturating_sub(self.baseline_misses),
+        )
     }
 }
 
