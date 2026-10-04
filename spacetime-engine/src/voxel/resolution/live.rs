@@ -8,7 +8,7 @@ use std::{
     cell::Cell,
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicU32, AtomicU64, Ordering},
     },
 };
@@ -2557,6 +2557,17 @@ fn build_tangent(normal: Vec3) -> [f32; 4] {
 }
 
 // presentation-resolution-orders-of-magnitude-v1
+// central-lattice-cache-megapass-v1
+//
+// A binary clipmap block always samples exactly the same 9^3 canonical lattice
+// for a stable CelestialVoxelField. Cache that complete reconstructible base
+// lattice as one unit. 4096 resident blocks cost ~11.4 MiB of raw f32 payload
+// per active celestial authority, before modest HashMap/Arc overhead.
+const CLIPMAP_CENTRAL_SIDE: usize = BLOCK_SUBDIVISIONS + 1;
+const CLIPMAP_CENTRAL_SAMPLE_COUNT: usize =
+    CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE;
+const CENTRAL_LATTICE_CACHE_BLOCKS: usize = 4_096;
+
 const SHARED_SAMPLE_CACHE_SLOTS: usize = 32_768;
 
 struct SharedPresentationSampleSlot {
@@ -2579,9 +2590,38 @@ impl SharedPresentationSampleSlot {
     }
 }
 
+struct CentralPresentationLatticeCache {
+    blocks: HashMap<
+        CelestialClipmapBlockKey,
+        Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
+    >,
+    fifo: VecDeque<CelestialClipmapBlockKey>,
+    hits: u64,
+    misses: u64,
+    evictions: u64,
+}
+
+impl Default for CentralPresentationLatticeCache {
+    fn default() -> Self {
+        Self {
+            blocks: HashMap::with_capacity(CENTRAL_LATTICE_CACHE_BLOCKS),
+            fifo: VecDeque::with_capacity(CENTRAL_LATTICE_CACHE_BLOCKS),
+            hits: 0,
+            misses: 0,
+            evictions: 0,
+        }
+    }
+}
+
 struct CelestialPresentationSampleCache {
     field: CelestialVoxelField,
     slots: Box<[SharedPresentationSampleSlot]>,
+
+    // This is BASE-FIELD cache only. VoxelAuthority edits are semantic overlay
+    // state and must never be baked into this reconstructible cache. The current
+    // binary presentation path deliberately declines edited authorities; when
+    // edit-aware binary presentation lands, edits must apply after this lookup.
+    central_lattices: Mutex<CentralPresentationLatticeCache>,
 }
 
 impl CelestialPresentationSampleCache {
@@ -2591,7 +2631,70 @@ impl CelestialPresentationSampleCache {
             .map(|_| SharedPresentationSampleSlot::new())
             .collect::<Vec<_>>()
             .into_boxed_slice();
-        Self { field, slots }
+        Self {
+            field,
+            slots,
+            central_lattices:
+                Mutex::new(CentralPresentationLatticeCache::default()),
+        }
+    }
+
+    fn central_lattice_get_or_compute(
+        &self,
+        key: CelestialClipmapBlockKey,
+        compute: impl FnOnce() -> [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT],
+    ) -> Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]> {
+        {
+            let mut cache = match self.central_lattices.lock() {
+                Ok(cache) => cache,
+                Err(poisoned) => poisoned.into_inner(),
+            };
+            if let Some(hit) = cache.blocks.get(&key).cloned() {
+                cache.hits = cache.hits.saturating_add(1);
+                return hit;
+            }
+        }
+
+        // Compute outside the lock. Inflight scheduling already prevents the
+        // same presentation spec being deliberately submitted twice; if an
+        // unusual race still happens, the second insertion reuses the winner.
+        let computed = Arc::new(compute());
+
+        let mut cache = match self.central_lattices.lock() {
+            Ok(cache) => cache,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        if let Some(hit) = cache.blocks.get(&key).cloned() {
+            cache.hits = cache.hits.saturating_add(1);
+            return hit;
+        }
+
+        cache.misses = cache.misses.saturating_add(1);
+        while cache.blocks.len() >= CENTRAL_LATTICE_CACHE_BLOCKS {
+            let Some(oldest) = cache.fifo.pop_front() else {
+                break;
+            };
+            if cache.blocks.remove(&oldest).is_some() {
+                cache.evictions = cache.evictions.saturating_add(1);
+                break;
+            }
+        }
+        cache.blocks.insert(key, computed.clone());
+        cache.fifo.push_back(key);
+        computed
+    }
+
+    fn central_lattice_stats(&self) -> (u64, u64, u64, usize) {
+        let cache = match self.central_lattices.lock() {
+            Ok(cache) => cache,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        (
+            cache.hits,
+            cache.misses,
+            cache.evictions,
+            cache.blocks.len(),
+        )
     }
 
     #[inline]
@@ -2677,31 +2780,30 @@ impl CelestialPresentationSampleCache {
 // block boundary. Most of those 486 samples are never read. Cache the 729
 // interior samples up front and relay extension reads lazily through the exact
 // shared field/sample cache.
-const CLIPMAP_CENTRAL_SIDE: usize = BLOCK_SUBDIVISIONS + 1;
-const CLIPMAP_CENTRAL_SAMPLE_COUNT: usize =
-    CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE;
 
 struct ClipmapCentralBlock<'a> {
     block: Block<f32>,
-    interior: [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT],
+    interior: Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
     extension_field: &'a dyn DataField<f32, f32>,
 }
 
 impl<'a> ClipmapCentralBlock<'a> {
     // central-cache-kernel-megapass-v1
+    // central-lattice-cache-megapass-v1
     //
-    // The previous `&dyn DataField` forced 729 virtual calls through the hottest
-    // loop. Keep the concrete closure type here so rustc can inline the complete
-    // central-density path into the fixed 9^3 fill. We still retain a trait
-    // object only for the extremely rare defensive out-of-contract extension
-    // access after the fill is complete.
+    // Strict interior samples are unique to this block and therefore bypass the
+    // cross-block atomic point cache. Boundary samples are shared by adjacent
+    // dyadic blocks, so only those use the exact shared point cache. A whole
+    // 9^3 lattice hit bypasses both paths entirely.
     #[inline]
-    fn cache<F>(
-        field: &'a F,
+    fn fill<F, S>(
+        direct_field: &F,
+        shared_field: &S,
         block: Block<f32>,
-    ) -> Self
+    ) -> [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]
     where
         F: DataField<f32, f32>,
+        S: DataField<f32, f32>,
     {
         debug_assert_eq!(block.subdivisions, BLOCK_SUBDIVISIONS);
         let mut interior = [0.0_f32; CLIPMAP_CENTRAL_SAMPLE_COUNT];
@@ -2714,17 +2816,38 @@ impl<'a> ClipmapCentralBlock<'a> {
                 let py = block.base[1] + y as f32 * step;
                 for z in 0..=BLOCK_SUBDIVISIONS {
                     let pz = block.base[2] + z as f32 * step;
-                    interior[cursor] =
-                        field.get_data(px, py, pz);
+                    let boundary = x == 0
+                        || x == BLOCK_SUBDIVISIONS
+                        || y == 0
+                        || y == BLOCK_SUBDIVISIONS
+                        || z == 0
+                        || z == BLOCK_SUBDIVISIONS;
+                    interior[cursor] = if boundary {
+                        shared_field.get_data(px, py, pz)
+                    } else {
+                        direct_field.get_data(px, py, pz)
+                    };
                     cursor += 1;
                 }
             }
         }
 
+        interior
+    }
+
+    #[inline]
+    fn from_lattice<S>(
+        extension_field: &'a S,
+        block: Block<f32>,
+        interior: Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
+    ) -> Self
+    where
+        S: DataField<f32, f32> + 'a,
+    {
         Self {
             block,
             interior,
-            extension_field: field,
+            extension_field,
         }
     }
 
@@ -3201,8 +3324,9 @@ fn build_clipmap_mesh(
             central_half_extent,
         );
 
-    let sample_density = |point: DVec3, include_caves: bool| -> f32 {
-        sample_cache.get_or_compute(point, || {
+    #[inline]
+    let evaluate_density =
+        |point: DVec3, include_caves: bool| -> f32 {
             let signed_distance = if include_caves {
                 sampler.signed_distance_local_metres(point)
             } else {
@@ -3219,10 +3343,28 @@ fn build_clipmap_mesh(
                     ) as f32
                 })
                 .unwrap_or(-1.0)
-        })
+        };
+
+    let sample_density = |point: DVec3, include_caves: bool| -> f32 {
+        sample_cache.get_or_compute(
+            point,
+            || evaluate_density(point, include_caves),
+        )
     };
 
-    let central_density = |x: f32, y: f32, z: f32| -> f32 {
+    // Strict interior samples cannot be shared with another same-resolution
+    // block. Skip the atomic point-cache lookup entirely for them.
+    let central_direct_density = |x: f32, y: f32, z: f32| -> f32 {
+        let point = origin + DVec3::new(
+            f64::from(x),
+            f64::from(y),
+            f64::from(z),
+        );
+        evaluate_density(point, central_may_contain_caves)
+    };
+
+    // Boundary samples *are* shared across neighboring dyadic blocks.
+    let central_shared_density = |x: f32, y: f32, z: f32| -> f32 {
         let point = origin + DVec3::new(
             f64::from(x),
             f64::from(y),
@@ -3276,7 +3418,24 @@ fn build_clipmap_mesh(
                 "voxel.worker.presentation_resolution.extract.central_cache"
             )
             .entered();
-            ClipmapCentralBlock::cache(&central_density, block)
+
+            let interior =
+                sample_cache.central_lattice_get_or_compute(
+                    spec.key,
+                    || {
+                        ClipmapCentralBlock::fill(
+                            &central_direct_density,
+                            &central_shared_density,
+                            block,
+                        )
+                    },
+                );
+
+            ClipmapCentralBlock::from_lattice(
+                &central_shared_density,
+                block,
+                interior,
+            )
         };
 
         let transition_mesh = {
@@ -3342,10 +3501,20 @@ fn build_clipmap_mesh(
 
     let (semantic_corner_hits, semantic_corner_misses) =
         sampler.semantic_noise_cache_stats();
+    let (
+        central_lattice_hits,
+        central_lattice_misses,
+        central_lattice_evictions,
+        central_lattice_resident,
+    ) = sample_cache.central_lattice_stats();
     trace!(
         central_may_contain_caves,
         semantic_corner_hits,
         semantic_corner_misses,
+        central_lattice_hits,
+        central_lattice_misses,
+        central_lattice_evictions,
+        central_lattice_resident,
         "binary clipmap central-field specialization stats"
     );
 
