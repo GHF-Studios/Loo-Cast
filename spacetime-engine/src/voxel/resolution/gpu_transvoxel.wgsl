@@ -2,6 +2,7 @@
 // Canonical authority remains CPU/USF-owned; this shader receives only one
 // bounded local semantic chart. No f64/i64 and no universe-scale coordinates.
 // gpu-binary-presentation-production-v1
+// gpu-terrain-wgsl-reserved-sweep-v1
 // gpu-terrain-wgsl-reserved-name-repair-v1
 
 const BLOCK: u32 = 8u;
@@ -91,7 +92,7 @@ fn value_noise_3d(point: vec3<f32>, seed: u32) -> f32 {
     let floor_point = floor(point);
     let cell = vec3<i32>(floor_point);
     let fraction = point - floor_point;
-    let smooth = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
+    let hermite = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
 
     let c000 = hash_noise_3d(cell + vec3<i32>(0, 0, 0), seed);
     let c100 = hash_noise_3d(cell + vec3<i32>(1, 0, 0), seed);
@@ -102,14 +103,15 @@ fn value_noise_3d(point: vec3<f32>, seed: u32) -> f32 {
     let c011 = hash_noise_3d(cell + vec3<i32>(0, 1, 1), seed);
     let c111 = hash_noise_3d(cell + vec3<i32>(1, 1, 1), seed);
 
-    let x00 = mix(c000, c100, smooth.x);
-    let x10 = mix(c010, c110, smooth.x);
-    let x01 = mix(c001, c101, smooth.x);
-    let x11 = mix(c011, c111, smooth.x);
-    return mix(mix(x00, x10, smooth.y), mix(x01, x11, smooth.y), smooth.z);
+    let x00 = mix(c000, c100, hermite.x);
+    let x10 = mix(c010, c110, hermite.x);
+    let x01 = mix(c001, c101, hermite.x);
+    let x11 = mix(c011, c111, hermite.x);
+    return mix(mix(x00, x10, hermite.y), mix(x01, x11, hermite.y), hermite.z);
 }
 
-fn mix_semantic(mut state: u32, input: u32) -> u32 {
+fn mix_semantic(state_in: u32, input: u32) -> u32 {
+    var state = state_in;
     state = state ^ (input * 0x85EBCA6Bu);
     state = state ^ (state >> 16u);
     state = state * 0x7FEB352Du;
@@ -219,7 +221,7 @@ fn semantic_value_noise(
     let native_offset = band.base_offset.xyz + delta_native;
     let lower = floor(native_offset / cell_size) * cell_size;
     let fraction = (native_offset - lower) / cell_size;
-    let smooth = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
+    let hermite = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
 
     var corners: array<f32, 8>;
     var corner = 0u;
@@ -244,11 +246,11 @@ fn semantic_value_noise(
         corner += 1u;
     }
 
-    let x00 = mix(corners[0], corners[1], smooth.x);
-    let x10 = mix(corners[2], corners[3], smooth.x);
-    let x01 = mix(corners[4], corners[5], smooth.x);
-    let x11 = mix(corners[6], corners[7], smooth.x);
-    return mix(mix(x00, x10, smooth.y), mix(x01, x11, smooth.y), smooth.z);
+    let x00 = mix(corners[0], corners[1], hermite.x);
+    let x10 = mix(corners[2], corners[3], hermite.x);
+    let x01 = mix(corners[4], corners[5], hermite.x);
+    let x11 = mix(corners[6], corners[7], hermite.x);
+    return mix(mix(x00, x10, hermite.y), mix(x01, x11, hermite.y), hermite.z);
 }
 
 fn fine_noise(band: GpuFineBand, delta_ref_metres: vec3<f32>) -> f32 {
@@ -258,7 +260,8 @@ fn fine_noise(band: GpuFineBand, delta_ref_metres: vec3<f32>) -> f32 {
     return broad * 0.72 + fine * 0.28;
 }
 
-fn scale_mix(mut state: u32, input: u32) -> u32 {
+fn scale_mix(state_in: u32, input: u32) -> u32 {
+    var state = state_in;
     state = state ^ (input * 0x85EBCA6Bu);
     state = state ^ (state >> 16u);
     state = state * 0x7FEB352Du;
@@ -506,7 +509,7 @@ fn cave_value(chart: GpuCaveChart, delta_metres: vec3<f32>) -> f32 {
     let carry_f = floor(q);
     let cell = chart.base_cell.xyz + vec3<i32>(carry_f);
     let fraction = q - carry_f;
-    let smooth = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
+    let hermite = fraction * fraction * (vec3<f32>(3.0) - fraction * 2.0);
 
     let seed = chart.seed.x;
     let c000 = hash_noise_3d(cell + vec3<i32>(0, 0, 0), seed);
@@ -518,11 +521,11 @@ fn cave_value(chart: GpuCaveChart, delta_metres: vec3<f32>) -> f32 {
     let c011 = hash_noise_3d(cell + vec3<i32>(0, 1, 1), seed);
     let c111 = hash_noise_3d(cell + vec3<i32>(1, 1, 1), seed);
 
-    let x00 = mix(c000, c100, smooth.x);
-    let x10 = mix(c010, c110, smooth.x);
-    let x01 = mix(c001, c101, smooth.x);
-    let x11 = mix(c011, c111, smooth.x);
-    return mix(mix(x00, x10, smooth.y), mix(x01, x11, smooth.y), smooth.z);
+    let x00 = mix(c000, c100, hermite.x);
+    let x10 = mix(c010, c110, hermite.x);
+    let x01 = mix(c001, c101, hermite.x);
+    let x11 = mix(c011, c111, hermite.x);
+    return mix(mix(x00, x10, hermite.y), mix(x01, x11, hermite.y), hermite.z);
 }
 
 fn cave_void_sdf(delta_metres: vec3<f32>, outer_density: f32) -> f32 {
@@ -964,12 +967,12 @@ fn emit_regular_cell(cell_id: u32) {
     let z = i32(cell_id / (BLOCK * BLOCK));
     let cell = vec3<i32>(x, y, z);
     let case_number = regular_case(cell);
-    let class = tables[REG_CLASS_OFFSET + case_number];
-    let counts = tables[REG_COUNTS_OFFSET + class];
+    let cell_class = tables[REG_CLASS_OFFSET + case_number];
+    let counts = tables[REG_COUNTS_OFFSET + cell_class];
     let triangle_count = counts & 0xFu;
 
     for (var t = 0u; t < triangle_count; t += 1u) {
-        let tri_base = REG_TRI_OFFSET + class * 15u + t * 3u;
+        let tri_base = REG_TRI_OFFSET + cell_class * 15u + t * 3u;
         let ia = tables[tri_base + 0u];
         let ib = tables[tri_base + 1u];
         let ic = tables[tri_base + 2u];
@@ -987,14 +990,14 @@ fn emit_transition_cell(side: u32, cell_id: u32) {
     let cell_v = i32(cell_id / BLOCK);
     let case_number = transition_case(cell_u, cell_v);
     let raw_class = tables[TRANS_CLASS_OFFSET + case_number];
-    let class = raw_class & 0x7Fu;
+    let cell_class = raw_class & 0x7Fu;
     let invert = (raw_class & 0x80u) != 0u;
-    let counts = tables[TRANS_COUNTS_OFFSET + class];
+    let counts = tables[TRANS_COUNTS_OFFSET + cell_class];
     let triangle_count = counts & 0xFu;
     let vertices = TRANS_VERTEX_OFFSET + case_number * 12u;
 
     for (var t = 0u; t < triangle_count; t += 1u) {
-        let tri_base = TRANS_TRI_OFFSET + class * 36u + t * 3u;
+        let tri_base = TRANS_TRI_OFFSET + cell_class * 36u + t * 3u;
         let ia = tables[tri_base + 0u];
         let ib = tables[tri_base + 1u];
         let ic = tables[tri_base + 2u];
