@@ -70,6 +70,7 @@ struct SurfaceVertex {
 // gpu-terrain-split-pipeline-v1
 // gpu-terrain-transition-case-side-repair-v1
 // gpu-terrain-frontier-stability-v1
+// gpu-terrain-duplicate-entry-attribute-repair-v2
 @group(0) @binding(0) var<uniform> dispatch: GpuTerrainDispatch;
 @group(0) @binding(1) var<storage, read> tables: array<u32>;
 @group(0) @binding(2) var<storage, read> scratch: array<f32>;
@@ -605,8 +606,6 @@ fn emit_transition_cell(side: u32, cell_id: u32) {
 
 
 
-
-@compute @workgroup_size(64)
 
 @compute @workgroup_size(64)
 fn main(@builtin(local_invocation_index) lane: u32) {
