@@ -224,8 +224,6 @@ struct VoxelWorkerAdmission {
     // worker-instrumentation-compact-noise-megapass-v1
     active: [AtomicUsize; VoxelWorkerLane::COUNT],
     average_queue_wait_ns: [AtomicU64; VoxelWorkerLane::COUNT],
-    completed: [AtomicU64; VoxelWorkerLane::COUNT],
-    cancelled_before_start: [AtomicU64; VoxelWorkerLane::COUNT],
 }
 impl VoxelWorkerAdmission {
     fn new(worker_capacity: usize) -> Self {
@@ -240,9 +238,6 @@ impl VoxelWorkerAdmission {
             average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
             active: std::array::from_fn(|_| AtomicUsize::new(0)),
             average_queue_wait_ns:
-                std::array::from_fn(|_| AtomicU64::new(0)),
-            completed: std::array::from_fn(|_| AtomicU64::new(0)),
-            cancelled_before_start:
                 std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
@@ -343,14 +338,6 @@ impl VoxelWorkerAdmission {
         self.active[lane.index()].load(Ordering::Acquire)
     }
 
-    fn record_completed(&self, lane: VoxelWorkerLane) {
-        self.completed[lane.index()].fetch_add(1, Ordering::Relaxed);
-    }
-
-    fn record_cancelled_before_start(&self, lane: VoxelWorkerLane) {
-        self.cancelled_before_start[lane.index()]
-            .fetch_add(1, Ordering::Relaxed);
-    }
 }
 
 // worker-instrumentation-compact-noise-megapass-v1
@@ -584,7 +571,6 @@ pub(super) fn try_submit<T, F>(
                 VoxelWorkerComputeAdmission::new(admission_for_job.clone(), lane);
 
             if worker_cancelled.load(Ordering::Acquire) {
-                admission_for_job.record_cancelled_before_start(lane);
                 return;
             }
 
@@ -615,7 +601,6 @@ pub(super) fn try_submit<T, F>(
             };
             let elapsed_ns = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
             admission_for_job.record_job_duration(lane, elapsed_ns);
-            admission_for_job.record_completed(lane);
             if !worker_cancelled.load(Ordering::Acquire) {
                 let _ = result_sender.send(output);
             }
@@ -634,6 +619,16 @@ pub(super) fn try_submit<T, F>(
 
 }
 
+// worker-profiler-signal-prune-v1
+//
+// Keep only signals that answer a distinct scheduling question:
+// - active.total: are the durable workers actually saturated?
+// - queued.*.total: is normal/critical work waiting for service?
+// - per-lane queue_wait_seconds: which lane is suffering scheduler latency?
+// - per-lane compute_seconds: which lane's jobs are intrinsically expensive?
+//
+// Per-lane outstanding/active/queue-depth mirrors and monotonically increasing
+// completion counters were visual noise and duplicated the same pressure state.
 #[cfg(feature = "profiling-tracy")]
 pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     if !tracy_client::Client::is_connected() {
@@ -652,20 +647,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     ];
     let (queued_normal, queued_critical) = workers.queue.depths();
 
-    let generation = workers.admission.outstanding(lanes[0]);
-    let derivation = workers.admission.outstanding(lanes[1]);
-    let planetary = workers.admission.outstanding(lanes[2]);
-    let planning = workers.admission.outstanding(lanes[3]);
-    let presentation = workers.admission.outstanding(lanes[4]);
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.capacity"),
-        workers.capacity as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.outstanding.total"),
-        (generation + derivation + planetary + planning + presentation) as f64,
-    );
     client.plot(
         tracy_client::plot_name!("voxel.worker.active.total"),
         lanes.iter()
@@ -679,33 +660,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     client.plot(
         tracy_client::plot_name!("voxel.worker.queued.critical.total"),
         queued_critical.iter().sum::<usize>() as f64,
-    );
-
-    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.generation"), generation as f64);
-    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.derivation"), derivation as f64);
-    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.planetary"), planetary as f64);
-    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.presentation_planning"), planning as f64);
-    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.presentation"), presentation as f64);
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.generation"),
-        workers.admission.active(lanes[0]) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.derivation"),
-        workers.admission.active(lanes[1]) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.planetary"),
-        workers.admission.active(lanes[2]) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.presentation_planning"),
-        workers.admission.active(lanes[3]) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.presentation"),
-        workers.admission.active(lanes[4]) as f64,
     );
 
     client.plot(
@@ -748,64 +702,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     client.plot(
         tracy_client::plot_name!("voxel.worker.compute_seconds.presentation"),
         workers.admission.average_job_seconds(lanes[4]).unwrap_or(0.0),
-    );
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.generation"),
-        queued_normal[0] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.derivation"),
-        queued_normal[1] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.planetary"),
-        queued_normal[2] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.presentation_planning"),
-        queued_normal[3] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.presentation"),
-        queued_normal[4] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.generation"),
-        queued_critical[0] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.derivation"),
-        queued_critical[1] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.planetary"),
-        queued_critical[2] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.presentation_planning"),
-        queued_critical[3] as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.presentation"),
-        queued_critical[4] as f64,
-    );
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.completed.presentation_planning"),
-        workers.admission.completed[3].load(Ordering::Relaxed) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.completed.presentation"),
-        workers.admission.completed[4].load(Ordering::Relaxed) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.cancelled_before_start.presentation_planning"),
-        workers.admission.cancelled_before_start[3].load(Ordering::Relaxed) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.cancelled_before_start.presentation"),
-        workers.admission.cancelled_before_start[4].load(Ordering::Relaxed) as f64,
     );
 }
 

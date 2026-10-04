@@ -47,6 +47,13 @@ const LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION: f64 = 0.05;
 const CANONICAL_DETAIL_CELL_NATIVE: i64 = 20;
 const CANONICAL_DETAIL_FINE_CELL_NATIVE: i64 = 5;
 
+// fine-residual-tail-correlation-v1
+//
+// Normal fine-residual samples are microsecond-scale. Emit a detailed
+// correlation record only for the rare tail above 250 us.
+#[cfg(feature = "profiling-tracy")]
+const FINE_RESIDUAL_SLOW_PROBE_THRESHOLD_NS: u64 = 250_000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CelestialBodyProfile {
     Lunar,
@@ -536,6 +543,15 @@ impl PreparedCelestialPresentationBody {
             coarse_started,
         );
 
+        // fine-residual-tail-correlation-v1
+        #[cfg(feature = "profiling-tracy")]
+        let slow_fine_probe =
+            (self.residual.fine_len > 0).then(|| {
+                let before =
+                    super::noise::semantic_noise_diagnostic_snapshot();
+                (before, std::time::Instant::now())
+            });
+
         if self.residual.fine_len > 0 {
             #[cfg(feature = "profiling-tracy")]
             let fine_started = sampled.then(Instant::now);
@@ -589,6 +605,70 @@ impl PreparedCelestialPresentationBody {
             &self.surface_micro_profile.surface_total_ns,
             surface_started,
         );
+
+        // fine-residual-tail-correlation-v1
+        #[cfg(feature = "profiling-tracy")]
+        if let Some((before, started)) = slow_fine_probe {
+            let elapsed_ns = started
+                .elapsed()
+                .as_nanos()
+                .min(u128::from(u64::MAX)) as u64;
+
+            if elapsed_ns >= FINE_RESIDUAL_SLOW_PROBE_THRESHOLD_NS {
+                let diagnostics =
+                    super::noise::semantic_noise_diagnostic_snapshot()
+                        .delta_since(before);
+
+                bevy::log::info!(
+                    elapsed_ns,
+                    threshold_ns = FINE_RESIDUAL_SLOW_PROBE_THRESHOLD_NS,
+                    thread_id = ?std::thread::current().id(),
+                    fine_len = self.residual.fine_len,
+                    surface_detail_exponent =
+                        self.body.surface_detail_scale.exponent(),
+                    direction_x = direction.x,
+                    direction_y = direction.y,
+                    direction_z = direction.z,
+                    prepared_point_attempts =
+                        diagnostics.prepared_point_attempts,
+                    prepared_point_successes =
+                        diagnostics.prepared_point_successes,
+                    prepared_point_nonfinite_failures =
+                        diagnostics.prepared_point_nonfinite_failures,
+                    prepared_point_range_failures =
+                        diagnostics.prepared_point_range_failures,
+                    prepared_point_overflow_failures =
+                        diagnostics.prepared_point_overflow_failures,
+                    prepared_cell_address_failures =
+                        diagnostics.prepared_cell_address_failures,
+                    fast_path_completions =
+                        diagnostics.fast_path_completions,
+                    generic_fallbacks =
+                        diagnostics.generic_fallbacks,
+                    cell_20_hits = diagnostics.cell_20_hits,
+                    cell_20_misses = diagnostics.cell_20_misses,
+                    cell_5_hits = diagnostics.cell_5_hits,
+                    cell_5_misses = diagnostics.cell_5_misses,
+                    cell_empty_misses =
+                        diagnostics.cell_empty_misses,
+                    cell_collision_misses =
+                        diagnostics.cell_collision_misses,
+                    corner_hits = diagnostics.corner_hits,
+                    corner_misses = diagnostics.corner_misses,
+                    corner_empty_misses =
+                        diagnostics.corner_empty_misses,
+                    corner_collision_misses =
+                        diagnostics.corner_collision_misses,
+                    corner_hash_computes =
+                        diagnostics.corner_hash_computes,
+                    compact_axis_decompositions =
+                        diagnostics.compact_axis_decompositions,
+                    compact_digit_steps =
+                        diagnostics.compact_digit_steps,
+                    "slow fine residual correlation"
+                );
+            }
+        }
 
         Ok(radius)
     }
