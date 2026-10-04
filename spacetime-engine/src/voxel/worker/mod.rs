@@ -204,17 +204,20 @@ impl VoxelWorkerQueue {
 #[derive(Debug)]
 struct VoxelWorkerAdmission {
     outstanding: [AtomicUsize; VoxelWorkerLane::COUNT],
+    running: [AtomicUsize; VoxelWorkerLane::COUNT],
     limits: [usize; VoxelWorkerLane::COUNT],
     average_job_ns: [AtomicU64; VoxelWorkerLane::COUNT],
 
     // first-touch-profiler-decontamination-v2
-    // No plot-only pressure state lives in worker admission.
+    // gpu-terrain-tracy-observability-v1
+    // Runtime pressure is scheduler state; Tracy only observes it.
 }
 impl VoxelWorkerAdmission {
     fn new(worker_capacity: usize) -> Self {
         let pipeline_depth = worker_capacity.saturating_mul(2).max(1);
         Self {
             outstanding: std::array::from_fn(|_| AtomicUsize::new(0)),
+            running: std::array::from_fn(|_| AtomicUsize::new(0)),
             // Dense generation/derivation and binary presentation resolution
             // are streaming pipelines. Keep enough queued/running work to feed
             // the shared pool; planning and legacy planetary surface remain
@@ -260,6 +263,15 @@ impl VoxelWorkerAdmission {
             .map(|counter| counter.load(Ordering::Acquire))
             .sum()
     }
+    fn running(&self, lane: VoxelWorkerLane) -> usize {
+        self.running[lane.index()].load(Ordering::Acquire)
+    }
+    fn total_running(&self) -> usize {
+        self.running
+            .iter()
+            .map(|counter| counter.load(Ordering::Acquire))
+            .sum()
+    }
     fn record_job_duration(&self, lane: VoxelWorkerLane, elapsed_ns: u64) {
         let average = &self.average_job_ns[lane.index()];
         let mut current = average.load(Ordering::Relaxed);
@@ -299,6 +311,7 @@ impl VoxelWorkerComputeAdmission {
         admission: Arc<VoxelWorkerAdmission>,
         lane: VoxelWorkerLane,
     ) -> Self {
+        admission.running[lane.index()].fetch_add(1, Ordering::AcqRel);
         Self {
             admission: Some(admission),
             lane,
@@ -309,6 +322,12 @@ impl VoxelWorkerComputeAdmission {
 impl Drop for VoxelWorkerComputeAdmission {
     fn drop(&mut self) {
         if let Some(admission) = self.admission.take() {
+            let previous = admission.running[self.lane.index()]
+                .fetch_sub(1, Ordering::AcqRel);
+            debug_assert!(
+                previous > 0,
+                "voxel worker running counter underflow"
+            );
             admission.release(self.lane);
         }
     }
@@ -528,8 +547,139 @@ pub(super) fn try_submit<T, F>(
 }
 
 // first-touch-profiler-decontamination-v2
+// gpu-terrain-tracy-observability-v1
 #[cfg(feature = "profiling-tracy")]
-pub(super) fn emit_worker_pressure(_workers: Res<VoxelWorkerPool>) {}
+pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
+    let Some(client) = tracy_client::Client::running() else {
+        return;
+    };
+
+    let generation_outstanding =
+        workers.admission.outstanding(VoxelWorkerLane::Generation);
+    let generation_running =
+        workers.admission.running(VoxelWorkerLane::Generation);
+    let derivation_outstanding =
+        workers.admission.outstanding(VoxelWorkerLane::Derivation);
+    let derivation_running =
+        workers.admission.running(VoxelWorkerLane::Derivation);
+    let planetary_outstanding =
+        workers.admission.outstanding(VoxelWorkerLane::PlanetarySurface);
+    let planetary_running =
+        workers.admission.running(VoxelWorkerLane::PlanetarySurface);
+    let planning_outstanding =
+        workers.admission.outstanding(VoxelWorkerLane::PresentationPlanning);
+    let planning_running =
+        workers.admission.running(VoxelWorkerLane::PresentationPlanning);
+    let resolution_outstanding =
+        workers.admission.outstanding(VoxelWorkerLane::PresentationResolution);
+    let resolution_running =
+        workers.admission.running(VoxelWorkerLane::PresentationResolution);
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/capacity"),
+        workers.capacity() as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/running"),
+        workers.admission.total_running() as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/outstanding"),
+        workers.admission.total_outstanding() as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/queued"),
+        workers
+            .admission
+            .total_outstanding()
+            .saturating_sub(workers.admission.total_running()) as f64,
+    );
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Generation running"),
+        generation_running as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Generation queued"),
+        generation_outstanding.saturating_sub(generation_running) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Generation avg ms"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::Generation)
+            .unwrap_or(0.0)
+            * 1_000.0,
+    );
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Derivation running"),
+        derivation_running as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Derivation queued"),
+        derivation_outstanding.saturating_sub(derivation_running) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/Derivation avg ms"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::Derivation)
+            .unwrap_or(0.0)
+            * 1_000.0,
+    );
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PlanetarySurface running"),
+        planetary_running as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PlanetarySurface queued"),
+        planetary_outstanding.saturating_sub(planetary_running) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PlanetarySurface avg ms"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::PlanetarySurface)
+            .unwrap_or(0.0)
+            * 1_000.0,
+    );
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationPlanning running"),
+        planning_running as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationPlanning queued"),
+        planning_outstanding.saturating_sub(planning_running) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationPlanning avg ms"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::PresentationPlanning)
+            .unwrap_or(0.0)
+            * 1_000.0,
+    );
+
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationResolution running"),
+        resolution_running as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationResolution queued"),
+        resolution_outstanding.saturating_sub(resolution_running) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("Voxel workers/PresentationResolution avg ms"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::PresentationResolution)
+            .unwrap_or(0.0)
+            * 1_000.0,
+    );
+}
 
 fn recommended_worker_threads(available: usize) -> usize {
     let available = available.max(1);

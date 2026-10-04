@@ -20,6 +20,7 @@ use bevy::{
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
     render::{
+        diagnostic::RecordDiagnostics,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         mesh::allocator::{MeshAllocator, MeshAllocatorSettings},
         render_resource::{
@@ -46,6 +47,7 @@ const GPU_TERRAIN_TOPOLOGY_SHADER: Handle<Shader> =
 // gpu-terrain-split-pipeline-v1
 // gpu-terrain-memory-pressure-repair-v1
 // gpu-terrain-frontier-stability-v1
+// gpu-terrain-tracy-observability-v1
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 const REGULAR_MAX_TRIANGLES: usize = BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS
@@ -185,6 +187,7 @@ struct GpuTerrainCompletionSink(Arc<Mutex<VecDeque<u64>>>);
 struct GpuTerrainRenderState {
     processed: HashMap<AssetId<Mesh>, u64>,
     pending: Vec<GpuTerrainBlock>,
+    extracted_blocks: usize,
 }
 
 #[derive(Resource)]
@@ -820,6 +823,7 @@ fn prepare_gpu_terrain_blocks(
     mut failure_reported: Local<bool>,
 ) {
     state.pending.clear();
+    state.extracted_blocks = blocks.iter().count();
 
     let mut failed = None;
     let density_ready = match pipeline_cache
@@ -872,6 +876,74 @@ fn prepare_gpu_terrain_blocks(
 }
 
 
+
+#[cfg(feature = "profiling-tracy")]
+fn emit_gpu_terrain_pressure(
+    mesh_allocator: &MeshAllocator,
+    extracted_blocks: usize,
+    pending_blocks: usize,
+    dispatched_blocks: usize,
+    transition_faces: u64,
+    density_sample_calls: u64,
+    fine_band_visits: u64,
+    processed_records: usize,
+) {
+    let Some(client) = tracy_client::Client::running() else {
+        return;
+    };
+
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/extracted blocks"),
+        extracted_blocks as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/pending blocks"),
+        pending_blocks as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/dispatched blocks/frame"),
+        dispatched_blocks as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/transition faces/frame"),
+        transition_faces as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/density samples/frame"),
+        density_sample_calls as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/fine-band visits/frame"),
+        fine_band_visits as f64,
+    );
+
+    // These MeshAllocator values cover the renderer's shared mesh slab domain,
+    // which is useful for spotting terrain-driven allocator pressure.
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/mesh slab bytes"),
+        mesh_allocator.slabs_size() as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/mesh slab count"),
+        mesh_allocator.slab_count() as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/index allocations"),
+        mesh_allocator.index_allocation_count() as f64,
+    );
+
+    // Lower bound only: transition-capable shells carry more fixed indices.
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/min fixed draw indices/frame"),
+        extracted_blocks
+            .saturating_mul(REGULAR_MAX_INDICES) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("GPU terrain/processed records"),
+        processed_records as f64,
+    );
+}
+
 fn compute_gpu_terrain(
     mut render_context: RenderContext,
     mesh_allocator: Res<MeshAllocator>,
@@ -900,7 +972,18 @@ fn compute_gpu_terrain(
         return;
     };
 
+    // RenderDiagnosticsPlugin is automatically present in Bevy Tracy builds.
+    // These become actual GPU timestamp zones in Tracy.
+    let diagnostics = render_context.diagnostic_recorder();
+    let diagnostics = diagnostics.as_deref();
+
     let pending = std::mem::take(&mut state.pending);
+    let pending_count = pending.len();
+    let mut dispatched = 0usize;
+    let mut transition_faces = 0u64;
+    let mut density_sample_calls = 0u64;
+    let mut fine_band_visits = 0u64;
+
     for block in pending {
         let mesh_id = block.mesh.id();
         let Some(vertex_slice) =
@@ -913,6 +996,23 @@ fn compute_gpu_terrain(
         else {
             continue;
         };
+
+        let block_transition_faces =
+            block.descriptor.meta.y.count_ones() as u64;
+
+        // 9^3 regular samples. Each enabled transition face evaluates 17^2
+        // samples, with density + six finite-difference gradient neighbours.
+        let block_density_calls = 729u64
+            + block_transition_faces.saturating_mul(289u64 * 7u64);
+
+        transition_faces =
+            transition_faces.saturating_add(block_transition_faces);
+        density_sample_calls =
+            density_sample_calls.saturating_add(block_density_calls);
+        fine_band_visits = fine_band_visits.saturating_add(
+            block_density_calls
+                .saturating_mul(u64::from(block.descriptor.meta.w)),
+        );
 
         let dispatch = GpuTerrainDispatch {
             ranges: UVec4::new(
@@ -949,9 +1049,14 @@ fn compute_gpu_terrain(
                         ..default()
                     },
                 );
+            let gpu_span = diagnostics.time_span(
+                &mut pass,
+                "voxel GPU terrain/density",
+            );
             pass.set_pipeline(density_pipeline);
             pass.set_bind_group(0, &density_bind_group, &[]);
             pass.dispatch_workgroups(1, 1, 1);
+            gpu_span.end(&mut pass);
         }
 
         let topology_bind_group =
@@ -977,11 +1082,17 @@ fn compute_gpu_terrain(
                         ..default()
                     },
                 );
+            let gpu_span = diagnostics.time_span(
+                &mut pass,
+                "voxel GPU terrain/topology",
+            );
             pass.set_pipeline(topology_pipeline);
             pass.set_bind_group(0, &topology_bind_group, &[]);
             pass.dispatch_workgroups(1, 1, 1);
+            gpu_span.end(&mut pass);
         }
 
+        dispatched = dispatched.saturating_add(1);
         state.processed.insert(mesh_id, block.build_id);
         completion_sink
             .0
@@ -989,5 +1100,18 @@ fn compute_gpu_terrain(
             .expect("GPU terrain completion queue poisoned")
             .push_back(block.build_id);
     }
+
+    #[cfg(feature = "profiling-tracy")]
+    emit_gpu_terrain_pressure(
+        &mesh_allocator,
+        state.extracted_blocks,
+        pending_count,
+        dispatched,
+        transition_faces,
+        density_sample_calls,
+        fine_band_visits,
+        state.processed.len(),
+    );
 }
+
 
