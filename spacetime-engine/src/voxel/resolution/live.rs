@@ -4443,7 +4443,8 @@ fn sync_celestial_clipmap_transforms(
     }
 
     let view_stamp = ClipmapViewProjectionStamp {
-        anchor: view.anchor(),
+        // clipmap-view-stamp-anchor-deref-repair-v1
+        anchor: *view.anchor(),
         metre_to_view_f64,
         projection_eye: view.projection_eye_offset_metres(),
         presentation_origin: view.presentation_origin(),
@@ -4478,10 +4479,18 @@ fn sync_celestial_clipmap_transforms(
         }
         scratch.next_authority_stamps.insert(authority, stamp);
     }
-    std::mem::swap(
-        &mut scratch.authority_stamps,
-        &mut scratch.next_authority_stamps,
-    );
+    // clipmap-transform-local-borrow-repair-v2
+    {
+        let CelestialClipmapTransformScratch {
+            authority_stamps,
+            next_authority_stamps,
+            ..
+        } = &mut *scratch;
+        std::mem::swap(
+            authority_stamps,
+            next_authority_stamps,
+        );
+    }
 
     let frontier_changed = !scratch.initialized
         || scratch.last_frontier_epoch != registry.frontier_epoch;
@@ -4517,7 +4526,13 @@ fn sync_celestial_clipmap_transforms(
             &mut registry.projection_pending,
         );
 
-        for entity in scratch.pending_entities.drain(..) {
+        // Move the reusable Vec out while iterating so the drain does not
+        // retain a mutable borrow of `scratch` while we read `frames`.
+        // Restore the now-empty allocation afterward for reuse next frame.
+        let mut pending_entities =
+            std::mem::take(&mut scratch.pending_entities);
+
+        for entity in pending_entities.drain(..) {
             let Ok((mut block, mut transform, mut visibility, _)) =
                 blocks.get_mut(entity)
             else {
@@ -4543,6 +4558,7 @@ fn sync_celestial_clipmap_transforms(
             );
         }
 
+        scratch.pending_entities = pending_entities;
         scratch.last_projection_epoch = registry.projection_epoch;
         return;
     }

@@ -123,7 +123,8 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 const FLIGHT_HUD_METRIC_REFRESH_SECONDS: f32 = 1.0 / 20.0;
 
 #[derive(Default)]
-struct FlightHudRefreshState {
+// flight-hud-refresh-state-visibility-repair-v1
+pub(super) struct FlightHudRefreshState {
     metric_accumulator_seconds: f32,
     was_flying: bool,
 }
