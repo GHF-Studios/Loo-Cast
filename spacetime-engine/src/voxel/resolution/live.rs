@@ -4311,9 +4311,22 @@ fn sync_celestial_clipmap_transforms(
         }
     }
 
-    for (&authority, &(expected, projected)) in &scratch.counts {
-        if binary_frontier_projection_complete(expected, projected) {
-            scratch.binary_primary.insert(authority);
+    // clipmap-transform-scratch-borrow-repair-v1
+    //
+    // Borrow disjoint scratch fields directly. Borrowing `scratch.counts`
+    // through the whole Local wrapper kept an immutable borrow of `scratch`
+    // alive while inserting into `binary_primary`.
+    {
+        let CelestialClipmapTransformScratch {
+            counts,
+            binary_primary,
+            ..
+        } = &mut *scratch;
+
+        for (&authority, &(expected, projected)) in counts.iter() {
+            if binary_frontier_projection_complete(expected, projected) {
+                binary_primary.insert(authority);
+            }
         }
     }
     let binary_primary_count = scratch.binary_primary.len();
@@ -4323,40 +4336,57 @@ fn sync_celestial_clipmap_transforms(
     let mut visible_blocks = 0usize;
     let mut finest_visible_spacing = None::<f64>;
     let mut coarsest_visible_spacing = None::<f64>;
-    for &entity in &scratch.projected_committed {
-        let Ok((block, _, mut visibility, _)) = blocks.get_mut(entity) else {
-            continue;
-        };
-        let visible = scratch.binary_primary.contains(&block.authority);
-        *visibility = if visible {
-            Visibility::Inherited
-        } else {
-            Visibility::Hidden
-        };
-        if !visible {
-            continue;
-        }
+    {
+        let CelestialClipmapTransformScratch {
+            projected_committed,
+            binary_primary,
+            visible_levels,
+            visible_by_authority,
+            ..
+        } = &mut *scratch;
 
-        let spacing = block.spec.key.spacing_metres();
-        visible_blocks = visible_blocks.saturating_add(1);
-        scratch
-            .visible_levels
-            .insert(block.spec.key.resolution.binary_exponent());
-        finest_visible_spacing = Some(
-            finest_visible_spacing.map_or(spacing, |value| value.min(spacing)),
-        );
-        coarsest_visible_spacing = Some(
-            coarsest_visible_spacing.map_or(spacing, |value| value.max(spacing)),
-        );
-        scratch
-            .visible_by_authority
-            .entry(block.authority)
-            .or_default()
-            .push(CelestialClipmapCoverageCell {
-                center_local_metres: block.spec.key.center_local_metres(),
-                half_extent_metres: block.spec.key.half_extent_metres(),
-                sample_spacing_metres: spacing,
-            });
+        for &entity in projected_committed.iter() {
+            let Ok((block, _, mut visibility, _)) = blocks.get_mut(entity) else {
+                continue;
+            };
+            let visible = binary_primary.contains(&block.authority);
+            *visibility = if visible {
+                Visibility::Inherited
+            } else {
+                Visibility::Hidden
+            };
+            if !visible {
+                continue;
+            }
+
+            let spacing = block.spec.key.spacing_metres();
+            visible_blocks = visible_blocks.saturating_add(1);
+            visible_levels.insert(
+                block.spec.key.resolution.binary_exponent(),
+            );
+            finest_visible_spacing = Some(
+                finest_visible_spacing.map_or(
+                    spacing,
+                    |value| value.min(spacing),
+                ),
+            );
+            coarsest_visible_spacing = Some(
+                coarsest_visible_spacing.map_or(
+                    spacing,
+                    |value| value.max(spacing),
+                ),
+            );
+            visible_by_authority
+                .entry(block.authority)
+                .or_default()
+                .push(CelestialClipmapCoverageCell {
+                    center_local_metres:
+                        block.spec.key.center_local_metres(),
+                    half_extent_metres:
+                        block.spec.key.half_extent_metres(),
+                    sample_spacing_metres: spacing,
+                });
+        }
     }
 
     coverage.retain_authorities(&scratch.live_authorities);
