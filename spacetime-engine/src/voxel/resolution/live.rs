@@ -3324,7 +3324,7 @@ fn build_clipmap_mesh(
             central_half_extent,
         );
 
-    #[inline]
+    // central-lattice-inline-closure-repair-v1
     let evaluate_density =
         |point: DVec3, include_caves: bool| -> f32 {
             let signed_distance = if include_caves {
