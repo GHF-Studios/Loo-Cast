@@ -5,6 +5,10 @@
 
 use bevy::{math::DVec3, prelude::Vec3};
 
+// surface-octave-microprofile-v1
+#[cfg(feature = "profiling-tracy")]
+use std::{cell::Cell, time::Instant};
+
 use crate::spatial::{
     SPATIAL_SCALE_COUNT, SpatialScale, UsfPosition, UsfPositionError,
     UsfSemanticFrame,
@@ -202,11 +206,230 @@ impl PreparedCelestialResidualStack {
     }
 }
 
+// surface-octave-microprofile-v1
+//
+// Profiling-only sampled accounting for the complete semantic surface stack.
+//
+// We deliberately do NOT time every density sample. One out of every 29
+// surface evaluations is measured, giving ~25 samples in a 9^3 central
+// lattice while keeping Instant traffic bounded. Outer totals and per-band
+// totals are both recorded so the difference exposes iterator/setup/timing
+// overhead instead of silently attributing it to an octave.
+#[cfg(feature = "profiling-tracy")]
+const SURFACE_MICRO_PROFILE_SAMPLE_STRIDE: u64 = 29;
+
+#[cfg(feature = "profiling-tracy")]
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CelestialSurfaceMicroProfileSnapshot {
+    pub(crate) surface_calls: u64,
+    pub(crate) sampled_calls: u64,
+    pub(crate) surface_total_ns: u64,
+    pub(crate) normalize_ns: u64,
+    pub(crate) macro_terrain_ns: u64,
+    pub(crate) coarse_total_ns: u64,
+    pub(crate) fine_total_ns: u64,
+    pub(crate) coarse_band_exponents: [i8; SPATIAL_SCALE_COUNT],
+    pub(crate) coarse_band_samples: [u64; SPATIAL_SCALE_COUNT],
+    pub(crate) coarse_band_ns: [u64; SPATIAL_SCALE_COUNT],
+    pub(crate) fine_band_exponents: [i8; SPATIAL_SCALE_COUNT],
+    pub(crate) fine_band_samples: [u64; SPATIAL_SCALE_COUNT],
+    pub(crate) fine_band_ns: [u64; SPATIAL_SCALE_COUNT],
+    pub(crate) coarse_len: usize,
+    pub(crate) fine_len: usize,
+}
+
+#[cfg(feature = "profiling-tracy")]
+impl CelestialSurfaceMicroProfileSnapshot {
+    pub(crate) fn delta_since(self, before: Self) -> Self {
+        let delta_array = |after: [u64; SPATIAL_SCALE_COUNT],
+                           before: [u64; SPATIAL_SCALE_COUNT]| {
+            std::array::from_fn(|index| {
+                after[index].saturating_sub(before[index])
+            })
+        };
+
+        Self {
+            surface_calls:
+                self.surface_calls.saturating_sub(before.surface_calls),
+            sampled_calls:
+                self.sampled_calls.saturating_sub(before.sampled_calls),
+            surface_total_ns:
+                self.surface_total_ns.saturating_sub(before.surface_total_ns),
+            normalize_ns:
+                self.normalize_ns.saturating_sub(before.normalize_ns),
+            macro_terrain_ns:
+                self.macro_terrain_ns.saturating_sub(before.macro_terrain_ns),
+            coarse_total_ns:
+                self.coarse_total_ns.saturating_sub(before.coarse_total_ns),
+            fine_total_ns:
+                self.fine_total_ns.saturating_sub(before.fine_total_ns),
+            coarse_band_exponents: self.coarse_band_exponents,
+            coarse_band_samples:
+                delta_array(self.coarse_band_samples, before.coarse_band_samples),
+            coarse_band_ns:
+                delta_array(self.coarse_band_ns, before.coarse_band_ns),
+            fine_band_exponents: self.fine_band_exponents,
+            fine_band_samples:
+                delta_array(self.fine_band_samples, before.fine_band_samples),
+            fine_band_ns:
+                delta_array(self.fine_band_ns, before.fine_band_ns),
+            coarse_len: self.coarse_len,
+            fine_len: self.fine_len,
+        }
+    }
+}
+
+#[cfg(feature = "profiling-tracy")]
+#[derive(Debug)]
+struct CelestialSurfaceMicroProfile {
+    surface_calls: Cell<u64>,
+    sampled_calls: Cell<u64>,
+    surface_total_ns: Cell<u64>,
+    normalize_ns: Cell<u64>,
+    macro_terrain_ns: Cell<u64>,
+    coarse_total_ns: Cell<u64>,
+    fine_total_ns: Cell<u64>,
+    coarse_band_samples: [Cell<u64>; SPATIAL_SCALE_COUNT],
+    coarse_band_ns: [Cell<u64>; SPATIAL_SCALE_COUNT],
+    fine_band_samples: [Cell<u64>; SPATIAL_SCALE_COUNT],
+    fine_band_ns: [Cell<u64>; SPATIAL_SCALE_COUNT],
+}
+
+#[cfg(feature = "profiling-tracy")]
+impl CelestialSurfaceMicroProfile {
+    fn new() -> Self {
+        Self {
+            surface_calls: Cell::new(0),
+            sampled_calls: Cell::new(0),
+            surface_total_ns: Cell::new(0),
+            normalize_ns: Cell::new(0),
+            macro_terrain_ns: Cell::new(0),
+            coarse_total_ns: Cell::new(0),
+            fine_total_ns: Cell::new(0),
+            coarse_band_samples:
+                std::array::from_fn(|_| Cell::new(0)),
+            coarse_band_ns:
+                std::array::from_fn(|_| Cell::new(0)),
+            fine_band_samples:
+                std::array::from_fn(|_| Cell::new(0)),
+            fine_band_ns:
+                std::array::from_fn(|_| Cell::new(0)),
+        }
+    }
+
+    #[inline]
+    fn add(counter: &Cell<u64>, amount: u64) {
+        counter.set(counter.get().saturating_add(amount));
+    }
+
+    #[inline]
+    fn elapsed_ns(start: Instant) -> u64 {
+        u64::try_from(start.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
+
+    #[inline]
+    fn begin_surface_call(&self) -> bool {
+        let index = self.surface_calls.get();
+        self.surface_calls.set(index.saturating_add(1));
+        let sampled =
+            index % SURFACE_MICRO_PROFILE_SAMPLE_STRIDE == 0;
+        if sampled {
+            Self::add(&self.sampled_calls, 1);
+        }
+        sampled
+    }
+
+    #[inline]
+    fn record_duration(counter: &Cell<u64>, start: Option<Instant>) {
+        if let Some(start) = start {
+            Self::add(counter, Self::elapsed_ns(start));
+        }
+    }
+
+    #[inline]
+    fn record_coarse_band(&self, index: usize, start: Option<Instant>) {
+        if let Some(start) = start {
+            Self::add(&self.coarse_band_samples[index], 1);
+            Self::add(
+                &self.coarse_band_ns[index],
+                Self::elapsed_ns(start),
+            );
+        }
+    }
+
+    #[inline]
+    fn record_fine_band(&self, index: usize, start: Option<Instant>) {
+        if let Some(start) = start {
+            Self::add(&self.fine_band_samples[index], 1);
+            Self::add(
+                &self.fine_band_ns[index],
+                Self::elapsed_ns(start),
+            );
+        }
+    }
+
+    fn snapshot(
+        &self,
+        residual: &PreparedCelestialResidualStack,
+    ) -> CelestialSurfaceMicroProfileSnapshot {
+        let mut coarse_band_exponents = [i8::MIN; SPATIAL_SCALE_COUNT];
+        let mut fine_band_exponents = [i8::MIN; SPATIAL_SCALE_COUNT];
+
+        for (index, band) in residual
+            .coarse
+            .iter()
+            .take(residual.coarse_len)
+            .flatten()
+            .enumerate()
+        {
+            coarse_band_exponents[index] = band.level.exponent();
+        }
+        for (index, band) in residual
+            .fine
+            .iter()
+            .take(residual.fine_len)
+            .flatten()
+            .enumerate()
+        {
+            fine_band_exponents[index] = band.level.exponent();
+        }
+
+        CelestialSurfaceMicroProfileSnapshot {
+            surface_calls: self.surface_calls.get(),
+            sampled_calls: self.sampled_calls.get(),
+            surface_total_ns: self.surface_total_ns.get(),
+            normalize_ns: self.normalize_ns.get(),
+            macro_terrain_ns: self.macro_terrain_ns.get(),
+            coarse_total_ns: self.coarse_total_ns.get(),
+            fine_total_ns: self.fine_total_ns.get(),
+            coarse_band_exponents,
+            coarse_band_samples: std::array::from_fn(
+                |index| self.coarse_band_samples[index].get(),
+            ),
+            coarse_band_ns: std::array::from_fn(
+                |index| self.coarse_band_ns[index].get(),
+            ),
+            fine_band_exponents,
+            fine_band_samples: std::array::from_fn(
+                |index| self.fine_band_samples[index].get(),
+            ),
+            fine_band_ns: std::array::from_fn(
+                |index| self.fine_band_ns[index].get(),
+            ),
+            coarse_len: residual.coarse_len,
+            fine_len: residual.fine_len,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct PreparedCelestialPresentationBody {
     body: ProceduralCelestialBody,
     canonical_noise_cache: SemanticNoiseCornerCache,
     residual: PreparedCelestialResidualStack,
+    // surface-octave-microprofile-v1
+    #[cfg(feature = "profiling-tracy")]
+    surface_micro_profile: CelestialSurfaceMicroProfile,
 }
 
 impl PreparedCelestialPresentationBody {
@@ -215,18 +438,26 @@ impl PreparedCelestialPresentationBody {
             body,
             canonical_noise_cache: SemanticNoiseCornerCache::new(),
             residual: PreparedCelestialResidualStack::new(body),
+            // surface-octave-microprofile-v1
+            #[cfg(feature = "profiling-tracy")]
+            surface_micro_profile: CelestialSurfaceMicroProfile::new(),
         }
     }
 
     #[inline]
     // density-lattice-diagnostic-instrumentation-v1
+    // surface-octave-microprofile-v1
     fn semantic_surface_radius_metres(
         &self,
         direction: Vec3,
     ) -> Result<f64, UsfPositionError> {
-        // Preserve the reference normalization sequence exactly:
-        // callers normalize once before this function and the reference
-        // semantic surface function normalizes again here.
+        #[cfg(feature = "profiling-tracy")]
+        let sampled = self.surface_micro_profile.begin_surface_call();
+        #[cfg(feature = "profiling-tracy")]
+        let surface_started = sampled.then(Instant::now);
+
+        #[cfg(feature = "profiling-tracy")]
+        let normalize_started = sampled.then(Instant::now);
         let direction = {
             let _span = bevy::log::info_span!(
                 "voxel.worker.presentation_resolution.density_sample.surface.normalize"
@@ -234,7 +465,14 @@ impl PreparedCelestialPresentationBody {
             .entered();
             normalized_direction(direction)
         };
+        #[cfg(feature = "profiling-tracy")]
+        CelestialSurfaceMicroProfile::record_duration(
+            &self.surface_micro_profile.normalize_ns,
+            normalize_started,
+        );
 
+        #[cfg(feature = "profiling-tracy")]
+        let macro_started = sampled.then(Instant::now);
         let macro_displacement = {
             let _span = bevy::log::info_span!(
                 "voxel.worker.presentation_resolution.density_sample.surface.macro_terrain"
@@ -245,21 +483,32 @@ impl PreparedCelestialPresentationBody {
                 self.body.surface_detail_scale,
             )
         };
+        #[cfg(feature = "profiling-tracy")]
+        CelestialSurfaceMicroProfile::record_duration(
+            &self.surface_micro_profile.macro_terrain_ns,
+            macro_started,
+        );
         let mut radius = self.body.radius_metres + macro_displacement;
 
+        #[cfg(feature = "profiling-tracy")]
+        let coarse_started = sampled.then(Instant::now);
         {
             let _span = bevy::log::info_span!(
                 "voxel.worker.presentation_resolution.density_sample.surface.coarse_residual"
             )
             .entered();
 
-            for band in self
+            for (band_index, band) in self
                 .residual
                 .coarse
                 .iter()
                 .take(self.residual.coarse_len)
                 .flatten()
+                .enumerate()
             {
+                #[cfg(feature = "profiling-tracy")]
+                let band_started = sampled.then(Instant::now);
+
                 let p = direction * band.angular_frequency;
                 let broad = value_noise_3d(
                     p + Vec3::new(13.7, -7.1, 3.9),
@@ -273,23 +522,41 @@ impl PreparedCelestialPresentationBody {
                     f64::from(broad * 0.72 + fine * 0.28)
                         * band.amplitude_native;
                 radius += detail_native * band.metres_per_native;
+
+                #[cfg(feature = "profiling-tracy")]
+                self.surface_micro_profile.record_coarse_band(
+                    band_index,
+                    band_started,
+                );
             }
         }
+        #[cfg(feature = "profiling-tracy")]
+        CelestialSurfaceMicroProfile::record_duration(
+            &self.surface_micro_profile.coarse_total_ns,
+            coarse_started,
+        );
 
         if self.residual.fine_len > 0 {
+            #[cfg(feature = "profiling-tracy")]
+            let fine_started = sampled.then(Instant::now);
+
             let _span = bevy::log::info_span!(
                 "voxel.worker.presentation_resolution.density_sample.surface.fine_residual"
             )
             .entered();
 
             let local_reference_metres = dvec(direction) * radius;
-            for band in self
+            for (band_index, band) in self
                 .residual
                 .fine
                 .iter()
                 .take(self.residual.fine_len)
                 .flatten()
+                .enumerate()
             {
+                #[cfg(feature = "profiling-tracy")]
+                let band_started = sampled.then(Instant::now);
+
                 let noise = self
                     .body
                     .canonical_detail_noise_at_local_metres_cached_prepared(
@@ -302,8 +569,26 @@ impl PreparedCelestialPresentationBody {
                 radius += f64::from(noise)
                     * band.amplitude_native
                     * band.metres_per_native;
+
+                #[cfg(feature = "profiling-tracy")]
+                self.surface_micro_profile.record_fine_band(
+                    band_index,
+                    band_started,
+                );
             }
+
+            #[cfg(feature = "profiling-tracy")]
+            CelestialSurfaceMicroProfile::record_duration(
+                &self.surface_micro_profile.fine_total_ns,
+                fine_started,
+            );
         }
+
+        #[cfg(feature = "profiling-tracy")]
+        CelestialSurfaceMicroProfile::record_duration(
+            &self.surface_micro_profile.surface_total_ns,
+            surface_started,
+        );
 
         Ok(radius)
     }
@@ -403,6 +688,14 @@ impl PreparedCelestialPresentationBody {
         let direction = normalized_direction(direction);
         let radius = self.semantic_surface_radius_metres(direction)?;
         Ok(dvec(direction) * radius)
+    }
+
+    // surface-octave-microprofile-v1
+    #[cfg(feature = "profiling-tracy")]
+    pub(crate) fn surface_micro_profile_snapshot(
+        &self,
+    ) -> CelestialSurfaceMicroProfileSnapshot {
+        self.surface_micro_profile.snapshot(&self.residual)
     }
 
     pub(crate) fn noise_cache_stats(&self) -> (u64, u64) {

@@ -107,6 +107,14 @@ impl CelestialPresentationFieldSampler {
     ) -> (u64, u64) {
         self.body.noise_cell_cache_stats()
     }
+
+    // surface-octave-microprofile-v1
+    #[cfg(feature = "profiling-tracy")]
+    pub(crate) fn surface_micro_profile_snapshot(
+        &self,
+    ) -> super::base::CelestialSurfaceMicroProfileSnapshot {
+        self.body.surface_micro_profile_snapshot()
+    }
 }
 
 impl CelestialVoxelField {

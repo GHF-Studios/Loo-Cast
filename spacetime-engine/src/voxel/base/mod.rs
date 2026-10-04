@@ -18,6 +18,9 @@ pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
 pub(crate) use celestial::{
     CelestialFieldSample, PreparedCelestialPresentationBody,
 };
+// surface-octave-microprofile-v1
+#[cfg(feature = "profiling-tracy")]
+pub(crate) use celestial::CelestialSurfaceMicroProfileSnapshot;
 // presentation-central-cache-specialization-v1
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
