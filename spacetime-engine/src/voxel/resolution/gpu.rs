@@ -39,8 +39,11 @@ use crate::{
     voxel::{CelestialBodyProfile, CelestialVoxelField},
 };
 
-const GPU_TERRAIN_SHADER: Handle<Shader> =
+const GPU_TERRAIN_DENSITY_SHADER: Handle<Shader> =
     uuid_handle!("56f43359-c86b-4cd9-a561-9f07f86d0a51");
+const GPU_TERRAIN_TOPOLOGY_SHADER: Handle<Shader> =
+    uuid_handle!("96b866c0-a48a-4558-9e24-b8773dcf569e");
+// gpu-terrain-split-pipeline-v1
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 const REGULAR_MAX_TRIANGLES: usize = BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS
@@ -181,12 +184,17 @@ struct GpuTerrainRenderState {
 
 #[derive(Resource)]
 struct GpuTerrainPipeline {
-    layout: BindGroupLayoutDescriptor,
-    pipeline: CachedComputePipelineId,
+    density_layout: BindGroupLayoutDescriptor,
+    density_pipeline: CachedComputePipelineId,
+    topology_layout: BindGroupLayoutDescriptor,
+    topology_pipeline: CachedComputePipelineId,
 }
 
 #[derive(Resource)]
 struct GpuTransvoxelTables(StorageBuffer<Vec<u32>>);
+
+#[derive(Resource)]
+struct GpuTerrainScratch(StorageBuffer<Vec<f32>>);
 
 #[derive(Debug, Clone, ShaderType)]
 struct GpuTerrainDispatch {
@@ -201,7 +209,13 @@ impl Plugin for GpuTerrainPresentationPlugin {
     fn build(&self, app: &mut App) {
         load_internal_asset!(
             app,
-            GPU_TERRAIN_SHADER,
+            GPU_TERRAIN_DENSITY_SHADER,
+            "gpu_density.wgsl",
+            Shader::from_wgsl
+        );
+        load_internal_asset!(
+            app,
+            GPU_TERRAIN_TOPOLOGY_SHADER,
             "gpu_transvoxel.wgsl",
             Shader::from_wgsl
         );
@@ -221,7 +235,7 @@ impl Plugin for GpuTerrainPresentationPlugin {
             .init_resource::<GpuTerrainRenderState>()
             .add_systems(
                 RenderStartup,
-                (init_gpu_terrain_pipeline, init_transvoxel_tables),
+                (init_gpu_terrain_pipeline, init_gpu_terrain_buffers),
             )
             .add_systems(Render, prepare_gpu_terrain_blocks)
             .add_systems(
@@ -659,32 +673,55 @@ fn init_gpu_terrain_pipeline(
     mut commands: Commands,
     pipeline_cache: Res<PipelineCache>,
 ) {
-    let layout = BindGroupLayoutDescriptor::new(
+    let density_layout = BindGroupLayoutDescriptor::new(
+        "voxel GPU density",
+        &BindGroupLayoutEntries::sequential(
+            ShaderStages::COMPUTE,
+            (
+                uniform_buffer::<GpuTerrainDispatch>(false),
+                storage_buffer::<Vec<f32>>(false),
+            ),
+        ),
+    );
+    let topology_layout = BindGroupLayoutDescriptor::new(
         "voxel GPU Transvoxel",
         &BindGroupLayoutEntries::sequential(
             ShaderStages::COMPUTE,
             (
                 uniform_buffer::<GpuTerrainDispatch>(false),
-                // Canonical Transvoxel lookup payload: shader reads, never writes.
                 storage_buffer_read_only::<Vec<u32>>(false),
-                // MeshAllocator slabs: compute writes generated geometry directly.
+                storage_buffer_read_only::<Vec<f32>>(false),
                 storage_buffer::<Vec<f32>>(false),
                 storage_buffer::<Vec<u32>>(false),
             ),
         ),
     );
 
-    let pipeline = pipeline_cache.queue_compute_pipeline(
+    let density_pipeline = pipeline_cache.queue_compute_pipeline(
+        ComputePipelineDescriptor {
+            label: Some("voxel GPU density".into()),
+            layout: vec![density_layout.clone()],
+            shader: GPU_TERRAIN_DENSITY_SHADER.clone(),
+            ..default()
+        },
+    );
+    let topology_pipeline = pipeline_cache.queue_compute_pipeline(
         ComputePipelineDescriptor {
             label: Some("voxel GPU Transvoxel".into()),
-            layout: vec![layout.clone()],
-            shader: GPU_TERRAIN_SHADER.clone(),
+            layout: vec![topology_layout.clone()],
+            shader: GPU_TERRAIN_TOPOLOGY_SHADER.clone(),
             ..default()
         },
     );
 
-    commands.insert_resource(GpuTerrainPipeline { layout, pipeline });
+    commands.insert_resource(GpuTerrainPipeline {
+        density_layout,
+        density_pipeline,
+        topology_layout,
+        topology_pipeline,
+    });
 }
+
 
 fn pack_transvoxel_tables() -> Vec<u32> {
     use transvoxel_data::{
@@ -730,7 +767,7 @@ fn pack_transvoxel_tables() -> Vec<u32> {
     out
 }
 
-fn init_transvoxel_tables(
+fn init_gpu_terrain_buffers(
     mut commands: Commands,
     render_device: Res<bevy::render::renderer::RenderDevice>,
     render_queue: Res<RenderQueue>,
@@ -738,8 +775,15 @@ fn init_transvoxel_tables(
     let mut tables = StorageBuffer::from(pack_transvoxel_tables());
     tables.set_label(Some("canonical Transvoxel lookup tables"));
     tables.write_buffer(&render_device, &render_queue);
+
+    let mut scratch = StorageBuffer::from(vec![0.0_f32; 7665]);
+    scratch.set_label(Some("GPU terrain density scratch"));
+    scratch.write_buffer(&render_device, &render_queue);
+
     commands.insert_resource(GpuTransvoxelTables(tables));
+    commands.insert_resource(GpuTerrainScratch(scratch));
 }
+
 
 fn prepare_gpu_terrain_blocks(
     blocks: Query<&GpuTerrainBlock>,
@@ -748,34 +792,48 @@ fn prepare_gpu_terrain_blocks(
     mut state: ResMut<GpuTerrainRenderState>,
     mut failure_reported: Local<bool>,
 ) {
-    // gpu-terrain-wgsl-reserved-name-repair-v1
-    //
-    // A failed compute shader used to look exactly like "worldgen did nothing":
-    // the live frontier remained pending forever because no GPU dispatch could
-    // ever be encoded. Keep ordinary ShaderNotLoaded startup quiet, but surface
-    // every real cached pipeline failure explicitly and once.
     state.pending.clear();
-    match pipeline_cache.get_compute_pipeline_state(pipeline.pipeline) {
-        CachedPipelineState::Ok(_) => {
-            *failure_reported = false;
-        }
-        CachedPipelineState::Err(ShaderCacheError::ShaderNotLoaded(_)) => {
-            return;
-        }
+
+    let mut failed = None;
+    let density_ready = match pipeline_cache
+        .get_compute_pipeline_state(pipeline.density_pipeline)
+    {
+        CachedPipelineState::Ok(_) => true,
+        CachedPipelineState::Err(ShaderCacheError::ShaderNotLoaded(_)) => false,
         CachedPipelineState::Err(err) => {
-            if !*failure_reported {
-                error!(
-                    ?err,
-                    "GPU binary terrain compute pipeline failed; binary terrain presentation cannot advance"
-                );
-                *failure_reported = true;
-            }
-            return;
+            failed = Some(("density", err));
+            false
         }
-        _ => {
-            return;
+        _ => false,
+    };
+    let topology_ready = match pipeline_cache
+        .get_compute_pipeline_state(pipeline.topology_pipeline)
+    {
+        CachedPipelineState::Ok(_) => true,
+        CachedPipelineState::Err(ShaderCacheError::ShaderNotLoaded(_)) => false,
+        CachedPipelineState::Err(err) => {
+            failed = Some(("Transvoxel topology", err));
+            false
         }
+        _ => false,
+    };
+
+    if let Some((stage, err)) = failed {
+        if !*failure_reported {
+            error!(
+                stage,
+                ?err,
+                "GPU binary terrain compute pipeline failed; binary terrain presentation cannot advance"
+            );
+            *failure_reported = true;
+        }
+        return;
     }
+
+    if !density_ready || !topology_ready {
+        return;
+    }
+    *failure_reported = false;
 
     for block in &blocks {
         let id = block.mesh.id();
@@ -786,22 +844,32 @@ fn prepare_gpu_terrain_blocks(
     }
 }
 
+
 fn compute_gpu_terrain(
     mut render_context: RenderContext,
     mesh_allocator: Res<MeshAllocator>,
     pipeline_cache: Res<PipelineCache>,
     pipeline: Res<GpuTerrainPipeline>,
     tables: Res<GpuTransvoxelTables>,
+    scratch: Res<GpuTerrainScratch>,
     render_queue: Res<RenderQueue>,
     completion_sink: Res<GpuTerrainCompletionSink>,
     mut state: ResMut<GpuTerrainRenderState>,
 ) {
-    let Some(compute_pipeline) =
-        pipeline_cache.get_compute_pipeline(pipeline.pipeline)
+    let Some(density_pipeline) =
+        pipeline_cache.get_compute_pipeline(pipeline.density_pipeline)
+    else {
+        return;
+    };
+    let Some(topology_pipeline) =
+        pipeline_cache.get_compute_pipeline(pipeline.topology_pipeline)
     else {
         return;
     };
     let Some(table_buffer) = tables.0.buffer() else {
+        return;
+    };
+    let Some(scratch_buffer) = scratch.0.buffer() else {
         return;
     };
 
@@ -834,13 +902,41 @@ fn compute_gpu_terrain(
             &render_queue,
         );
 
-        let bind_group =
+        let density_bind_group =
+            render_context.render_device().create_bind_group(
+                Some("voxel GPU density block"),
+                &pipeline_cache.get_bind_group_layout(
+                    &pipeline.density_layout,
+                ),
+                &BindGroupEntries::sequential((
+                    &uniform,
+                    scratch_buffer.as_entire_buffer_binding(),
+                )),
+            );
+
+        {
+            let mut pass =
+                render_context.command_encoder().begin_compute_pass(
+                    &ComputePassDescriptor {
+                        label: Some("voxel GPU density"),
+                        ..default()
+                    },
+                );
+            pass.set_pipeline(density_pipeline);
+            pass.set_bind_group(0, &density_bind_group, &[]);
+            pass.dispatch_workgroups(1, 1, 1);
+        }
+
+        let topology_bind_group =
             render_context.render_device().create_bind_group(
                 Some("voxel GPU Transvoxel block"),
-                &pipeline_cache.get_bind_group_layout(&pipeline.layout),
+                &pipeline_cache.get_bind_group_layout(
+                    &pipeline.topology_layout,
+                ),
                 &BindGroupEntries::sequential((
                     &uniform,
                     table_buffer.as_entire_buffer_binding(),
+                    scratch_buffer.as_entire_buffer_binding(),
                     vertex_slice.buffer.as_entire_buffer_binding(),
                     index_slice.buffer.as_entire_buffer_binding(),
                 )),
@@ -854,9 +950,8 @@ fn compute_gpu_terrain(
                         ..default()
                     },
                 );
-            pass.set_pipeline(compute_pipeline);
-            pass.set_bind_group(0, &bind_group, &[]);
-            // One cooperative workgroup owns one persistent binary block.
+            pass.set_pipeline(topology_pipeline);
+            pass.set_bind_group(0, &topology_bind_group, &[]);
             pass.dispatch_workgroups(1, 1, 1);
         }
 
@@ -868,3 +963,4 @@ fn compute_gpu_terrain(
             .push_back(block.build_id);
     }
 }
+
