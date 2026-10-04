@@ -28,7 +28,7 @@ use bevy::{
         renderer::{RenderContext, RenderGraph, RenderQueue},
         Render, RenderApp, RenderStartup,
     },
-    shader::Shader,
+    shader::{Shader, ShaderCacheError},
 };
 
 use crate::{
@@ -741,13 +741,35 @@ fn prepare_gpu_terrain_blocks(
     pipeline_cache: Res<PipelineCache>,
     pipeline: Res<GpuTerrainPipeline>,
     mut state: ResMut<GpuTerrainRenderState>,
+    mut failure_reported: Local<bool>,
 ) {
+    // gpu-terrain-wgsl-reserved-name-repair-v1
+    //
+    // A failed compute shader used to look exactly like "worldgen did nothing":
+    // the live frontier remained pending forever because no GPU dispatch could
+    // ever be encoded. Keep ordinary ShaderNotLoaded startup quiet, but surface
+    // every real cached pipeline failure explicitly and once.
     state.pending.clear();
-    if pipeline_cache
-        .get_compute_pipeline(pipeline.pipeline)
-        .is_none()
-    {
-        return;
+    match pipeline_cache.get_compute_pipeline_state(pipeline.pipeline) {
+        CachedPipelineState::Ok(_) => {
+            *failure_reported = false;
+        }
+        CachedPipelineState::Err(ShaderCacheError::ShaderNotLoaded(_)) => {
+            return;
+        }
+        CachedPipelineState::Err(err) => {
+            if !*failure_reported {
+                error!(
+                    ?err,
+                    "GPU binary terrain compute pipeline failed; binary terrain presentation cannot advance"
+                );
+                *failure_reported = true;
+            }
+            return;
+        }
+        _ => {
+            return;
+        }
     }
 
     for block in &blocks {

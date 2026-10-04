@@ -2,6 +2,7 @@
 // Canonical authority remains CPU/USF-owned; this shader receives only one
 // bounded local semantic chart. No f64/i64 and no universe-scale coordinates.
 // gpu-binary-presentation-production-v1
+// gpu-terrain-wgsl-reserved-name-repair-v1
 
 const BLOCK: u32 = 8u;
 const REGULAR_LATTICE: u32 = 9u;
@@ -29,7 +30,7 @@ struct GpuCoarseBand {
 struct GpuFineBand {
     params: vec4<f32>,
     base_offset: vec4<f32>,
-    meta: vec4<i32>,
+    band_meta: vec4<i32>,
     prefix: vec4<u32>,
     digits_x: array<vec4<i32>, 5>,
     digits_y: array<vec4<i32>, 5>,
@@ -46,7 +47,7 @@ struct GpuTerrainDescriptor {
     chart_origin_and_spacing: vec4<f32>,
     anchor_direction_and_inverse_radius: vec4<f32>,
     extent_uv_radius: vec4<f32>,
-    meta: vec4<u32>,
+    terrain_meta: vec4<u32>,
     semantic_meta: vec4<i32>,
     seed_meta: vec4<u32>,
     coarse: array<GpuCoarseBand, 35>,
@@ -154,7 +155,7 @@ fn semantic_corner(
     var dx: array<i32, 20>;
     var dy: array<i32, 20>;
     var dz: array<i32, 20>;
-    let digit_len = u32(max(band.meta.y, 0));
+    let digit_len = u32(max(band.band_meta.y, 0));
 
     var i = 0u;
     loop {
@@ -461,7 +462,7 @@ fn lunar_relative(direction: vec3<f32>) -> f32 {
 }
 
 fn macro_relief(direction: vec3<f32>) -> f32 {
-    let profile = dispatch.descriptor.meta.x;
+    let profile = dispatch.descriptor.terrain_meta.x;
     let seed = dispatch.descriptor.seed_meta.x;
     if profile == 1u {
         return rocky_macro(direction, seed);
@@ -477,7 +478,7 @@ fn macro_relief(direction: vec3<f32>) -> f32 {
 
 fn coarse_relief(direction: vec3<f32>) -> f32 {
     var result = 0.0;
-    let count = min(dispatch.descriptor.meta.z, MAX_COARSE_BANDS);
+    let count = min(dispatch.descriptor.terrain_meta.z, MAX_COARSE_BANDS);
     var i = 0u;
     loop {
         if i >= count {
@@ -574,7 +575,7 @@ fn sample_density(local_in_block: vec3<f32>) -> f32 {
 
     let delta_ref = sphere_delta + direction * pre_fine_delta;
     var fine_delta = 0.0;
-    let fine_count = min(dispatch.descriptor.meta.w, MAX_FINE_BANDS);
+    let fine_count = min(dispatch.descriptor.terrain_meta.w, MAX_FINE_BANDS);
     var i = 0u;
     loop {
         if i >= fine_count {
@@ -587,7 +588,7 @@ fn sample_density(local_in_block: vec3<f32>) -> f32 {
 
     let outer_density = pre_fine_delta + fine_delta - radial_delta;
     if dispatch.descriptor.semantic_meta.y != 0
-        && dispatch.descriptor.meta.x == 1u
+        && dispatch.descriptor.terrain_meta.x == 1u
     {
         return min(outer_density, cave_void_sdf(delta, outer_density));
     }
@@ -613,12 +614,12 @@ fn regular_corner(index: u32) -> vec3<i32> {
 }
 
 fn transition_enabled(side: u32) -> bool {
-    return (dispatch.descriptor.meta.y & (1u << side)) != 0u;
+    return (dispatch.descriptor.terrain_meta.y & (1u << side)) != 0u;
 }
 
 fn can_shrink(index: vec3<i32>) -> bool {
     let n = i32(BLOCK);
-    let bits = dispatch.descriptor.meta.y;
+    let bits = dispatch.descriptor.terrain_meta.y;
     let dont_shrink =
         (index.x == 0 && (bits & 1u) == 0u)
         || (index.x == n && (bits & 2u) == 0u)
@@ -637,7 +638,7 @@ fn regular_position(index: vec3<i32>) -> vec3<f32> {
     }
     let shrink = spacing * 0.15;
     let n = i32(BLOCK);
-    let bits = dispatch.descriptor.meta.y;
+    let bits = dispatch.descriptor.terrain_meta.y;
 
     if index.x == 0 && (bits & 1u) != 0u { p.x += shrink; }
     if index.x == n && (bits & 2u) != 0u { p.x -= shrink; }
