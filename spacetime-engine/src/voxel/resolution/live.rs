@@ -157,7 +157,6 @@ const CLIPMAP_LATENCY_MULTIPLIER: f64 = 4.0;
 // Reconstructible clipmap presentation shells are expensive to churn through
 // Bevy's entity/asset lifecycle. Keep a bounded hot pool and mutate stable
 // Mesh handles in place, matching the dense manifestation runtime.
-const MAX_POOLED_CLIPMAP_ENTITIES: usize = 4_096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CelestialClipmapBlockKey {
@@ -3622,11 +3621,14 @@ fn park_clipmap_entity(
     block.material_relative_level = i16::MIN;
     *visibility = Visibility::Hidden;
 
-    if registry.pooled_entities.len() < MAX_POOLED_CLIPMAP_ENTITIES {
-        registry.pooled_entities.push(entity);
-    } else {
-        commands.entity(entity).despawn();
-    }
+    // gpu-terrain-memory-pressure-repair-v1
+    //
+    // GPU-native clipmap shells own substantial persistent MeshAllocator
+    // ranges. Retaining retired shells kept those ranges alive and allowed the
+    // old 4096-entity pool to consume gigabytes. Despawn instead: once the
+    // Mesh3d handle drops, Bevy propagates AssetEvent::Unused to RenderAssets,
+    // which releases the allocator ranges.
+    commands.entity(entity).despawn();
 
     if affected_visible_frontier {
         registry.mark_frontier_changed();
@@ -4133,8 +4135,8 @@ fn sync_celestial_clipmap_realizations(
 
         // Descriptor/publication admissions remain bounded even though there
         // are no CPU mesh jobs anymore, preventing allocator/entity bursts.
-        const MAX_GPU_BUILDS_IN_FLIGHT: usize = 256;
-        const MAX_GPU_ADMISSIONS_PER_FRAME: usize = 64;
+        const MAX_GPU_BUILDS_IN_FLIGHT: usize = 32;
+        const MAX_GPU_ADMISSIONS_PER_FRAME: usize = 8;
         let mut admitted = 0usize;
 
         'authorities: for (&authority, plan) in &registry.plans {
@@ -4315,7 +4317,13 @@ fn sync_celestial_clipmap_realizations(
             None => {
                 // Allocation shell only. CPU does not author terrain density or
                 // topology; compute owns these persistent MeshAllocator ranges.
-                let mesh = meshes.add(allocation_mesh());
+                let mesh = meshes.add(allocation_mesh(
+                    admission
+                        .spec
+                        .transition_faces
+                        .bits()
+                        .count_ones(),
+                ));
                 commands
                     .spawn((
                         Name::new("Celestial Binary Clipmap"),

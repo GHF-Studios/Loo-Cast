@@ -44,16 +44,13 @@ const GPU_TERRAIN_DENSITY_SHADER: Handle<Shader> =
 const GPU_TERRAIN_TOPOLOGY_SHADER: Handle<Shader> =
     uuid_handle!("96b866c0-a48a-4558-9e24-b8773dcf569e");
 // gpu-terrain-split-pipeline-v1
+// gpu-terrain-memory-pressure-repair-v1
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 const REGULAR_MAX_TRIANGLES: usize = BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS
     * BLOCK_SUBDIVISIONS * 5;
 const TRANSITION_MAX_TRIANGLES_PER_FACE: usize =
     BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS * 12;
-const MAX_GPU_TRIANGLES: usize =
-    REGULAR_MAX_TRIANGLES + TRANSITION_MAX_TRIANGLES_PER_FACE * 6;
-pub(crate) const MAX_GPU_VERTICES: usize = MAX_GPU_TRIANGLES * 3;
-pub(crate) const MAX_GPU_INDICES: usize = MAX_GPU_VERTICES;
 const GPU_VERTEX_FLOATS: u32 = 8;
 
 const MAX_COARSE_BANDS: usize = 35;
@@ -264,24 +261,39 @@ pub(super) fn configure(app: &mut App) {
 /// This contains no CPU-generated terrain topology. Its sole purpose is to give
 /// Bevy's MeshAllocator persistent vertex/index ranges that the compute shader
 /// owns afterwards.
-pub(crate) fn allocation_mesh() -> Mesh {
+pub(crate) fn allocation_mesh(
+    transition_face_count: u32,
+) -> Mesh {
+    // gpu-terrain-memory-pressure-repair-v1
+    //
+    // Regular topology exists for every block. Transition capacity is reserved
+    // only for faces that actually bridge a 2:1 LOD boundary. This keeps the
+    // fixed draw-allocation contract without multiplying every block by the
+    // six-face worst case.
+    let transition_face_count =
+        transition_face_count.min(6) as usize;
+    let max_triangles = REGULAR_MAX_TRIANGLES
+        + TRANSITION_MAX_TRIANGLES_PER_FACE * transition_face_count;
+    let max_vertices = max_triangles * 3;
+    let max_indices = max_vertices;
+
     Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::RENDER_WORLD,
     )
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_POSITION,
-        vec![[0.0_f32; 3]; MAX_GPU_VERTICES],
+        vec![[0.0_f32; 3]; max_vertices],
     )
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_NORMAL,
-        vec![[0.0_f32, 1.0, 0.0]; MAX_GPU_VERTICES],
+        vec![[0.0_f32, 1.0, 0.0]; max_vertices],
     )
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_UV_0,
-        vec![[0.0_f32; 2]; MAX_GPU_VERTICES],
+        vec![[0.0_f32; 2]; max_vertices],
     )
-    .with_inserted_indices(Indices::U32(vec![0; MAX_GPU_INDICES]))
+    .with_inserted_indices(Indices::U32(vec![0; max_indices]))
 }
 
 fn profile_id(profile: CelestialBodyProfile) -> u32 {
