@@ -3862,7 +3862,8 @@ fn sync_celestial_clipmap_realizations(
                 // 1-3 triangle cleanup became a significant main-thread/logging
                 // workload during cold refinement. Reserve WARN for genuinely
                 // exceptional geometry; keep ordinary evidence at TRACE.
-                const SERIOUS_DROPPED_TRIANGLE_WARNING: u64 = 32;
+                // sanitation-warning-threshold-type-repair-v1
+                const SERIOUS_DROPPED_TRIANGLE_WARNING: usize = 32;
                 if integrity_transition_fallback
                     || integrity_dropped_triangles
                         >= SERIOUS_DROPPED_TRIANGLE_WARNING
