@@ -67,6 +67,7 @@ struct SurfaceVertex {
 }
 
 // gpu-terrain-split-pipeline-v1
+// gpu-terrain-transition-case-side-repair-v1
 @group(0) @binding(0) var<uniform> dispatch: GpuTerrainDispatch;
 @group(0) @binding(1) var<storage, read> tables: array<u32>;
 @group(0) @binding(2) var<storage, read> scratch: array<f32>;
@@ -426,7 +427,7 @@ fn regular_case(cell: vec3<i32>) -> u32 {
     return result;
 }
 
-fn transition_case(cell_u: i32, cell_v: i32) -> u32 {
+fn transition_case(side: u32, cell_u: i32, cell_v: i32) -> u32 {
     let contributions = array<u32, 9>(
         0x01u, 0x02u, 0x04u,
         0x80u, 0x100u, 0x08u,
@@ -473,7 +474,7 @@ fn emit_regular_cell(cell_id: u32) {
 fn emit_transition_cell(side: u32, cell_id: u32) {
     let cell_u = i32(cell_id % BLOCK);
     let cell_v = i32(cell_id / BLOCK);
-    let case_number = transition_case(cell_u, cell_v);
+    let case_number = transition_case(side, cell_u, cell_v);
     let raw_class = tables[TRANS_CLASS_OFFSET + case_number];
     let cell_class = raw_class & 0x7Fu;
     let invert = (raw_class & 0x80u) != 0u;
