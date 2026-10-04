@@ -3,6 +3,7 @@
 //! This is presentation only. Semantic terrain remains [`CelestialVoxelField`];
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
+// gpu-binary-presentation-production-v1
 
 use std::{
     cell::Cell,
@@ -15,7 +16,7 @@ use std::{
 
 use bevy::{
     asset::RenderAssetUsages,
-    camera::visibility::RenderLayers,
+    camera::{primitives::Aabb, visibility::RenderLayers},
     light::{NotShadowCaster, NotShadowReceiver},
     math::DVec3,
     mesh::{Indices, PrimitiveTopology},
@@ -71,6 +72,10 @@ use crate::{
 };
 
 use super::{
+    gpu::{
+        allocation_mesh, descriptor_for_block, GpuTerrainBlock,
+        GpuTerrainRuntime,
+    },
     VoxelPresentationResolution, VoxelTransitionFace, VoxelTransitionFaces,
 };
 use super::super::{
@@ -999,13 +1004,6 @@ struct CelestialClipmapRegistry {
     next_generation: u64,
     plans: HashMap<Entity, CelestialClipmapPlan>,
     planner_caches: HashMap<Entity, CelestialClipmapSurfaceCache>,
-    // presentation-resolution-orders-of-magnitude-v1
-    //
-    // Exact SDF samples are disposable presentation cache. Binary clipmap
-    // coordinates are dyadic, so blocks and LODs repeatedly share points.
-    sample_caches:
-        HashMap<Entity, Arc<CelestialPresentationSampleCache>>,
-
     // runtime-pooling-transform-avian-megapass-v1
     // Stable presentation shells + async tickets live in this reconstructible
     // registry. They are runtime bookkeeping, not semantic ECS entities.
@@ -1218,7 +1216,8 @@ struct CelestialClipmapBuildTask {
     policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
     field: CelestialVoxelField,
-    task: VoxelWorkerTicket<Option<CelestialClipmapMeshData>>,
+    entity: Entity,
+    build_id: u64,
 }
 
 struct CelestialClipmapPlanBuildTask {
@@ -3674,6 +3673,7 @@ fn sync_celestial_clipmap_realizations(
     mut registry: ResMut<CelestialClipmapRegistry>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
+    mut gpu_runtime: ResMut<GpuTerrainRuntime>,
 ) {
     let Some(view) = views.iter().next() else {
         return;
@@ -3684,8 +3684,7 @@ fn sync_celestial_clipmap_realizations(
         presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
     let observer_speed = view.velocity_metres_per_second().length();
     let expected_build_seconds =
-        workers.estimated_latency_seconds(VoxelWorkerLane::PresentationPlanning)
-            + workers.estimated_latency_seconds(VoxelWorkerLane::PresentationResolution);
+        workers.estimated_latency_seconds(VoxelWorkerLane::PresentationPlanning);
 
     let mut live_authorities = HashSet::<Entity>::new();
     let mut current_inputs =
@@ -3858,21 +3857,6 @@ fn sync_celestial_clipmap_realizations(
             "celestial clipmap staged plan ready"
         );
 
-        let replace_sample_cache = registry
-            .sample_caches
-            .get(&build.authority)
-            .is_none_or(|cache| cache.field != build.field);
-        if replace_sample_cache {
-            registry.sample_caches.insert(
-                build.authority,
-                Arc::new(
-                    CelestialPresentationSampleCache::new(
-                        build.field,
-                    ),
-                ),
-            );
-        }
-
         let generation = registry.next_generation();
         registry.plans.insert(
             build.authority,
@@ -4005,10 +3989,6 @@ fn sync_celestial_clipmap_realizations(
     registry
         .planner_caches
         .retain(|authority, _| live_authorities.contains(authority));
-    registry
-        .sample_caches
-        .retain(|authority, _| live_authorities.contains(authority));
-
     if plans_removed {
         let dead_entities = registry
             .active_entities
@@ -4050,18 +4030,29 @@ fn sync_celestial_clipmap_realizations(
     // Current-stage completion is seeded exactly once when a stage
     // becomes active and incrementally updated by worker results.
 
+
+    // gpu-binary-presentation-production-v1
+    //
+    // CPU planning decides which semantic blocks are required. Binary density,
+    // Transvoxel extraction and terrain-buffer writes are GPU-owned.
+    //
+    // RenderWorld returns only a tiny dispatch acknowledgement. This is not
+    // density/geometry readback; it preserves the make-before-break projection
+    // barrier before the previous committed frontier may retire.
+    let completed_gpu_builds = gpu_runtime
+        .drain_completed()
+        .into_iter()
+        .collect::<HashSet<_>>();
     let mut inflight =
         HashSet::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
-    let mut publications = 0usize;
 
     {
-        let _span = bevy::log::info_span!("celestial_clipmap.poll_builds").entered();
-        let max_publications_per_frame =
-            workers.capacity().saturating_mul(2).max(4);
-        let mut pending_build_tasks =
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.poll_gpu_builds").entered();
+        let mut pending_builds =
             Vec::with_capacity(registry.build_tasks.len());
 
-        for mut build in std::mem::take(&mut registry.build_tasks) {
+        for build in std::mem::take(&mut registry.build_tasks) {
             let key = (
                 build.authority,
                 build.policy_revision,
@@ -4077,243 +4068,92 @@ fn sync_celestial_clipmap_realizations(
                         && plan.desired_set.contains(&build.spec)
                         && build.field == plan.field
                 });
-            if !valid {
-                continue;
-            }
 
-            if registry.active_entities.contains_key(&key) {
-                if let Some(plan) = registry.plans.get_mut(&build.authority) {
-                    plan.completed.insert(build.spec);
-                    plan.meshful.insert(build.spec);
+            if !valid {
+                if let Ok((_, mut block, _, _, _, mut visibility)) =
+                    blocks.get_mut(build.entity)
+                {
+                    commands
+                        .entity(build.entity)
+                        .remove::<GpuTerrainBlock>();
+                    park_clipmap_entity(
+                        &mut commands,
+                        build.entity,
+                        &mut block,
+                        &mut visibility,
+                        &mut registry,
+                    );
                 }
                 continue;
             }
 
-            inflight.insert(key);
-            if publications >= max_publications_per_frame {
-                pending_build_tasks.push(build);
+            if !completed_gpu_builds.contains(&build.build_id) {
+                inflight.insert(key);
+                pending_builds.push(build);
                 continue;
             }
 
-            let Some(work_token) =
-                frame_budget.begin(ReconstructibleWorkClass::Publication)
-            else {
-                pending_build_tasks.push(build);
+            if blocks.get_mut(build.entity).is_err() {
                 continue;
-            };
-            let Some(result) = build.task.try_take() else {
-                frame_budget.finish(work_token);
-                pending_build_tasks.push(build);
-                continue;
-            };
+            }
 
-            publications += 1;
+            commands
+                .entity(build.entity)
+                .remove::<GpuTerrainBlock>();
+            registry.active_entities.insert(key, build.entity);
+            registry.mark_projection_pending(build.entity);
+
             if let Some(plan) = registry.plans.get_mut(&build.authority) {
                 plan.completed.insert(build.spec);
+                plan.meshful.insert(build.spec);
             }
-
-            if let Some(mesh) = result {
-                let integrity_dropped_triangles =
-                    mesh.integrity_dropped_triangles;
-                let integrity_transition_fallback =
-                    mesh.integrity_transition_fallback;
-                telemetry.record_mesh_integrity(
-                    integrity_dropped_triangles,
-                    integrity_transition_fallback,
-                );
-
-                // Small sanitation counts are expected defensive cleanup and
-                // are already accumulated in telemetry. Emitting WARN for every
-                // 1-3 triangle cleanup became a significant main-thread/logging
-                // workload during cold refinement. Reserve WARN for genuinely
-                // exceptional geometry; keep ordinary evidence at TRACE.
-                // sanitation-warning-threshold-type-repair-v1
-                const SERIOUS_DROPPED_TRIANGLE_WARNING: usize = 32;
-                if integrity_transition_fallback
-                    || integrity_dropped_triangles
-                        >= SERIOUS_DROPPED_TRIANGLE_WARNING
-                {
-                    warn!(
-                        authority = ?build.authority,
-                        resolution_exponent =
-                            build.spec.key.resolution.binary_exponent(),
-                        coord = ?build.spec.key.coord,
-                        transition_faces = build.spec.transition_faces.bits(),
-                        dropped_triangles = integrity_dropped_triangles,
-                        transition_fallback = integrity_transition_fallback,
-                        "binary clipmap geometry required substantial sanitation"
-                    );
-                } else if integrity_dropped_triangles > 0 {
-                    trace!(
-                        authority = ?build.authority,
-                        resolution_exponent =
-                            build.spec.key.resolution.binary_exponent(),
-                        coord = ?build.spec.key.coord,
-                        transition_faces = build.spec.transition_faces.bits(),
-                        dropped_triangles = integrity_dropped_triangles,
-                        "binary clipmap geometry sanitation"
-                    );
-                }
-
-                let Ok((_, _name, _, _, _, _, policy)) =
-                    authorities.get(build.authority)
-                else {
-                    frame_budget.finish(work_token);
-                    continue;
-                };
-                let Some(plan) = registry.plans.get(&build.authority) else {
-                    frame_budget.finish(work_token);
-                    continue;
-                };
-                let relative_level = build
-                    .spec
-                    .key
-                    .resolution
-                    .binary_exponent()
-                    .saturating_sub(plan.key.finest_exponent);
-                let standard_materials = &material_params.standard_materials;
-                let debug_grid = &material_params.library.debug_grid;
-                let render_materials = &mut material_params.render_materials;
-                let shader_buffers = &mut material_params.shader_buffers;
-                let band_materials = &mut material_params.band_materials;
-                let Some(presentation_material) = band_materials.material_for(
-                    standard_materials,
-                    render_materials,
-                    shader_buffers,
-                    debug_grid,
-                    policy.presentation_material(),
-                    relative_level,
-                ) else {
-                    frame_budget.finish(work_token);
-                    continue;
-                };
-
-                let mut replacement_mesh = Some(mesh.into_mesh());
-                let mut published_entity = None;
-
-                while let Some(entity) = registry.pooled_entities.pop() {
-                    let Ok((
-                        _,
-                        mut block,
-                        mesh3d,
-                        mut material,
-                        mut transform,
-                        mut visibility,
-                    )) = blocks.get_mut(entity)
-                    else {
-                        commands.entity(entity).despawn();
-                        continue;
-                    };
-
-                    replace_clipmap_mesh_in_place(
-                        &mut commands,
-                        entity,
-                        mesh3d,
-                        replacement_mesh
-                            .take()
-                            .expect("replacement mesh available for pooled shell"),
-                        &mut meshes,
-                    );
-                    *block = CelestialClipmapBlock {
-                        authority: build.authority,
-                        policy_revision: build.policy_revision,
-                        spec: build.spec,
-                        active: true,
-                        committed: false,
-                        projection_ready: false,
-                        material_relative_level: relative_level,
-                    };
-                    material.0 = presentation_material.clone();
-                    *transform = Transform::IDENTITY;
-                    *visibility = Visibility::Hidden;
-                    commands.entity(entity).insert(
-                        UsfPresentationProjectionOf(build.authority),
-                    );
-                    published_entity = Some(entity);
-                    break;
-                }
-
-                let entity = match published_entity {
-                    Some(entity) => entity,
-                    None => commands
-                        .spawn((
-                            Name::new("Celestial Binary Clipmap"),
-                            CelestialClipmapBlock {
-                                authority: build.authority,
-                                policy_revision: build.policy_revision,
-                                spec: build.spec,
-                                active: true,
-                                committed: false,
-                                projection_ready: false,
-                                material_relative_level: relative_level,
-                            },
-                            UsfPresentationProjectionOf(build.authority),
-                            Mesh3d(meshes.add(
-                                replacement_mesh
-                                    .take()
-                                    .expect("replacement mesh available for new shell"),
-                            )),
-                            MeshMaterial3d(presentation_material),
-                            Transform::IDENTITY,
-                            RenderLayers::layer(USF_PRESENTATION_LAYER),
-                            NotShadowCaster,
-                            NotShadowReceiver,
-                            Visibility::Hidden,
-                        ))
-                        .id(),
-                };
-
-                registry.active_entities.insert(key, entity);
-                registry.mark_projection_pending(entity);
-                if let Some(plan) = registry.plans.get_mut(&build.authority) {
-                    plan.meshful.insert(build.spec);
-                }
-            } else if let Some(plan) = registry.plans.get_mut(&build.authority) {
-                plan.known_empty.insert(build.spec);
-            }
-
-            frame_budget.finish(work_token);
         }
 
-        registry.build_tasks = pending_build_tasks;
+        registry.build_tasks = pending_builds;
     }
 
-    // Visible clipmap coverage is published after PostUpdate projection
-    // and dense-aperture composition. Pre-composition "committed" is not the
-    // same fact as actually visible contextual presentation.
+    #[derive(Clone, Copy)]
+    struct PendingGpuAdmission {
+        authority: Entity,
+        generation: u64,
+        policy_revision: u64,
+        spec: CelestialClipmapBlockSpec,
+        field: CelestialVoxelField,
+        relative_level: i16,
+        descriptor: super::gpu::GpuTerrainDescriptor,
+    }
 
-    let mut scheduled_build_tasks = Vec::<CelestialClipmapBuildTask>::new();
+    let mut admissions = Vec::<PendingGpuAdmission>::new();
+    let mut planner_empty =
+        Vec::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
 
     {
-        let _span = bevy::log::info_span!("celestial_clipmap.schedule_builds").entered();
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.schedule_gpu_builds").entered();
+
+        // Descriptor/publication admissions remain bounded even though there
+        // are no CPU mesh jobs anymore, preventing allocator/entity bursts.
+        const MAX_GPU_BUILDS_IN_FLIGHT: usize = 256;
+        const MAX_GPU_ADMISSIONS_PER_FRAME: usize = 64;
         let mut admitted = 0usize;
-        let mut worker_slots =
-            workers.available_slots(VoxelWorkerLane::PresentationResolution);
-        let max_builds_in_flight =
-            workers.capacity().saturating_mul(4).max(8);
-        let max_admissions_per_frame =
-            workers.capacity().saturating_mul(2).max(4);
 
         'authorities: for (&authority, plan) in &registry.plans {
             for &spec in &plan.desired {
+                let key = (
+                    authority,
+                    plan.key.policy_revision,
+                    spec,
+                );
                 if plan.completed.contains(&spec)
-                    || registry.active_entities.contains_key(&(
-                        authority,
-                        plan.key.policy_revision,
-                        spec,
-                    ))
-                    || inflight.contains(&(
-                        authority,
-                        plan.key.policy_revision,
-                        spec,
-                    ))
+                    || registry.active_entities.contains_key(&key)
+                    || inflight.contains(&key)
                 {
                     continue;
                 }
 
-                if worker_slots == 0
-                    || inflight.len() >= max_builds_in_flight
-                    || admitted >= max_admissions_per_frame
+                if inflight.len().saturating_add(admissions.len())
+                    >= MAX_GPU_BUILDS_IN_FLIGHT
+                    || admitted >= MAX_GPU_ADMISSIONS_PER_FRAME
                 {
                     break 'authorities;
                 }
@@ -4323,50 +4163,208 @@ fn sync_celestial_clipmap_realizations(
                 else {
                     break 'authorities;
                 };
-                let field = plan.field;
-                let policy_revision = plan.key.policy_revision;
+
                 let boundary_proven =
                     spec.key.resolution.binary_exponent()
                         < plan.key.coarsest_exponent;
-                let Some(sample_cache) = registry
-                    .sample_caches
-                    .get(&authority)
-                    .cloned()
-                else {
+
+                if !boundary_proven
+                    && !block_intersects_refinement_boundary(
+                        plan.field,
+                        spec.key,
+                    )
+                {
+                    planner_empty.push((
+                        authority,
+                        plan.key.policy_revision,
+                        spec,
+                    ));
+                    frame_budget.finish(work_token);
+                    continue;
+                }
+
+                let Some(descriptor) = descriptor_for_block(
+                    plan.field,
+                    spec.key.origin_local_metres(),
+                    spec.key.extent_metres(),
+                    spec.key.spacing_metres(),
+                    spec.transition_faces.bits(),
+                ) else {
                     frame_budget.finish(work_token);
                     continue;
                 };
-                let Some(task) = workers.try_submit(
-                    VoxelWorkerLane::PresentationResolution,
-                    move || {
-                        build_clipmap_mesh(
-                            field,
-                            spec,
-                            boundary_proven,
-                            sample_cache,
-                        )
-                    },
-                ) else {
-                    frame_budget.finish(work_token);
-                    break 'authorities;
-                };
 
-                scheduled_build_tasks.push(CelestialClipmapBuildTask {
+                admissions.push(PendingGpuAdmission {
                     authority,
                     generation: plan.generation,
-                    policy_revision,
+                    policy_revision: plan.key.policy_revision,
                     spec,
-                    field,
-                    task,
+                    field: plan.field,
+                    relative_level: spec
+                        .key
+                        .resolution
+                        .binary_exponent()
+                        .saturating_sub(plan.key.finest_exponent),
+                    descriptor,
                 });
-                inflight.insert((authority, policy_revision, spec));
                 admitted += 1;
-                worker_slots -= 1;
                 frame_budget.finish(work_token);
             }
         }
     }
-    registry.build_tasks.extend(scheduled_build_tasks);
+
+    for (authority, policy_revision, spec) in planner_empty {
+        if let Some(plan) = registry.plans.get_mut(&authority)
+            && plan.key.policy_revision == policy_revision
+            && plan.desired_set.contains(&spec)
+        {
+            plan.known_empty.insert(spec);
+            plan.completed.insert(spec);
+        }
+    }
+
+    let mut scheduled_builds = Vec::<CelestialClipmapBuildTask>::new();
+
+    for admission in admissions {
+        let still_valid = registry
+            .plans
+            .get(&admission.authority)
+            .is_some_and(|plan| {
+                admission.generation == plan.generation
+                    && admission.policy_revision == plan.key.policy_revision
+                    && plan.desired_set.contains(&admission.spec)
+                    && admission.field == plan.field
+            });
+        if !still_valid {
+            continue;
+        }
+
+        let Ok((_, _name, _, _, _, _, policy)) =
+            authorities.get(admission.authority)
+        else {
+            continue;
+        };
+
+        let standard_materials = &material_params.standard_materials;
+        let debug_grid = &material_params.library.debug_grid;
+        let render_materials = &mut material_params.render_materials;
+        let shader_buffers = &mut material_params.shader_buffers;
+        let band_materials = &mut material_params.band_materials;
+
+        let Some(presentation_material) = band_materials.material_for(
+            standard_materials,
+            render_materials,
+            shader_buffers,
+            debug_grid,
+            policy.presentation_material(),
+            admission.relative_level,
+        ) else {
+            continue;
+        };
+
+        let build_id = gpu_runtime.next_build_id();
+        let extent = admission.spec.key.extent_metres() as f32;
+        let bounds = Aabb::from_min_max(
+            Vec3::ZERO,
+            Vec3::splat(extent),
+        );
+
+        let mut published_entity = None;
+        while let Some(entity) = registry.pooled_entities.pop() {
+            let Ok((
+                _,
+                mut block,
+                mesh3d,
+                mut material,
+                mut transform,
+                mut visibility,
+            )) = blocks.get_mut(entity)
+            else {
+                commands.entity(entity).despawn();
+                continue;
+            };
+
+            *block = CelestialClipmapBlock {
+                authority: admission.authority,
+                policy_revision: admission.policy_revision,
+                spec: admission.spec,
+                active: true,
+                committed: false,
+                projection_ready: false,
+                material_relative_level: admission.relative_level,
+            };
+            material.0 = presentation_material.clone();
+            *transform = Transform::IDENTITY;
+            *visibility = Visibility::Hidden;
+
+            commands.entity(entity).insert((
+                UsfPresentationProjectionOf(admission.authority),
+                bounds,
+                GpuTerrainBlock::new(
+                    mesh3d.0.clone(),
+                    build_id,
+                    admission.descriptor,
+                ),
+            ));
+            published_entity = Some(entity);
+            break;
+        }
+
+        let entity = match published_entity {
+            Some(entity) => entity,
+            None => {
+                // Allocation shell only. CPU does not author terrain density or
+                // topology; compute owns these persistent MeshAllocator ranges.
+                let mesh = meshes.add(allocation_mesh());
+                commands
+                    .spawn((
+                        Name::new("Celestial Binary Clipmap"),
+                        CelestialClipmapBlock {
+                            authority: admission.authority,
+                            policy_revision: admission.policy_revision,
+                            spec: admission.spec,
+                            active: true,
+                            committed: false,
+                            projection_ready: false,
+                            material_relative_level: admission.relative_level,
+                        },
+                        UsfPresentationProjectionOf(admission.authority),
+                        Mesh3d(mesh.clone()),
+                        MeshMaterial3d(presentation_material),
+                        bounds,
+                        GpuTerrainBlock::new(
+                            mesh,
+                            build_id,
+                            admission.descriptor,
+                        ),
+                        Transform::IDENTITY,
+                        RenderLayers::layer(USF_PRESENTATION_LAYER),
+                        NotShadowCaster,
+                        NotShadowReceiver,
+                        Visibility::Hidden,
+                    ))
+                    .id()
+            }
+        };
+
+        let key = (
+            admission.authority,
+            admission.policy_revision,
+            admission.spec,
+        );
+        inflight.insert(key);
+        scheduled_builds.push(CelestialClipmapBuildTask {
+            authority: admission.authority,
+            generation: admission.generation,
+            policy_revision: admission.policy_revision,
+            spec: admission.spec,
+            field: admission.field,
+            entity,
+            build_id,
+        });
+    }
+
+    registry.build_tasks.extend(scheduled_builds);
 
     {
         let _span = bevy::log::info_span!("celestial_clipmap.commit").entered();

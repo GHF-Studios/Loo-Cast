@@ -223,8 +223,9 @@ impl PreparedCelestialPresentationBody {
         }
     }
 
+
     #[inline]
-    fn semantic_surface_radius_metres(
+    fn pre_fine_surface_radius_metres(
         &self,
         direction: Vec3,
     ) -> Result<f64, UsfPositionError> {
@@ -258,6 +259,26 @@ impl PreparedCelestialPresentationBody {
                     * band.amplitude_native;
             radius += detail_native * band.metres_per_native;
         }
+
+        Ok(radius)
+    }
+
+    #[inline]
+    pub(crate) fn pre_fine_surface_local_metres(
+        &self,
+        direction: Vec3,
+    ) -> Result<DVec3, UsfPositionError> {
+        let direction = normalized_direction(direction);
+        let radius = self.pre_fine_surface_radius_metres(direction)?;
+        Ok(dvec(direction) * radius)
+    }
+    #[inline]
+    fn semantic_surface_radius_metres(
+        &self,
+        direction: Vec3,
+    ) -> Result<f64, UsfPositionError> {
+        let direction = normalized_direction(direction);
+        let mut radius = self.pre_fine_surface_radius_metres(direction)?;
 
         if self.residual.fine_len > 0 {
             let local_reference_metres = dvec(direction) * radius;

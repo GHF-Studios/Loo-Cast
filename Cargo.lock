@@ -5671,6 +5671,7 @@ dependencies = [
  "spacetime-engine-macros",
  "tracy-client",
  "transvoxel",
+ "transvoxel-data",
  "vapor_telemetry",
 ]
 

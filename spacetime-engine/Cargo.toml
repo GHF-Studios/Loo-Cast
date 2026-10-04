@@ -30,6 +30,8 @@ fast-surface-nets = "0.2.1"
 # Shadow proof for the voxel-local presentation-resolution domain.
 # USF Scale Slices are numerical charts, not Transvoxel LOD levels.
 transvoxel = "2.0.0"
+# GPU binary presentation consumes the canonical Eric Lengyel tables directly.
+transvoxel-data = "0.2.1"
 # Keep the editor stack on one egui generation. bevy-inspector-egui 0.37 is
 # Bevy 0.19's inspector release and uses bevy_egui 0.40 / egui 0.34.
 bevy_egui = { version = "0.40.0", default-features = false, features = ["default_fonts", "render"] }

@@ -98,6 +98,14 @@ impl CelestialPresentationFieldSampler {
         self.body.surface_local_metres(direction)
     }
 
+    #[inline]
+    pub(crate) fn pre_fine_surface_local_metres(
+        &self,
+        direction: Vec3,
+    ) -> Result<DVec3, UsfPositionError> {
+        self.body.pre_fine_surface_local_metres(direction)
+    }
+
     pub(crate) fn semantic_noise_cache_stats(&self) -> (u64, u64) {
         self.body.noise_cache_stats()
     }

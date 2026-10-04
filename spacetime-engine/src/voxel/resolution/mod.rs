@@ -13,6 +13,7 @@
 
 #![allow(dead_code)]
 
+mod gpu;
 mod live;
 
 pub(super) use live::{
@@ -398,5 +399,6 @@ mod tests {
 
 
 pub(super) fn configure(app: &mut bevy::prelude::App) {
+    gpu::configure(app);
     live::configure(app);
 }
