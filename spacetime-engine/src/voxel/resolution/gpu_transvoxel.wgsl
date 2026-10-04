@@ -1,9 +1,6 @@
 // GPU-native binary terrain presentation.
 // Canonical authority remains CPU/USF-owned; this shader receives only one
 // bounded local semantic chart. No f64/i64 and no universe-scale coordinates.
-// gpu-binary-presentation-production-v1
-// gpu-terrain-wgsl-reserved-sweep-v1
-// gpu-terrain-wgsl-reserved-name-repair-v1
 
 const BLOCK: u32 = 8u;
 const REGULAR_LATTICE: u32 = 9u;
@@ -49,6 +46,7 @@ struct GpuTerrainDescriptor {
     chart_origin_and_spacing: vec4<f32>,
     anchor_direction_and_inverse_radius: vec4<f32>,
     extent_uv_radius: vec4<f32>,
+    reference_relief_and_cave_depths: vec4<f32>,
     terrain_meta: vec4<u32>,
     semantic_meta: vec4<i32>,
     seed_meta: vec4<u32>,
@@ -67,10 +65,6 @@ struct SurfaceVertex {
     normal: vec3<f32>,
 }
 
-// gpu-terrain-split-pipeline-v1
-// gpu-terrain-transition-case-side-repair-v1
-// gpu-terrain-frontier-stability-v1
-// gpu-terrain-duplicate-entry-attribute-repair-v2
 @group(0) @binding(0) var<uniform> dispatch: GpuTerrainDispatch;
 @group(0) @binding(1) var<storage, read> tables: array<u32>;
 @group(0) @binding(2) var<storage, read> scratch: array<f32>;
@@ -456,7 +450,6 @@ fn write_surface_vertex(slot: u32, vertex: SurfaceVertex) {
 }
 
 
-
 fn write_triangle_indices(
     index_base: u32,
     a: u32,
@@ -532,7 +525,6 @@ fn emit_regular_cell(cell_id: u32) {
 }
 
 
-
 fn emit_transition_cell(side: u32, cell_id: u32) {
     let cell_u = i32(cell_id % BLOCK);
     let cell_v = i32(cell_id / BLOCK);
@@ -603,8 +595,6 @@ fn emit_transition_cell(side: u32, cell_id: u32) {
         );
     }
 }
-
-
 
 
 @compute @workgroup_size(64)

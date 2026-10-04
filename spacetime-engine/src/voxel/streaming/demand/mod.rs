@@ -1,6 +1,5 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-// aggressive-demand-and-clipmap-local-balance-v1
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
@@ -36,7 +35,6 @@ pub(super) struct DemandedChunk {
     pub(super) priority: i32,
     pub(super) distance_squared: f32,
     pub(super) trajectory_distance_squared: f32,
-    // sdf-boundary-priority-v1
     // Distance from this chunk center to the nearest semantic boundary focus
     // already computed by celestial realization. Infinity means no local
     // boundary focus applies to this scope.
@@ -101,10 +99,6 @@ const MIN_PREDICTIVE_VALIDITY_SECONDS: f64 = 1.0;
 const MAX_PREDICTIVE_VALIDITY_SECONDS: f64 = 4.0;
 const PREDICTIVE_LATENCY_MULTIPLIER: f64 = 4.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
-// useful-work-throughput-predictive-demand-v1
-// sdf-useful-work-priority-pipeline-v1
-// rolling-retirement-backpressure-v1
-// moving-local-footprint-reanchors-v1
 // Predictive depth may extend far forward, but the immediate local/contact
 // footprint must re-anchor on every materialization-boundary crossing.
 const MOVING_PLAN_CENTER_HOLD_CHUNKS: u64 = 0;
@@ -315,8 +309,6 @@ fn make_demanded_chunk(
 }
 
 
-
-// adaptive-useful-working-set-v1
 fn estimated_local_chunk_count(half_extent_native: Vec3) -> usize {
     const MAXIMUM_WORKING_SET: usize = 65_536;
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
@@ -385,10 +377,6 @@ fn desired_chunk_budget(
         .max(throughput_reserve)
         .min(MAXIMUM_WORKING_SET)
 }
-
-
-
-
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -575,7 +563,6 @@ fn incremental_plan_compatible(
         && previous.view_revision == 0
         && next.view_revision == 0
         && previous.motion == next.motion
-        // sparse-predictive-exact-retirement-v1
         //
         // Moving demand is a sparse predictive tube INSIDE the swept AABB.
         // AABB slab differences are not an exact delta for that sparse set:
@@ -710,7 +697,6 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         };
 
         if plan_changed || candidate_committed {
-            // global-reprioritize-after-delta-v1
             //
             // Incremental entering chunks must be allowed to jump ahead of old
             // background backlog according to current role/focus/trajectory.
@@ -733,9 +719,6 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 }
 
 
-
-
-
 fn candidate_plan_ready(
     world_entity: Entity,
     world: &VoxelWorld,
@@ -747,7 +730,6 @@ fn candidate_plan_ready(
     let _span = bevy::log::info_span!("voxel_residency.candidate_ready").entered();
     streaming.migration_candidate_addresses().all(|(key, requested_roles)| {
         let store = world.materializations();
-        // dense-readiness-without-surface-v1
         // REALIZATION-only context is ready when dense truth is current. A
         // derived surface is required only for roles that actually consume one.
         if super::roles_require_surface(requested_roles) {
@@ -811,7 +793,6 @@ fn prioritize_pending_work(
     streaming.pending_desired = pending.into();
 }
 
-// useful-work-retirement-pressure-v1
 fn adaptive_warm_inactive_limit(
     configured_limit: usize,
     world: &VoxelWorld,
@@ -1166,7 +1147,6 @@ fn merge_demanded_chunk(
         .or_insert(candidate);
 }
 
-// region-first-demand-v1
 fn collect_all_region_leaves(
     center_key: VoxelMaterializationKey,
     region: VoxelRegionSpan,
@@ -1350,7 +1330,6 @@ fn collect_predictive_tube(
         return Ok(());
     }
 
-    // local-safety-before-predictive-depth-v1
     //
     // Deep prediction is useless if the controlled subject's immediate
     // collision/landing neighborhood is still missing. Seed the complete local
@@ -1481,7 +1460,6 @@ fn collect_predictive_tube(
 
     Ok(())
 }
-
 
 
 pub(super) fn demanded_chunk_addresses<T>(
@@ -1689,7 +1667,6 @@ mod motion_priority_tests {
         );
     }
 }
-
 
 
 #[cfg(test)]

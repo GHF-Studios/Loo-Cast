@@ -7,7 +7,6 @@ impl VoxelMaterializationStore {
         self.entries.values().filter(|entry| entry.active).count()
     }
 
-    // warm-store-retirement-metrics-v1
     pub(in crate::voxel) const fn inactive_count(&self) -> usize {
         self.inactive_count
     }

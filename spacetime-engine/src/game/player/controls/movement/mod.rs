@@ -2,7 +2,6 @@
 
 use super::*;
 
-// logarithmic-flight-pace-control-v1
 /// Vehicle-owned logarithmic pace dial.
 ///
 /// Ordinary wheel input while the human controls a non-player subject changes
@@ -62,7 +61,6 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     let vertical = input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend);
     let boost = input.pressed(PlayerAction::Boost);
 
-    // playability-and-diagnostic-clarity-megapass-v1
     //
     // Raw mouse delta remains render-frame view intent (#45): never replay it
     // through fixed simulation ticks. The accumulated PlayerAim is stable

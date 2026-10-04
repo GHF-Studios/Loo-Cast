@@ -300,7 +300,6 @@ pub struct UsfSpatialTransitionApplied {
     pub cause: UsfSpatialTransitionCause,
 }
 
-// handoff-wait-reason-telemetry-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct InteractionHandoffWaitFingerprint {
     subject: Entity,

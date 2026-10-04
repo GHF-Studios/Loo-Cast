@@ -136,7 +136,6 @@ fn terrain_pipeline_census(
 
         let active_keys = store.active_keys().collect::<Vec<_>>();
         let active = active_keys.len();
-        // retirement-pressure-census-v1
         let desired = streaming.map_or(active, VoxelStreaming::desired_count);
         let pending_desired =
             streaming.map_or(0, VoxelStreaming::pending_desired_len);

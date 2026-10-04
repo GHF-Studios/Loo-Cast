@@ -1,6 +1,4 @@
-// first-touch-profiler-decontamination-v2
 //! Shared semantic authority for voxel fields with multiple realizations.
-// canonical-celestial-surface-coherence-v4
 //!
 //! A realization owns residency, dense materializations, meshes and colliders.
 //! The authority owns semantic identity and the canonical ordered edit history.
@@ -59,15 +57,12 @@ pub struct CelestialVoxelField {
     profile: CelestialBodyProfile,
 }
 
-// prepared-presentation-field-sampler-v1
-// canonical-presentation-field-all-lods-v1
 //
 // Presentation resolution is a sampling/aggregation choice, not semantic
 // terrain bandwidth. Every binary LOD samples the same final canonical
 // volumetric field. A future filtered/aggregated representation may reduce
 // aliasing, but it must approximate this same field rather than deleting
 // semantic terrain bands or caves at arbitrary sample-spacing thresholds.
-// presentation-central-cache-specialization-v1
 #[derive(Debug)]
 pub(crate) struct CelestialPresentationFieldSampler {
     body: PreparedCelestialPresentationBody,
@@ -110,7 +105,6 @@ impl CelestialPresentationFieldSampler {
         self.body.noise_cache_stats()
     }
 
-    // fine-residual-native-cell-megapass-v1
     pub(crate) fn semantic_noise_cell_cache_stats(
         &self,
     ) -> (u64, u64) {
@@ -215,7 +209,6 @@ impl CelestialVoxelField {
         })
     }
 
-    // planner-worker-hotpath-multimegapass-v1
     // These are ONE-SHOT adapters. Constructing PreparedCelestialPresentationBody
     // here allocated a 4096-slot semantic-corner cache for every planner sample.
     // Reuse belongs to explicit `presentation_sampler()` owners instead.
@@ -313,7 +306,6 @@ pub(crate) fn signed_distance_local_metres(
             .map(CelestialFieldSample::signed_distance_metres)
     }
 
-    // semantic-volumetric-boundary-projection-v1
     fn normalized_field_gradient_local_metres(
         self,
         point: DVec3,

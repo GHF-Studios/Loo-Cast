@@ -199,7 +199,6 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 ///
 /// Global worker-slot accounting remains shared across voxel worlds so one world
 /// cannot independently saturate the compute pool.
-// fair-ranked-generation-rounds-v1
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     interaction: Res<UsfPrimaryInteractionSlice>,
@@ -230,7 +229,6 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         return;
     }
 
-    // generation-prioritizes-interaction-target-v1
     // During a coverage-gated handoff, generation must feed the destination
     // chart that is trying to prove readiness, not the outgoing committed chart.
     let interaction_exponent = interaction.target_scale().exponent();
@@ -277,7 +275,6 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             break;
         }
 
-        // generation-uses-persistent-work-rank-v1
         ranked.sort_by(|a, b| {
             super::demand::compare_work_ranks(a.1, b.1)
                 .then_with(|| b.2.cmp(&a.2))

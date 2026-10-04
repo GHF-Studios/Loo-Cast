@@ -23,7 +23,6 @@ pub(super) fn volumetric_noise(
     }
 }
 
-// central-cache-kernel-megapass-v1
 //
 // Most canonical surface evaluation is ordinary value-noise interpolation.
 // Within one 9^3 clipmap block, dozens of independent terrain domains repeatedly
@@ -177,7 +176,6 @@ fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
     (value as f32 / u32::MAX as f32) * 2.0 - 1.0
 }
 
-// presentation-central-cache-specialization-v1
 //
 // Canonical detail noise is interpolated from stable lattice corners. Nearby
 // fine presentation samples repeatedly visit the same 5 m / 20 m corners.
@@ -215,8 +213,6 @@ impl SemanticNoiseCornerEntry {
     };
 }
 
-// fine-residual-native-cell-megapass-v1
-// fine-residual-cold-miss-megapass-v1
 //
 // 20-native and 5-native fine residual domains deliberately DO NOT share one
 // direct-mapped cell cache anymore. Every density sample queries 20m and then
@@ -259,7 +255,6 @@ impl SemanticNoiseCellEntry {
     };
 }
 
-// fine-residual-microdiagnostics-v1
 //
 // PERFORMANCE DIAGNOSTICS, NOT SEMANTIC STATE.
 //
@@ -783,7 +778,6 @@ impl PreparedSemanticNoisePoint {
     }
 }
 
-// worker-instrumentation-compact-noise-megapass-v1
 //
 // `SemanticNoiseCornerKey` is already the complete canonical identity of one
 // integer-aligned body-local noise corner. Reconstructing a UsfPosition,
@@ -792,7 +786,6 @@ impl PreparedSemanticNoisePoint {
 // from the compact integer native coordinate.
 const COMPACT_SEMANTIC_DIGITS: usize = 71;
 
-// fine-residual-cold-miss-megapass-v1
 //
 // Canonical semantic corner hashing conceptually walks every Scale from S+35
 // down to the leaf, including all leading all-zero digits. For an Earth-local
@@ -981,7 +974,6 @@ fn semantic_corner_noise_3d_compact(
     (value as f32 / u32::MAX as f32) * 2.0 - 1.0
 }
 
-// progressive-publication-and-worker-cache-lifetime-v1
 //
 // This cache belongs to worker-thread lifetime, not mesh-build lifetime.
 // `SemanticNoiseCornerKey` already contains the deterministic noise identity

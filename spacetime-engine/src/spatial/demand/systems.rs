@@ -32,7 +32,6 @@ fn collect_spatial_demand(
     let mut next_motion = SpatialDemandMotionSnapshot::default();
 
     for (entity, transform, source, source_layer, canonical_motion) in &sources {
-        // metric-demand-collection-v2
         let source_scale =
             source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
         let half_extent_native =

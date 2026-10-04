@@ -9,7 +9,6 @@
 //! working caches. Presentation will migrate onto this resolution domain only
 //! after the balancing + transition-meshing contract is proven.
 
-// voxel-presentation-resolution-domain-v1
 
 #![allow(dead_code)]
 

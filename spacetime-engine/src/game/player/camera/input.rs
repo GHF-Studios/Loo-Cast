@@ -31,7 +31,6 @@ pub(in crate::game::player) fn zoom_third_person(
     mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
     if presentation.is_embedded()
-        // logarithmic-flight-pace-control-v1
         // Vehicle control owns ordinary wheel input as the high-dynamic-range
         // pace dial. On foot, the existing third-person zoom behavior remains.
         || !controlled_vehicle.is_empty()

@@ -5,8 +5,6 @@
 //! Transvoxel topology entirely on the GPU, and writes directly into Bevy's
 //! MeshAllocator slabs. No density/geometry readback is performed.
 //!
-//! gpu-binary-presentation-production-v1
-// gpu-terrain-table-readonly-binding-repair-v1
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -37,17 +35,16 @@ use bevy::{
 
 use crate::{
     spatial::{SpatialScale, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN},
-    voxel::{CelestialBodyProfile, CelestialVoxelField},
+    voxel::{
+        base::{CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES},
+        CelestialBodyProfile, CelestialVoxelField,
+    },
 };
 
 const GPU_TERRAIN_DENSITY_SHADER: Handle<Shader> =
     uuid_handle!("56f43359-c86b-4cd9-a561-9f07f86d0a51");
 const GPU_TERRAIN_TOPOLOGY_SHADER: Handle<Shader> =
     uuid_handle!("96b866c0-a48a-4558-9e24-b8773dcf569e");
-// gpu-terrain-split-pipeline-v1
-// gpu-terrain-memory-pressure-repair-v1
-// gpu-terrain-frontier-stability-v1
-// gpu-terrain-tracy-observability-v1
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 const REGULAR_MAX_TRIANGLES: usize = BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS
@@ -111,6 +108,8 @@ pub(crate) struct GpuTerrainDescriptor {
     anchor_direction_and_inverse_radius: Vec4,
     /// x = block extent, y/z = bounded UV phase, w = semantic body radius scalar.
     extent_uv_radius: Vec4,
+    /// x = CPU-resolved pre-fine relief; y/z = cave start/max depth metres.
+    reference_relief_and_cave_depths: Vec4,
     /// x = profile, y = transition bits, z = coarse count, w = fine count.
     meta: UVec4,
     /// x = semantic surface floor exponent, y = cave evaluation enabled.
@@ -128,6 +127,7 @@ impl Default for GpuTerrainDescriptor {
             chart_origin_and_spacing: Vec4::ZERO,
             anchor_direction_and_inverse_radius: Vec4::ZERO,
             extent_uv_radius: Vec4::ZERO,
+            reference_relief_and_cave_depths: Vec4::ZERO,
             meta: UVec4::ZERO,
             semantic_meta: IVec4::ZERO,
             seed_meta: UVec4::ZERO,
@@ -261,7 +261,6 @@ impl Plugin for GpuTerrainPresentationPlugin {
             .resource_mut::<MeshAllocatorSettings>();
         settings.extra_buffer_usages |= BufferUsages::STORAGE;
 
-        // gpu-terrain-frontier-stability-v1
         // Bound general-slab growth so streaming terrain cannot trigger
         // progressively larger hundreds-of-MiB relocation copies.
         settings.slab_allocator_settings.min_slab_size = 8 * 1024 * 1024;
@@ -282,7 +281,6 @@ pub(super) fn configure(app: &mut App) {
 pub(crate) fn allocation_mesh(
     transition_face_count: u32,
 ) -> Mesh {
-    // gpu-terrain-memory-pressure-repair-v1
     //
     // Regular topology exists for every block. Transition capacity is reserved
     // only for faces that actually bridge a 2:1 LOD boundary. This keeps the
@@ -501,13 +499,23 @@ fn finite_vec3(value: DVec3) -> Option<Vec3> {
     out.is_finite().then_some(out)
 }
 
-pub(crate) fn descriptor_for_block(
+#[derive(Debug, Clone, Copy)]
+struct GpuTerrainReference {
+    center: DVec3,
+    anchor_direction: Vec3,
+    anchor_pre_fine_surface: DVec3,
+    anchor_radius: f64,
+    chart_origin_delta: Vec3,
+    extent_f32: f32,
+    spacing_f32: f32,
+}
+
+fn terrain_reference(
     field: CelestialVoxelField,
     origin_local_metres: DVec3,
     extent_metres: f64,
     spacing_metres: f64,
-    transition_bits: u8,
-) -> Option<GpuTerrainDescriptor> {
+) -> Option<GpuTerrainReference> {
     if !origin_local_metres.is_finite()
         || !extent_metres.is_finite()
         || extent_metres <= 0.0
@@ -520,21 +528,14 @@ pub(crate) fn descriptor_for_block(
 
     let center = origin_local_metres + DVec3::splat(extent_metres * 0.5);
     let center_radius = center.length();
-    let anchor_direction = if center_radius.is_finite() && center_radius > f64::EPSILON {
-        Vec3::new(
-            (center.x / center_radius) as f32,
-            (center.y / center_radius) as f32,
-            (center.z / center_radius) as f32,
-        )
-        .normalize_or_zero()
+    let mut anchor_direction = if center_radius > f64::EPSILON {
+        finite_vec3(center / center_radius)?.normalize_or_zero()
     } else {
         Vec3::Y
     };
-    let anchor_direction = if anchor_direction == Vec3::ZERO {
-        Vec3::Y
-    } else {
-        anchor_direction
-    };
+    if anchor_direction == Vec3::ZERO {
+        anchor_direction = Vec3::Y;
+    }
 
     let sampler = field.presentation_sampler(spacing_metres)?;
     let anchor_pre_fine_surface =
@@ -546,122 +547,197 @@ pub(crate) fn descriptor_for_block(
 
     let chart_origin_delta =
         finite_vec3(origin_local_metres - anchor_pre_fine_surface)?;
-    let inverse_anchor_radius = (1.0 / anchor_radius) as f32;
     let extent_f32 = extent_metres as f32;
     let spacing_f32 = spacing_metres as f32;
     if !extent_f32.is_finite() || !spacing_f32.is_finite() {
         return None;
     }
 
-    let floor = field.surface_detail_scale().exponent();
-    let root = field.coarsest_detail_scale().exponent();
-    let profile = field.profile();
-    let seed = field.seed();
-    let body_radius = field
-        .radius_metres()
-        .clamp(0.0, f64::from(f32::MAX)) as f32;
+    debug_assert!(anchor_direction.is_finite());
+    debug_assert!(chart_origin_delta.is_finite());
 
-    let mut coarse = [GpuCoarseBand::default(); MAX_COARSE_BANDS];
-    let mut coarse_count = 0usize;
-    let mut fine = [GpuFineBand::default(); MAX_FINE_BANDS];
-    let mut fine_count = 0usize;
+    Some(GpuTerrainReference {
+        center,
+        anchor_direction,
+        anchor_pre_fine_surface,
+        anchor_radius,
+        chart_origin_delta,
+        extent_f32,
+        spacing_f32,
+    })
+}
+
+fn build_coarse_bands(
+    field: CelestialVoxelField,
+    floor: i8,
+    root: i8,
+) -> Option<([GpuCoarseBand; MAX_COARSE_BANDS], usize)> {
+    let mut bands = [GpuCoarseBand::default(); MAX_COARSE_BANDS];
+    let lower = floor.max(1);
+    if lower > root {
+        return Some((bands, 0));
+    }
+
     let (frequency_factor, amplitude, growth, salt) =
-        detail_parameters(profile);
+        detail_parameters(field.profile());
+    let mut count = 0usize;
 
-    let coarse_lower = floor.max(1);
-    if coarse_lower <= root {
-        for raw in (coarse_lower..=root).rev() {
-            if coarse_count >= MAX_COARSE_BANDS {
-                return None;
-            }
-            let level = SpatialScale::new(raw)?;
-            let metres_per_native = level.metres_per_native();
-            let depth = i32::from(root - raw).max(0);
-            let amplitude_native = amplitude * growth.powi(depth);
-            let angular_frequency = (
-                field.radius_metres() / metres_per_native * frequency_factor
-            )
-                .max(4.0)
-                .min(f64::from(f32::MAX)) as f32;
-            coarse[coarse_count] = GpuCoarseBand {
-                params: Vec4::new(
-                    (amplitude_native * metres_per_native) as f32,
-                    angular_frequency,
-                    0.0,
-                    0.0,
-                ),
-                seeds: UVec4::new(
-                    scale_layer_seed(seed ^ salt, raw),
-                    0,
-                    0,
-                    0,
-                ),
-            };
-            coarse_count += 1;
-        }
+    for raw in (lower..=root).rev() {
+        let level = SpatialScale::new(raw)?;
+        let metres_per_native = level.metres_per_native();
+        let depth = i32::from(root - raw).max(0);
+        let amplitude_native = amplitude * growth.powi(depth);
+        let angular_frequency = (
+            field.radius_metres() / metres_per_native * frequency_factor
+        )
+            .max(4.0)
+            .min(f64::from(f32::MAX)) as f32;
+
+        let slot = bands.get_mut(count)?;
+        *slot = GpuCoarseBand {
+            params: Vec4::new(
+                (amplitude_native * metres_per_native) as f32,
+                angular_frequency,
+                0.0,
+                0.0,
+            ),
+            seeds: UVec4::new(
+                scale_layer_seed(field.seed() ^ salt, raw),
+                0,
+                0,
+                0,
+            ),
+        };
+        count += 1;
     }
 
-    let fine_upper = root.min(0);
-    if floor <= fine_upper {
-        for raw in (floor..=fine_upper).rev() {
-            if fine_count >= MAX_FINE_BANDS {
-                return None;
-            }
-            let level = SpatialScale::new(raw)?;
-            let metres_per_native = level.metres_per_native();
-            let depth = i32::from(root - raw).max(0);
-            let amplitude_native = amplitude * growth.powi(depth);
-            let band_seed = scale_layer_seed(seed ^ salt, raw);
-            fine[fine_count] = fine_band(
-                anchor_pre_fine_surface,
-                level,
-                amplitude_native * metres_per_native,
-                band_seed,
-            )?;
-            fine_count += 1;
-        }
+    debug_assert!(count <= MAX_COARSE_BANDS);
+    debug_assert!(bands.iter().take(count).all(|band| band.params.is_finite()));
+    Some((bands, count))
+}
+
+fn build_fine_bands(
+    field: CelestialVoxelField,
+    anchor_pre_fine_surface: DVec3,
+    floor: i8,
+    root: i8,
+) -> Option<([GpuFineBand; MAX_FINE_BANDS], usize)> {
+    let mut bands = [GpuFineBand::default(); MAX_FINE_BANDS];
+    let upper = root.min(0);
+    if floor > upper {
+        return Some((bands, 0));
     }
 
-    let central_half_extent =
-        DVec3::splat(extent_metres * 0.5 + spacing_metres);
-    let include_caves = profile == CelestialBodyProfile::Rocky
+    let (_, amplitude, growth, salt) = detail_parameters(field.profile());
+    let mut count = 0usize;
+
+    for raw in (floor..=upper).rev() {
+        let level = SpatialScale::new(raw)?;
+        let metres_per_native = level.metres_per_native();
+        let depth = i32::from(root - raw).max(0);
+        let amplitude_native = amplitude * growth.powi(depth);
+        let band = fine_band(
+            anchor_pre_fine_surface,
+            level,
+            amplitude_native * metres_per_native,
+            scale_layer_seed(field.seed() ^ salt, raw),
+        )?;
+
+        *bands.get_mut(count)? = band;
+        count += 1;
+    }
+
+    debug_assert!(count <= MAX_FINE_BANDS);
+    debug_assert!(bands.iter().take(count).all(|band| band.params.is_finite()));
+    Some((bands, count))
+}
+
+fn build_cave_charts(
+    field: CelestialVoxelField,
+    reference: GpuTerrainReference,
+) -> Option<([GpuCaveChart; 5], bool)> {
+    let half_extent = DVec3::splat(
+        f64::from(reference.extent_f32) * 0.5
+            + f64::from(reference.spacing_f32),
+    );
+    let include = field.profile() == CelestialBodyProfile::Rocky
         && field.presentation_caves_may_intersect_aabb(
-            center,
-            central_half_extent,
+            reference.center,
+            half_extent,
         );
 
     let mut caves = [GpuCaveChart::default(); 5];
-    if include_caves {
-        caves[0] = cave_chart(
-            anchor_pre_fine_surface,
-            520.0,
-            Vec3::new(13.7, -5.1, 8.9),
-            seed ^ 0x4341_5645,
+    if !include {
+        return Some((caves, false));
+    }
+
+    let seed = field.seed();
+    let definitions = [
+        (520.0, Vec3::new(13.7, -5.1, 8.9), seed ^ 0x4341_5645),
+        (390.0, Vec3::new(-7.4, 19.2, -11.6), seed ^ 0x5455_4E4C),
+        (240.0, Vec3::new(-21.3, 4.8, 15.2), seed ^ 0x4252_414E),
+        (310.0, Vec3::new(6.6, -17.9, 2.7), seed ^ 0x4348_4D42),
+        (680.0, Vec3::new(31.7, -14.1, 9.3), seed ^ 0x4348_414D),
+    ];
+
+    for (slot, (wavelength, offset, keyed_seed)) in
+        caves.iter_mut().zip(definitions)
+    {
+        *slot = cave_chart(
+            reference.anchor_pre_fine_surface,
+            wavelength,
+            offset,
+            keyed_seed,
         )?;
-        caves[1] = cave_chart(
-            anchor_pre_fine_surface,
-            390.0,
-            Vec3::new(-7.4, 19.2, -11.6),
-            seed ^ 0x5455_4E4C,
-        )?;
-        caves[2] = cave_chart(
-            anchor_pre_fine_surface,
-            240.0,
-            Vec3::new(-21.3, 4.8, 15.2),
-            seed ^ 0x4252_414E,
-        )?;
-        caves[3] = cave_chart(
-            anchor_pre_fine_surface,
-            310.0,
-            Vec3::new(6.6, -17.9, 2.7),
-            seed ^ 0x4348_4D42,
-        )?;
-        caves[4] = cave_chart(
-            anchor_pre_fine_surface,
-            680.0,
-            Vec3::new(31.7, -14.1, 9.3),
-            seed ^ 0x4348_414D,
-        )?;
+    }
+
+    debug_assert!(include);
+    debug_assert!(caves.iter().all(|chart| {
+        chart.fraction_and_wavelength.is_finite()
+    }));
+    Some((caves, true))
+}
+
+pub(crate) fn descriptor_for_block(
+    field: CelestialVoxelField,
+    origin_local_metres: DVec3,
+    extent_metres: f64,
+    spacing_metres: f64,
+    transition_bits: u8,
+) -> Option<GpuTerrainDescriptor> {
+    assert!(
+        transition_bits & !0b00_111111 == 0,
+        "binary terrain transition bits must describe only six block faces"
+    );
+    assert!(
+        field.surface_detail_scale() <= field.coarsest_detail_scale(),
+        "celestial terrain detail floor must not exceed its detail root"
+    );
+
+    let reference = terrain_reference(
+        field,
+        origin_local_metres,
+        extent_metres,
+        spacing_metres,
+    )?;
+    let floor = field.surface_detail_scale().exponent();
+    let root = field.coarsest_detail_scale().exponent();
+    let (coarse, coarse_count) = build_coarse_bands(field, floor, root)?;
+    let (fine, fine_count) = build_fine_bands(
+        field,
+        reference.anchor_pre_fine_surface,
+        floor,
+        root,
+    )?;
+    let (caves, include_caves) = build_cave_charts(field, reference)?;
+
+    let body_radius = field
+        .radius_metres()
+        .clamp(0.0, f64::from(f32::MAX)) as f32;
+    let anchor_relief =
+        (reference.anchor_radius - field.radius_metres()) as f32;
+    if !body_radius.is_finite() || !anchor_relief.is_finite() {
+        return None;
     }
 
     let uv_x =
@@ -669,19 +745,30 @@ pub(crate) fn descriptor_for_block(
     let uv_z =
         (origin_local_metres.z.rem_euclid(UV_PHASE_WRAP_METRES) * 0.5) as f32;
 
+    debug_assert!(coarse_count <= MAX_COARSE_BANDS);
+    debug_assert!(fine_count <= MAX_FINE_BANDS);
+
     Some(GpuTerrainDescriptor {
         chart_origin_and_spacing:
-            chart_origin_delta.extend(spacing_f32),
+            reference.chart_origin_delta.extend(reference.spacing_f32),
         anchor_direction_and_inverse_radius:
-            anchor_direction.extend(inverse_anchor_radius),
+            reference.anchor_direction.extend(
+                (1.0 / reference.anchor_radius) as f32,
+            ),
         extent_uv_radius: Vec4::new(
-            extent_f32,
+            reference.extent_f32,
             uv_x,
             uv_z,
             body_radius,
         ),
+        reference_relief_and_cave_depths: Vec4::new(
+            anchor_relief,
+            CAVE_START_DEPTH_METRES as f32,
+            CAVE_MAX_DEPTH_METRES as f32,
+            0.0,
+        ),
         meta: UVec4::new(
-            profile_id(profile),
+            profile_id(field.profile()),
             u32::from(transition_bits),
             coarse_count as u32,
             fine_count as u32,
@@ -692,7 +779,7 @@ pub(crate) fn descriptor_for_block(
             0,
             0,
         ),
-        seed_meta: UVec4::new(seed, 0, 0, 0),
+        seed_meta: UVec4::new(field.seed(), 0, 0, 0),
         coarse,
         fine,
         caves,
@@ -876,7 +963,6 @@ fn prepare_gpu_terrain_blocks(
 }
 
 
-
 #[cfg(feature = "profiling-tracy")]
 fn emit_gpu_terrain_pressure(
     mesh_allocator: &MeshAllocator,
@@ -1000,10 +1086,11 @@ fn compute_gpu_terrain(
         let block_transition_faces =
             block.descriptor.meta.y.count_ones() as u64;
 
-        // 9^3 regular samples. Each enabled transition face evaluates 17^2
-        // samples, with density + six finite-difference gradient neighbours.
+        // 9^3 regular samples. Each transition face evaluates its 17^2
+        // density lattice once; tangential gradients reuse it and only the
+        // normal derivative performs two additional complete SDF samples.
         let block_density_calls = 729u64
-            + block_transition_faces.saturating_mul(289u64 * 7u64);
+            + block_transition_faces.saturating_mul(289u64 * 3u64);
 
         transition_faces =
             transition_faces.saturating_add(block_transition_faces);

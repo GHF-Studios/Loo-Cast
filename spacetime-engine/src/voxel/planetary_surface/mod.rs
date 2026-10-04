@@ -57,7 +57,6 @@ const MAX_PATCH_LEAVES: usize = 64;
 /// much lower body-specific maximum (Earth at S+4 resolves to about L7).
 const MAX_ABSOLUTE_PATCH_LEVEL: u8 = 10;
 
-// regional-aperture-cutout-v1
 //
 // Semantic terrain bandwidth and presentation ownership are separate axes.
 // Around committed dense/clipmap coverage, regional patches may subdivide a
@@ -593,7 +592,6 @@ pub(super) fn sync_planetary_surface_realizations(
                             "{body_name} Planetary Patch {:?} L{} ({},{})",
                             build.patch.face, build.patch.level, build.patch.x, build.patch.y,
                         )),
-                        // planetary-surface-policy-revision-publication-fix-v1
                         //
                         // Publication identity must exactly match the scheduler/build key.
                         // A hardcoded revision prevents existing_by_key from recognizing
@@ -782,7 +780,6 @@ fn maximum_patch_level_for_spacing(
         .floor()
         .clamp(0.0, f64::from(MAX_ABSOLUTE_PATCH_LEVEL)) as u8
 }
-
 
 
 /// Maximum regional depth allowed solely to carve a local replacement aperture.

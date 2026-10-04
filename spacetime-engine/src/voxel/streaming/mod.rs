@@ -11,7 +11,6 @@ use bevy::prelude::*;
 use super::VoxelMaterializationKey;
 use crate::spatial::UsfScaleRoleMask;
 use demand::{DemandedChunk, VoxelDemandPlanKey};
-// manifestation-work-rank-export-v1
 // Keep the type opaque outside scheduling code; sibling voxel systems can
 // preserve ordering by passing ranks to the canonical comparator.
 pub(in crate::voxel) use demand::{
@@ -46,7 +45,6 @@ pub struct VoxelStreaming {
     /// Latest desired address -> capability-role intent.
     cached_desired_roles:
         HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
-    // persistent-work-rank-v1
     // Scheduling rank survives beyond the pending generation queue so surface
     // derivation can honor the same useful-work ordering.
     desired_work_ranks:
@@ -89,7 +87,6 @@ impl VoxelStreaming {
         self.load_budget_per_frame
     }
 
-    // rolling-retirement-metrics-v1
     pub(in crate::voxel) fn pending_desired_len(&self) -> usize {
         self.pending_desired.len()
     }
@@ -192,7 +189,6 @@ impl VoxelStreaming {
             }
         }
 
-        // aggressive-departure-retirement-v1
         //
         // Make-before-break protects changed capability for addresses that
         // remain desired. It must never retain space that has actually left
@@ -335,7 +331,6 @@ impl VoxelStreaming {
         self.policy_revision
     }
 
-    // role-aware-surface-work-v1
     pub(in crate::voxel) fn effective_roles(
         &self,
         key: VoxelMaterializationKey,

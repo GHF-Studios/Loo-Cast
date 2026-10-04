@@ -3,44 +3,18 @@
 //! This is presentation only. Semantic terrain remains [`CelestialVoxelField`];
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
-// gpu-binary-presentation-production-v1
 
 use std::{
-    cell::Cell,
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicU32, AtomicU64, Ordering},
-    },
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use bevy::{
-    asset::RenderAssetUsages,
     camera::{primitives::Aabb, visibility::{NoAutoAabb, RenderLayers}},
     light::{NotShadowCaster, NotShadowReceiver},
     math::DVec3,
-    mesh::{Indices, PrimitiveTopology},
     prelude::*,
     render::storage::ShaderBuffer,
-};
-
-use transvoxel::{
-    prelude::{
-        extract, Block, BlockStarView, TransitionSide, TransitionSides,
-    },
-    structs::{
-        generic_mesh::Mesh as TransvoxelMesh,
-        grid_point::GridPoint,
-        vertex_index::VertexIndex,
-        voxel_blocks::VoxelBlockRelayingToField,
-        voxel_index::VoxelIndex,
-    },
-    traits::{
-        data_field::DataField,
-        mesh_builder::MeshBuilder,
-        voxel_block::VoxelBlock,
-        voxel_data::Density,
-    },
 };
 
 use crate::reconstructible::{
@@ -50,7 +24,6 @@ use crate::procedural_assets::{
     DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
 };
 use crate::view::USF_PRESENTATION_LAYER;
-// first-touch-profiler-decontamination-v2
 use crate::voxel::{
     developer_policy::{
         presentation_surface_radius_bounds_metres,
@@ -90,41 +63,20 @@ use super::super::{
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
-// first-touch-profiler-decontamination-v2
-// presentation-extract-hotpath-v1
-//
-// Only lazy high-resolution transition-neighbour queries need an external memo.
-// A direct-mapped cache removes HashMap hashing/allocation and RefCell borrow
-// traffic from the hottest callback. Collisions only recompute exact field
-// values; they never substitute one coordinate's value for another.
-const TRANSITION_DENSITY_MEMO_SLOTS: usize = 4_096;
-// transvoxel-transition-cache-integrity-v1
-const MAX_CLIPMAP_TRIANGLE_EDGE_CELLS: f32 = 4.0;
-const CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS: f32 = 0.5;
-// presentation-resolution-independent-screen-error-v1
-// terrain-continuity-closure-megapass-v1
-// moving-volume-rolling-clipmap-megapass-v1
-// terrain-transaction-root-cause-megapass-v2
-// progressive-terrain-publication-latency-closure-v1
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
-// whole-body-volumetric-clipmap-v1
 //
 // The coarsest binary bricks are allowed to span the semantic body. A small
 // conservative margin absorbs canonical relief without inventing a second
 // spherical surface representation.
 const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
-// volumetric-boundary-continuity-visual-handoff-v1
 const TARGET_CELLS_PER_CLEARANCE: f64 = 128.0;
 const TARGET_PIXELS_PER_BINARY_SAMPLE: f64 = 4.0;
-// frontier-local-dense-fallback-v1
 // Inactive dense presentation is a bootstrap fallback, not a LOD layer or history buffer.
 const DENSE_FALLBACK_RETENTION_CHUNKS: f32 = 4.0;
 
-// terrain-continuity-closure-megapass-v1
-// sparse-boundary-frontier-v1
 //
 // Deep local detail is a sparse boundary aperture over persistent coarse body
 // ancestry. The budget scales with requested binary depth; this hard ceiling is
@@ -132,17 +84,14 @@ const DENSE_FALLBACK_RETENTION_CHUNKS: f32 = 4.0;
 const MIN_SPARSE_FRONTIER_LEAVES: usize = 4_096;
 const MAX_SPARSE_FRONTIER_LEAVES: usize = 32_768;
 const LEAVES_PER_REQUESTED_LEVEL: usize = 640;
-// progressive-balanced-frontier-transactions-v1
 // Each checkpoint remains a complete balanced Transvoxel frontier, but the
 // changed region is deliberately small enough to become visible continuously.
-// presentation-planning-orders-of-magnitude-v1
 //
 // Tiny eight-refinement waves forced repeated balance passes and repeated
 // whole-frontier materialization while changing almost nothing. Reconstructible
 // planning now does substantial work per local balance transaction and publishes
 // only a cold bootstrap plus the final balanced replacement frontier.
 const MAX_PRIMARY_REFINEMENTS_PER_WAVE: usize = 256;
-// progressive-publication-and-worker-cache-lifetime-v1
 //
 // Planning remains one deep sparse solve. Publication, however, must not jump
 // from eight root bricks directly to a multi-thousand-leaf final transaction.
@@ -153,7 +102,6 @@ const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
 const CLIPMAP_LATENCY_MULTIPLIER: f64 = 4.0;
-// runtime-pooling-transform-avian-megapass-v1
 // Reconstructible clipmap presentation shells are expensive to churn through
 // Bevy's entity/asset lifecycle. Keep a bounded hot pool and mutate stable
 // Mesh handles in place, matching the dense manifestation runtime.
@@ -230,16 +178,12 @@ impl CelestialClipmapBlockKey {
     }
 }
 
-// presentation-diagnostics-and-planning-megapass-v1
-// presentation-resolution-latency-megapass-v1
-// analytical-procedural-debug-grid-v1
 #[derive(Resource, Default)]
 struct CelestialClipmapBandDebugMaterials {
     by_base_and_relative_level:
         HashMap<(Handle<StandardMaterial>, i16), Handle<VoxelRenderMaterial>>,
 }
 
-// analytical-grid-material-system-param-repair-v1
 //
 // Keep the binary clipmap systems below Bevy's plain function-system parameter
 // arity limit without hiding ownership behind globals. These five resources are
@@ -254,7 +198,6 @@ struct CelestialClipmapMaterialParams<'w> {
     band_materials: ResMut<'w, CelestialClipmapBandDebugMaterials>,
 }
 
-// playability-and-diagnostic-clarity-megapass-v1
 // Sixteen adjacent binary LODs traverse one complete hue revolution. The
 // palette deliberately advances slowly enough that neighboring resolution
 // shells remain easy to distinguish while broad LOD structure reads as one
@@ -326,8 +269,6 @@ struct CelestialClipmapBlockSpec {
     transition_faces: VoxelTransitionFaces,
 }
 
-// stable-body-frontier-dense-terminal-aperture-v1
-// sticky-refinement-anchor-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CelestialClipmapPlanKey {
     // Observer coordinates are deliberately absent. They are refinement state,
@@ -337,13 +278,11 @@ struct CelestialClipmapPlanKey {
     policy_revision: u64,
 }
 
-// transactional-binary-refinement-frontiers-v1
 #[derive(Debug)]
 struct CelestialClipmapPlan {
     key: CelestialClipmapPlanKey,
     field: CelestialVoxelField,
     policy: Option<DeveloperScalarPolicySnapshot>,
-    // volumetric-observer-surface-anchor-split-v1
     /// Predicted actual observer position in body-local SI metres.
     ///
     /// This is the 3D LOD/error/motion anchor. Never project it onto terrain:
@@ -360,7 +299,6 @@ struct CelestialClipmapPlan {
     stages: Vec<Vec<CelestialClipmapBlockSpec>>,
     stage_index: usize,
     desired: Vec<CelestialClipmapBlockSpec>,
-    // main-thread-presentation-ui-megapass-v1
     desired_set: HashSet<CelestialClipmapBlockSpec>,
     completed: HashSet<CelestialClipmapBlockSpec>,
     meshful: HashSet<CelestialClipmapBlockSpec>,
@@ -395,8 +333,6 @@ fn seed_clipmap_stage_completion(
     }
 }
 
-// aggressive-demand-and-clipmap-local-balance-v1
-// celestial-clipmap-planner-superpass-v1
 //
 // Planner state is deliberately reusable. Observer motion changes *which*
 // presentation blocks are wanted; it does not change the semantic answer to
@@ -518,7 +454,6 @@ impl CelestialClipmapSurfaceCache {
     }
 }
 
-// planner-worker-hotpath-multimegapass-v1
 
 #[derive(Debug, Clone, Copy)]
 struct ClipmapRefinementCandidate {
@@ -573,7 +508,6 @@ fn block_sort_key(
     )
 }
 
-// observer-centered-lod-shell-geometry-v1
 //
 // LOD is a genuinely observer-centered 3D shell field. Predictive validity may
 // inflate those shells slightly so useful work survives motion/build latency,
@@ -670,7 +604,6 @@ fn parent_coord(coord: IVec3) -> IVec3 {
     )
 }
 
-// refinement-empty-is-evidence-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum LeafRefinementOutcome {
     Refined,
@@ -1003,16 +936,13 @@ struct CelestialClipmapRegistry {
     next_generation: u64,
     plans: HashMap<Entity, CelestialClipmapPlan>,
     planner_caches: HashMap<Entity, CelestialClipmapSurfaceCache>,
-    // runtime-pooling-transform-avian-megapass-v1
     // Stable presentation shells + async tickets live in this reconstructible
     // registry. They are runtime bookkeeping, not semantic ECS entities.
     active_entities:
         HashMap<(Entity, u64, CelestialClipmapBlockSpec), Entity>,
-    pooled_entities: Vec<Entity>,
     plan_tasks: Vec<CelestialClipmapPlanBuildTask>,
     build_tasks: Vec<CelestialClipmapBuildTask>,
 
-    // main-thread-presentation-ui-megapass-v1
     projection_epoch: u64,
     frontier_epoch: u64,
     projection_pending: Vec<Entity>,
@@ -1057,8 +987,6 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     fresh_plan_accepts_total: u64,
     rolling_plan_accepts_total: u64,
     stale_plan_drops_total: u64,
-    mesh_integrity_dropped_triangles_total: u64,
-    mesh_integrity_transition_fallbacks_total: u64,
 }
 
 impl CelestialClipmapTelemetry {
@@ -1147,24 +1075,10 @@ impl CelestialClipmapTelemetry {
         self.committed_focus_lag_metres = lag_metres;
     }
 
-    fn record_mesh_integrity(
-        &mut self,
-        dropped_triangles: usize,
-        transition_fallback: bool,
-    ) {
-        self.mesh_integrity_dropped_triangles_total =
-            self.mesh_integrity_dropped_triangles_total
-                .saturating_add(dropped_triangles as u64);
-        if transition_fallback {
-            self.mesh_integrity_transition_fallbacks_total =
-                self.mesh_integrity_transition_fallbacks_total
-                    .saturating_add(1);
-        }
-    }
 
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} binary_primary={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={} mesh_drop={} transition_fallback={}",
+            "plans={} cold={} warm={} visible={} binary_primary={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -1192,8 +1106,6 @@ impl CelestialClipmapTelemetry {
             self.fresh_plan_accepts_total,
             self.rolling_plan_accepts_total,
             self.stale_plan_drops_total,
-            self.mesh_integrity_dropped_triangles_total,
-            self.mesh_integrity_transition_fallbacks_total,
         )
     }
 }
@@ -1219,6 +1131,17 @@ struct CelestialClipmapBuildTask {
     build_id: u64,
 }
 
+#[derive(Clone, Copy)]
+struct PendingGpuAdmission {
+    authority: Entity,
+    generation: u64,
+    policy_revision: u64,
+    spec: CelestialClipmapBlockSpec,
+    field: CelestialVoxelField,
+    relative_level: i16,
+    descriptor: super::gpu::GpuTerrainDescriptor,
+}
+
 struct CelestialClipmapPlanBuildTask {
     authority: Entity,
     input: CelestialClipmapPlanInput,
@@ -1230,31 +1153,6 @@ struct CelestialClipmapPlanBuildTask {
 struct CelestialClipmapPlanBuildOutput {
     stages: Option<Vec<Vec<CelestialClipmapBlockSpec>>>,
     surface_cache: CelestialClipmapSurfaceCache,
-}
-
-#[derive(Debug)]
-struct CelestialClipmapMeshData {
-    positions: Vec<[f32; 3]>,
-    normals: Vec<[f32; 3]>,
-    uvs: Vec<[f32; 2]>,
-    tangents: Vec<[f32; 4]>,
-    indices: Vec<u32>,
-    integrity_dropped_triangles: usize,
-    integrity_transition_fallback: bool,
-}
-
-impl CelestialClipmapMeshData {
-    fn into_mesh(self) -> Mesh {
-        Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::default(),
-        )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uvs)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, self.tangents)
-        .with_inserted_indices(Indices::U32(self.indices))
-    }
 }
 
 /// Presentation-only local coverage committed by the clipmap.
@@ -1294,7 +1192,6 @@ impl CelestialClipmapCoverageCell {
     }
 }
 
-// scale-is-not-lod-authority-handoff-v1
 /// Frame-local celestial presentation ownership.
 ///
 /// Dense Surface-Nets terrain is a physical/editable Scale-local working
@@ -1760,7 +1657,6 @@ struct CelestialClipmapPlanInput {
 
 /// Cheap clipmap identity derivation.
 ///
-/// body-owned-whole-body-root-v1
 /// Whole-body topology is semantic-body-owned. Observer position is stored only
 /// as a refinement anchor and cannot change the coarsest body representation.
 fn derive_plan_input(
@@ -1775,8 +1671,6 @@ fn derive_plan_input(
         return None;
     }
 
-    // boundary-focused-binary-refinement-v1
-    // volumetric-observer-surface-anchor-split-v1
     //
     // Keep TWO facts:
     // - actual observer_local owns 3D LOD/error/motion distance;
@@ -1790,7 +1684,6 @@ fn derive_plan_input(
         return None;
     }
 
-    // presentation-resolution-independent-screen-error-v1
     //
     // Interaction Scale does not participate. Presentation quality is a
     // physical/screen-space problem.
@@ -1881,7 +1774,6 @@ fn plan_requires_refresh(
     let fine_extent =
         input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
 
-    // rolling-focus-latency-v2
     //
     // Validity radius says how much already-built terrain remains useful; it is
     // not permission for the finest focus to wander across most of that region.
@@ -1896,7 +1788,6 @@ fn should_schedule_plan_refresh(
     input: CelestialClipmapPlanInput,
     field: CelestialVoxelField,
 ) -> bool {
-    // moving-focus-maintenance-is-foreground-v1
     //
     // Never finish obsolete deep refinement before allowing the moving focus to
     // replan. The previous committed frontier remains visible until the newer
@@ -1904,7 +1795,6 @@ fn should_schedule_plan_refresh(
     plan_requires_refresh(plan, input, field)
 }
 
-// rolling-predictive-clipmap-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClipmapPlanTaskRelevance {
     Fresh,
@@ -2011,7 +1901,6 @@ fn initial_stage_for_plan(
         return Some(0);
     }
 
-    // quality-preserving-warm-stage-v1
     //
     // Preserve whatever local quality is already visible at the new focus. Do
     // not regress to roots, but also do not wait for the entire final frontier
@@ -2522,1082 +2411,6 @@ fn build_plan(
     result
 }
 
-fn transvoxel_sides(faces: VoxelTransitionFaces) -> TransitionSides {
-    let mut sides = TransitionSide::none();
-
-    if faces.contains(VoxelTransitionFace::LowX) {
-        sides |= TransitionSide::LowX;
-    }
-    if faces.contains(VoxelTransitionFace::HighX) {
-        sides |= TransitionSide::HighX;
-    }
-    if faces.contains(VoxelTransitionFace::LowY) {
-        sides |= TransitionSide::LowY;
-    }
-    if faces.contains(VoxelTransitionFace::HighY) {
-        sides |= TransitionSide::HighY;
-    }
-    if faces.contains(VoxelTransitionFace::LowZ) {
-        sides |= TransitionSide::LowZ;
-    }
-    if faces.contains(VoxelTransitionFace::HighZ) {
-        sides |= TransitionSide::HighZ;
-    }
-
-    sides
-}
-
-fn build_tangent(normal: Vec3) -> [f32; 4] {
-    let axis = normal.abs();
-    let tangent_axis = if axis.y < 0.9 { Vec3::Y } else { Vec3::X };
-    let tangent =
-        (tangent_axis - normal * normal.dot(tangent_axis))
-            .normalize_or_zero();
-    [tangent.x, tangent.y, tangent.z, 1.0]
-}
-
-// presentation-resolution-orders-of-magnitude-v1
-// central-lattice-cache-megapass-v1
-//
-// A binary clipmap block always samples exactly the same 9^3 canonical lattice
-// for a stable CelestialVoxelField. Cache that complete reconstructible base
-// lattice as one unit. 4096 resident blocks cost ~11.4 MiB of raw f32 payload
-// per active celestial authority, before modest HashMap/Arc overhead.
-const CLIPMAP_CENTRAL_SIDE: usize = BLOCK_SUBDIVISIONS + 1;
-const CLIPMAP_CENTRAL_SAMPLE_COUNT: usize =
-    CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE;
-const CENTRAL_LATTICE_CACHE_BLOCKS: usize = 4_096;
-
-const SHARED_SAMPLE_CACHE_SLOTS: usize = 32_768;
-
-struct SharedPresentationSampleSlot {
-    version: AtomicU64,
-    key_x: AtomicU64,
-    key_y: AtomicU64,
-    key_z: AtomicU64,
-    value_bits: AtomicU32,
-}
-
-impl SharedPresentationSampleSlot {
-    fn new() -> Self {
-        Self {
-            version: AtomicU64::new(0),
-            key_x: AtomicU64::new(0),
-            key_y: AtomicU64::new(0),
-            key_z: AtomicU64::new(0),
-            value_bits: AtomicU32::new(0),
-        }
-    }
-}
-
-struct CentralPresentationLatticeCache {
-    blocks: HashMap<
-        CelestialClipmapBlockKey,
-        Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
-    >,
-    fifo: VecDeque<CelestialClipmapBlockKey>,
-    hits: u64,
-    misses: u64,
-    evictions: u64,
-}
-
-impl Default for CentralPresentationLatticeCache {
-    fn default() -> Self {
-        Self {
-            blocks: HashMap::with_capacity(CENTRAL_LATTICE_CACHE_BLOCKS),
-            fifo: VecDeque::with_capacity(CENTRAL_LATTICE_CACHE_BLOCKS),
-            hits: 0,
-            misses: 0,
-            evictions: 0,
-        }
-    }
-}
-
-struct CelestialPresentationSampleCache {
-    field: CelestialVoxelField,
-    slots: Box<[SharedPresentationSampleSlot]>,
-
-    // This is BASE-FIELD cache only. VoxelAuthority edits are semantic overlay
-    // state and must never be baked into this reconstructible cache. The current
-    // binary presentation path deliberately declines edited authorities; when
-    // edit-aware binary presentation lands, edits must apply after this lookup.
-    central_lattices: Mutex<CentralPresentationLatticeCache>,
-}
-
-impl CelestialPresentationSampleCache {
-    fn new(field: CelestialVoxelField) -> Self {
-        debug_assert!(SHARED_SAMPLE_CACHE_SLOTS.is_power_of_two());
-        let slots = (0..SHARED_SAMPLE_CACHE_SLOTS)
-            .map(|_| SharedPresentationSampleSlot::new())
-            .collect::<Vec<_>>()
-            .into_boxed_slice();
-        Self {
-            field,
-            slots,
-            central_lattices:
-                Mutex::new(CentralPresentationLatticeCache::default()),
-        }
-    }
-
-    fn central_lattice_get_or_compute(
-        &self,
-        key: CelestialClipmapBlockKey,
-        compute: impl FnOnce() -> [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT],
-    ) -> Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]> {
-        {
-            let _lookup_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.generate_density_lattice.cache_lookup"
-            )
-            .entered();
-
-            let mut cache = match self.central_lattices.lock() {
-                Ok(cache) => cache,
-                Err(poisoned) => poisoned.into_inner(),
-            };
-            if let Some(hit) = cache.blocks.get(&key).cloned() {
-                cache.hits = cache.hits.saturating_add(1);
-
-                let _hit_span = bevy::log::info_span!(
-                    "voxel.worker.presentation_resolution.generate_density_lattice.cache_hit"
-                )
-                .entered();
-                return hit;
-            }
-        }
-
-        // Compute outside the lock. This is the expensive FIRST-TOUCH terrain
-        // generation kernel we actually care about profiling.
-        let computed = {
-            let _generate_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.generate_density_lattice.first_touch_generate"
-            )
-            .entered();
-            Arc::new(compute())
-        };
-
-        let _publish_span = bevy::log::info_span!(
-            "voxel.worker.presentation_resolution.generate_density_lattice.cache_publish"
-        )
-        .entered();
-
-        let mut cache = match self.central_lattices.lock() {
-            Ok(cache) => cache,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        if let Some(hit) = cache.blocks.get(&key).cloned() {
-            cache.hits = cache.hits.saturating_add(1);
-            return hit;
-        }
-
-        cache.misses = cache.misses.saturating_add(1);
-        while cache.blocks.len() >= CENTRAL_LATTICE_CACHE_BLOCKS {
-            let Some(oldest) = cache.fifo.pop_front() else {
-                break;
-            };
-            if cache.blocks.remove(&oldest).is_some() {
-                cache.evictions = cache.evictions.saturating_add(1);
-                break;
-            }
-        }
-        cache.blocks.insert(key, computed.clone());
-        cache.fifo.push_back(key);
-        computed
-    }
-
-    fn central_lattice_stats(&self) -> (u64, u64, u64, usize) {
-        let cache = match self.central_lattices.lock() {
-            Ok(cache) => cache,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        (
-            cache.hits,
-            cache.misses,
-            cache.evictions,
-            cache.blocks.len(),
-        )
-    }
-
-    #[inline]
-    fn key(point: DVec3) -> [u64; 3] {
-        [point.x.to_bits(), point.y.to_bits(), point.z.to_bits()]
-    }
-
-    #[inline]
-    fn hash(key: [u64; 3]) -> u64 {
-        fn mix(mut value: u64) -> u64 {
-            value ^= value >> 30;
-            value = value.wrapping_mul(0xBF58_476D_1CE4_E5B9);
-            value ^= value >> 27;
-            value = value.wrapping_mul(0x94D0_49BB_1331_11EB);
-            value ^ (value >> 31)
-        }
-        mix(key[0])
-            ^ mix(key[1].rotate_left(21))
-            ^ mix(key[2].rotate_left(42))
-    }
-
-    #[inline]
-    fn get_or_compute(
-        &self,
-        point: DVec3,
-        compute: impl FnOnce() -> f32,
-    ) -> f32 {
-        let key = Self::key(point);
-        let hash = Self::hash(key);
-        let slot = &self.slots[
-            (hash as usize) & (SHARED_SAMPLE_CACHE_SLOTS - 1)
-        ];
-
-        let before = slot.version.load(Ordering::Acquire);
-        if before & 1 == 0 {
-            let key_x = slot.key_x.load(Ordering::Relaxed);
-            let key_y = slot.key_y.load(Ordering::Relaxed);
-            let key_z = slot.key_z.load(Ordering::Relaxed);
-            let value_bits = slot.value_bits.load(Ordering::Relaxed);
-            let after = slot.version.load(Ordering::Acquire);
-            if before == after
-                && after & 1 == 0
-                && [key_x, key_y, key_z] == key
-            {
-                return f32::from_bits(value_bits);
-            }
-        }
-
-        let value = compute();
-
-        // One opportunistic seqlock write. Losing a race simply means this
-        // caller returns its exact computed value without caching it.
-        let observed = slot.version.load(Ordering::Acquire);
-        if observed & 1 == 0
-            && slot
-                .version
-                .compare_exchange(
-                    observed,
-                    observed.wrapping_add(1),
-                    Ordering::AcqRel,
-                    Ordering::Acquire,
-                )
-                .is_ok()
-        {
-            slot.key_x.store(key[0], Ordering::Relaxed);
-            slot.key_y.store(key[1], Ordering::Relaxed);
-            slot.key_z.store(key[2], Ordering::Relaxed);
-            slot.value_bits.store(value.to_bits(), Ordering::Relaxed);
-            slot.version.store(
-                observed.wrapping_add(2) & !1,
-                Ordering::Release,
-            );
-        }
-
-        value
-    }
-}
-
-// presentation-central-cache-specialization-v1
-//
-// Transvoxel's VoxelVecBlock eagerly evaluates 6*(N+1)^2 extension samples
-// solely so finite-difference normals are available if surface vertices touch a
-// block boundary. Most of those 486 samples are never read. Cache the 729
-// interior samples up front and relay extension reads lazily through the exact
-// shared field/sample cache.
-
-struct ClipmapCentralBlock<'a> {
-    block: Block<f32>,
-    interior: Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
-    extension_field: &'a dyn DataField<f32, f32>,
-}
-
-impl<'a> ClipmapCentralBlock<'a> {
-    // central-cache-kernel-megapass-v1
-    // central-lattice-cache-megapass-v1
-    //
-    // Strict interior samples are unique to this block and therefore bypass the
-    // cross-block atomic point cache. Boundary samples are shared by adjacent
-    // dyadic blocks, so only those use the exact shared point cache. A whole
-    // 9^3 lattice hit bypasses both paths entirely.
-    #[inline]
-    fn fill<F, S>(
-        direct_field: &F,
-        shared_field: &S,
-        block: Block<f32>,
-    ) -> [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]
-    where
-        F: DataField<f32, f32>,
-        S: DataField<f32, f32>,
-    {
-        debug_assert_eq!(block.subdivisions, BLOCK_SUBDIVISIONS);
-        let mut interior = [0.0_f32; CLIPMAP_CENTRAL_SAMPLE_COUNT];
-        let step = block.size / block.subdivisions as f32;
-        let mut cursor = 0usize;
-
-        for x in 0..=BLOCK_SUBDIVISIONS {
-            let px = block.base[0] + x as f32 * step;
-            for y in 0..=BLOCK_SUBDIVISIONS {
-                let py = block.base[1] + y as f32 * step;
-                for z in 0..=BLOCK_SUBDIVISIONS {
-                    let pz = block.base[2] + z as f32 * step;
-                    let boundary = x == 0
-                        || x == BLOCK_SUBDIVISIONS
-                        || y == 0
-                        || y == BLOCK_SUBDIVISIONS
-                        || z == 0
-                        || z == BLOCK_SUBDIVISIONS;
-                    interior[cursor] = if boundary {
-                        shared_field.get_data(px, py, pz)
-                    } else {
-                        direct_field.get_data(px, py, pz)
-                    };
-                    cursor += 1;
-                }
-            }
-        }
-
-        interior
-    }
-
-    #[inline]
-    fn from_lattice<S>(
-        extension_field: &'a S,
-        block: Block<f32>,
-        interior: Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]>,
-    ) -> Self
-    where
-        S: DataField<f32, f32> + 'a,
-    {
-        Self {
-            block,
-            interior,
-            extension_field,
-        }
-    }
-
-    #[inline]
-    fn interior_index_xyz(&self, x: usize, y: usize, z: usize) -> usize {
-        CLIPMAP_CENTRAL_SIDE * CLIPMAP_CENTRAL_SIDE * x
-            + CLIPMAP_CENTRAL_SIDE * y
-            + z
-    }
-
-    #[inline]
-    fn interior_xyz(&self, x: usize, y: usize, z: usize) -> f32 {
-        self.interior[self.interior_index_xyz(x, y, z)]
-    }
-
-    #[inline]
-    fn interior_index(&self, index: VoxelIndex) -> usize {
-        self.interior_index_xyz(
-            index.x as usize,
-            index.y as usize,
-            index.z as usize,
-        )
-    }
-}
-
-impl VoxelBlock<f32, f32> for ClipmapCentralBlock<'_> {
-    fn block(&self) -> &Block<f32> {
-        &self.block
-    }
-
-    #[inline]
-    fn get(&self, index: VoxelIndex) -> f32 {
-        let subs = BLOCK_SUBDIVISIONS as isize;
-        if index.x >= 0
-            && index.x <= subs
-            && index.y >= 0
-            && index.y <= subs
-            && index.z >= 0
-            && index.z <= subs
-        {
-            return self.interior[self.interior_index(index)];
-        }
-
-        // Transvoxel uses one-outside samples only for finite-difference
-        // gradients at regular-grid boundary vertices. Linear one-sided
-        // extrapolation preserves all iso-surface/interpolation densities and
-        // removes expensive canonical SDF calls from that normal-only path.
-        let outside_x = index.x < 0 || index.x > subs;
-        let outside_y = index.y < 0 || index.y > subs;
-        let outside_z = index.z < 0 || index.z > subs;
-        if outside_x as usize
-            + outside_y as usize
-            + outside_z as usize
-            == 1
-        {
-            let x = index.x.clamp(0, subs) as usize;
-            let y = index.y.clamp(0, subs) as usize;
-            let z = index.z.clamp(0, subs) as usize;
-
-            if index.x < 0 {
-                return 2.0 * self.interior_xyz(0, y, z)
-                    - self.interior_xyz(1, y, z);
-            }
-            if index.x > subs {
-                return 2.0 * self.interior_xyz(BLOCK_SUBDIVISIONS, y, z)
-                    - self.interior_xyz(BLOCK_SUBDIVISIONS - 1, y, z);
-            }
-            if index.y < 0 {
-                return 2.0 * self.interior_xyz(x, 0, z)
-                    - self.interior_xyz(x, 1, z);
-            }
-            if index.y > subs {
-                return 2.0 * self.interior_xyz(x, BLOCK_SUBDIVISIONS, z)
-                    - self.interior_xyz(x, BLOCK_SUBDIVISIONS - 1, z);
-            }
-            if index.z < 0 {
-                return 2.0 * self.interior_xyz(x, y, 0)
-                    - self.interior_xyz(x, y, 1);
-            }
-            if index.z > subs {
-                return 2.0 * self.interior_xyz(x, y, BLOCK_SUBDIVISIONS)
-                    - self.interior_xyz(x, y, BLOCK_SUBDIVISIONS - 1);
-            }
-        }
-
-        // Defensive exact fallback for any future Transvoxel access pattern
-        // beyond the one-axis gradient-extension contract.
-        let position = self.block.original_voxel_position(index);
-        self.extension_field.get_data(position.x, position.y, position.z)
-    }
-}
-
-// planner-worker-hotpath-multimegapass-v1
-
-#[derive(Debug, Clone, Copy)]
-struct TransitionDensityMemoEntry {
-    key: [u32; 3],
-    value: f32,
-    occupied: bool,
-}
-
-impl TransitionDensityMemoEntry {
-    const EMPTY: Self = Self {
-        key: [0; 3],
-        value: 0.0,
-        occupied: false,
-    };
-}
-
-struct TransitionDensityMemo {
-    slots: Box<[Cell<TransitionDensityMemoEntry>]>,
-    hits: Cell<u32>,
-    misses: Cell<u32>,
-}
-
-impl TransitionDensityMemo {
-    fn new() -> Self {
-        let mut slots = Vec::with_capacity(TRANSITION_DENSITY_MEMO_SLOTS);
-        for _ in 0..TRANSITION_DENSITY_MEMO_SLOTS {
-            slots.push(Cell::new(TransitionDensityMemoEntry::EMPTY));
-        }
-        Self {
-            slots: slots.into_boxed_slice(),
-            hits: Cell::new(0),
-            misses: Cell::new(0),
-        }
-    }
-
-    #[inline]
-    fn slot_index(key: [u32; 3]) -> usize {
-        debug_assert!(TRANSITION_DENSITY_MEMO_SLOTS.is_power_of_two());
-        let mut hash = key[0].wrapping_mul(0x9E37_79B1);
-        hash ^= key[1].rotate_left(11).wrapping_mul(0x85EB_CA77);
-        hash ^= key[2].rotate_left(22).wrapping_mul(0xC2B2_AE3D);
-        hash ^= hash >> 16;
-        (hash as usize) & (TRANSITION_DENSITY_MEMO_SLOTS - 1)
-    }
-
-    #[inline]
-    fn get_or_compute(
-        &self,
-        key: [u32; 3],
-        compute: impl FnOnce() -> f32,
-    ) -> f32 {
-        let slot = &self.slots[Self::slot_index(key)];
-        let entry = slot.get();
-        if entry.occupied && entry.key == key {
-            self.hits.set(self.hits.get().saturating_add(1));
-            return entry.value;
-        }
-
-        self.misses.set(self.misses.get().saturating_add(1));
-        let value = compute();
-        slot.set(TransitionDensityMemoEntry {
-            key,
-            value,
-            occupied: true,
-        });
-        value
-    }
-
-    fn stats(&self) -> (u32, u32) {
-        (self.hits.get(), self.misses.get())
-    }
-}
-
-struct ClipmapMeshBuilder {
-    positions: Vec<f32>,
-    normals: Vec<f32>,
-    triangle_indices: Vec<usize>,
-    vertices: usize,
-}
-
-impl ClipmapMeshBuilder {
-    fn new() -> Self {
-        const EXPECTED_VERTICES: usize = 4_096;
-        const EXPECTED_TRIANGLES: usize = 8_192;
-        Self {
-            positions: Vec::with_capacity(EXPECTED_VERTICES * 3),
-            normals: Vec::with_capacity(EXPECTED_VERTICES * 3),
-            triangle_indices: Vec::with_capacity(EXPECTED_TRIANGLES * 3),
-            vertices: 0,
-        }
-    }
-
-    fn build(self) -> TransvoxelMesh<f32> {
-        TransvoxelMesh {
-            positions: self.positions,
-            normals: self.normals,
-            triangle_indices: self.triangle_indices,
-        }
-    }
-}
-
-impl MeshBuilder<f32, f32> for ClipmapMeshBuilder {
-    fn add_vertex_between(
-        &mut self,
-        point_a: GridPoint<f32, f32>,
-        point_b: GridPoint<f32, f32>,
-        interpolate_toward_b: f32,
-    ) -> VertexIndex {
-        let position = point_a
-            .position
-            .interpolate_toward(&point_b.position, interpolate_toward_b);
-        let gradient_x = point_a.gradient.0
-            + interpolate_toward_b * (point_b.gradient.0 - point_a.gradient.0);
-        let gradient_y = point_a.gradient.1
-            + interpolate_toward_b * (point_b.gradient.1 - point_a.gradient.1);
-        let gradient_z = point_a.gradient.2
-            + interpolate_toward_b * (point_b.gradient.2 - point_a.gradient.2);
-        let normal = f32::gradients_to_normal(
-            gradient_x,
-            gradient_y,
-            gradient_z,
-        );
-
-        self.positions.extend_from_slice(&[
-            position.x,
-            position.y,
-            position.z,
-        ]);
-        self.normals.extend_from_slice(&normal);
-        let index = self.vertices;
-        self.vertices += 1;
-        VertexIndex(index)
-    }
-
-    fn add_triangle(
-        &mut self,
-        vertex_1_index: VertexIndex,
-        vertex_2_index: VertexIndex,
-        vertex_3_index: VertexIndex,
-    ) {
-        self.triangle_indices.extend_from_slice(&[
-            vertex_1_index.0,
-            vertex_2_index.0,
-            vertex_3_index.0,
-        ]);
-    }
-}
-
-/// Extraction using one already-filled central cache plus exact high-resolution
-/// transition-neighbour relays.
-///
-/// The expensive central lattice is caller-owned so fallback topology extraction
-/// can reuse it instead of evaluating the canonical celestial field twice.
-fn extract_clipmap_transvoxel_mesh<F, B>(
-    transition_field: &F,
-    central: &B,
-    transition_sides: TransitionSides,
-) -> TransvoxelMesh<f32>
-where
-    F: DataField<f32, f32>,
-    B: VoxelBlock<f32, f32>,
-{
-    let block = *central.block();
-    let mut blocks: BlockStarView<
-        f32,
-        f32,
-        &B,
-        VoxelBlockRelayingToField<'_, f32, f32>,
-    > = BlockStarView::new_simple(central);
-
-    for side in transition_sides {
-        blocks = blocks.with_neighbour(
-            VoxelBlockRelayingToField {
-                field: transition_field,
-                block: block.high_res_neighbour_to(side),
-            },
-            side,
-        );
-    }
-
-    extract(&blocks, 0.0, ClipmapMeshBuilder::new()).build()
-}
-
-#[derive(Debug)]
-struct SanitizedClipmapMesh {
-    positions: Vec<[f32; 3]>,
-    normals: Vec<[f32; 3]>,
-    indices: Vec<u32>,
-    dropped_triangles: usize,
-}
-
-/// Quarantine pathological geometry before it can affect Bevy bounds/GPU draw.
-///
-/// Regular Marching Cubes and Transvoxel transition triangles are cell-local.
-/// We intentionally allow a very generous four-cell edge length. A triangle
-/// longer than that is not useful terrain detail; it is almost certainly a
-/// sampling/index/interpolation pathology.
-fn sanitize_clipmap_mesh(
-    mesh: TransvoxelMesh<f32>,
-    extent: f32,
-    spacing: f32,
-) -> Option<SanitizedClipmapMesh> {
-    if mesh.positions.len() % 3 != 0
-        || mesh.normals.len() % 3 != 0
-        || mesh.positions.len() != mesh.normals.len()
-    {
-        return None;
-    }
-
-    // sanitize-without-full-vertex-copy-v1
-    let vertex_count = mesh.positions.len() / 3;
-    if vertex_count == 0 || mesh.triangle_indices.is_empty() {
-        return None;
-    }
-
-    let position_at = |index: usize| {
-        let offset = index * 3;
-        Vec3::new(
-            mesh.positions[offset],
-            mesh.positions[offset + 1],
-            mesh.positions[offset + 2],
-        )
-    };
-    let normal_at = |index: usize| {
-        let offset = index * 3;
-        Vec3::new(
-            mesh.normals[offset],
-            mesh.normals[offset + 1],
-            mesh.normals[offset + 2],
-        )
-    };
-
-    let tolerance =
-        spacing * CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS
-            + extent.abs() * f32::EPSILON * 32.0;
-    let low = -tolerance;
-    let high = extent + tolerance;
-    let maximum_edge =
-        spacing * MAX_CLIPMAP_TRIANGLE_EDGE_CELLS + tolerance;
-    let maximum_edge_squared = maximum_edge * maximum_edge;
-
-    let mut referenced = vec![None::<u32>; vertex_count];
-    let mut compact_positions = Vec::<[f32; 3]>::new();
-    let mut compact_normals = Vec::<[f32; 3]>::new();
-    let mut compact_indices = Vec::<u32>::with_capacity(
-        mesh.triangle_indices.len(),
-    );
-    let mut dropped_triangles = 0usize;
-
-    for triangle in mesh.triangle_indices.chunks_exact(3) {
-        let [a, b, c] = [triangle[0], triangle[1], triangle[2]];
-        if a >= vertex_count
-            || b >= vertex_count
-            || c >= vertex_count
-            || a == b
-            || b == c
-            || c == a
-        {
-            dropped_triangles = dropped_triangles.saturating_add(1);
-            continue;
-        }
-
-        let pa = position_at(a);
-        let pb = position_at(b);
-        let pc = position_at(c);
-
-        let in_bounds = |p: Vec3| {
-            p.is_finite()
-                && p.x >= low
-                && p.y >= low
-                && p.z >= low
-                && p.x <= high
-                && p.y <= high
-                && p.z <= high
-        };
-        if !in_bounds(pa) || !in_bounds(pb) || !in_bounds(pc) {
-            dropped_triangles = dropped_triangles.saturating_add(1);
-            continue;
-        }
-
-        let ab = pa.distance_squared(pb);
-        let bc = pb.distance_squared(pc);
-        let ca = pc.distance_squared(pa);
-        if !ab.is_finite()
-            || !bc.is_finite()
-            || !ca.is_finite()
-            || ab > maximum_edge_squared
-            || bc > maximum_edge_squared
-            || ca > maximum_edge_squared
-        {
-            dropped_triangles = dropped_triangles.saturating_add(1);
-            continue;
-        }
-
-        let face = (pb - pa).cross(pc - pa);
-        if !face.is_finite()
-            || face.length_squared()
-                <= (spacing * spacing * 1.0e-8).max(f32::MIN_POSITIVE)
-        {
-            dropped_triangles = dropped_triangles.saturating_add(1);
-            continue;
-        }
-
-        for source in [a, b, c] {
-            let mapped = match referenced[source] {
-                Some(mapped) => mapped,
-                None => {
-                    let mapped = u32::try_from(compact_positions.len()).ok()?;
-                    compact_positions.push(position_at(source).to_array());
-
-                    let normal = normal_at(source);
-                    let safe_normal = if normal.is_finite()
-                        && normal.length_squared() > 1.0e-12
-                    {
-                        normal.normalize()
-                    } else {
-                        face.normalize_or_zero()
-                    };
-                    compact_normals.push(safe_normal.to_array());
-                    referenced[source] = Some(mapped);
-                    mapped
-                }
-            };
-            compact_indices.push(mapped);
-        }
-    }
-
-    if compact_indices.is_empty() {
-        return None;
-    }
-
-    Some(SanitizedClipmapMesh {
-        positions: compact_positions,
-        normals: compact_normals,
-        indices: compact_indices,
-        dropped_triangles,
-    })
-}
-
-fn build_clipmap_mesh(
-    field: CelestialVoxelField,
-    spec: CelestialClipmapBlockSpec,
-    boundary_proven: bool,
-    sample_cache: Arc<CelestialPresentationSampleCache>,
-) -> Option<CelestialClipmapMeshData> {
-    let origin = spec.key.origin_local_metres();
-    let extent = spec.key.extent_metres();
-    let spacing = spec.key.spacing_metres();
-    if !origin.is_finite()
-        || !extent.is_finite()
-        || extent <= 0.0
-        || extent > f64::from(f32::MAX)
-        || !spacing.is_finite()
-        || spacing <= 0.0
-    {
-        return None;
-    }
-
-    if !boundary_proven {
-        let _span = bevy::log::info_span!(
-            "voxel.worker.presentation_resolution.preclassify"
-        )
-        .entered();
-        if !block_intersects_refinement_boundary(field, spec.key) {
-            return None;
-        }
-    }
-
-    let sampler = field.presentation_sampler(spacing)?;
-
-    // Central-cache extension voxels reach exactly one coarse spacing outside
-    // the block. Prove cave absence over that entire inflated domain before
-    // replacing full SDF samples with the mathematically identical outer SDF.
-    let central_center =
-        origin + DVec3::splat(extent * 0.5);
-    let central_half_extent =
-        DVec3::splat(extent * 0.5 + spacing);
-    let central_may_contain_caves =
-        field.presentation_caves_may_intersect_aabb(
-            central_center,
-            central_half_extent,
-        );
-
-    // central-lattice-inline-closure-repair-v1
-    let evaluate_density =
-        |point: DVec3, include_caves: bool| -> f32 {
-            let signed_distance = if include_caves {
-                sampler.signed_distance_local_metres(point)
-            } else {
-                sampler.outer_signed_distance_local_metres(point)
-            };
-
-            signed_distance
-                .map(|volumetric_sdf| -volumetric_sdf)
-                .filter(|density| density.is_finite())
-                .map(|density| {
-                    density.clamp(
-                        -f64::from(f32::MAX),
-                        f64::from(f32::MAX),
-                    ) as f32
-                })
-                .unwrap_or(-1.0)
-        };
-
-    let sample_density = |point: DVec3, include_caves: bool| -> f32 {
-        sample_cache.get_or_compute(
-            point,
-            || evaluate_density(point, include_caves),
-        )
-    };
-
-    // Strict interior samples cannot be shared with another same-resolution
-    // block. Skip the atomic point-cache lookup entirely for them.
-    let central_direct_density = |x: f32, y: f32, z: f32| -> f32 {
-        let point = origin + DVec3::new(
-            f64::from(x),
-            f64::from(y),
-            f64::from(z),
-        );
-        evaluate_density(point, central_may_contain_caves)
-    };
-
-    // Boundary samples *are* shared across neighboring dyadic blocks.
-    let central_shared_density = |x: f32, y: f32, z: f32| -> f32 {
-        let point = origin + DVec3::new(
-            f64::from(x),
-            f64::from(y),
-            f64::from(z),
-        );
-        sample_density(point, central_may_contain_caves)
-    };
-
-    // Transition neighbours live in adjacent full-size blocks, outside the
-    // central cave-free proof. They always query the complete canonical field.
-    let full_density = |x: f32, y: f32, z: f32| -> f32 {
-        let point = origin + DVec3::new(
-            f64::from(x),
-            f64::from(y),
-            f64::from(z),
-        );
-        sample_density(point, true)
-    };
-
-    let transition_memo = (!spec.transition_faces.is_empty())
-        .then(TransitionDensityMemo::new);
-    let transition_density = |x: f32, y: f32, z: f32| -> f32 {
-        let Some(memo) = transition_memo.as_ref() else {
-            return full_density(x, y, z);
-        };
-        let key = [x.to_bits(), y.to_bits(), z.to_bits()];
-        memo.get_or_compute(key, || full_density(x, y, z))
-    };
-
-    let extent_f32 = extent as f32;
-    let spacing_f32 = spacing as f32;
-    if !spacing_f32.is_finite() || spacing_f32 <= 0.0 {
-        return None;
-    }
-
-    let block = Block::new(
-        [0.0_f32, 0.0_f32, 0.0_f32],
-        extent_f32,
-        BLOCK_SUBDIVISIONS,
-    );
-    let transition_sides = transvoxel_sides(spec.transition_faces);
-
-    let (central, transition_mesh) = {
-        let _span = bevy::log::info_span!(
-            "voxel.worker.presentation_resolution.extract"
-        )
-        .entered();
-
-        let central = {
-            // density-lattice-diagnostic-instrumentation-v1
-            // This span is the actual canonical density-lattice generator,
-            // not merely a cache lookup. Name it accordingly.
-            let _cache_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.generate_density_lattice"
-            )
-            .entered();
-
-            // first-touch-profiler-decontamination-v2
-            let interior =
-                sample_cache.central_lattice_get_or_compute(
-                    spec.key,
-                    || {
-                        ClipmapCentralBlock::fill(
-                            &central_direct_density,
-                            &central_shared_density,
-                            block,
-                        )
-                    },
-                );
-
-            ClipmapCentralBlock::from_lattice(
-                &central_shared_density,
-                block,
-                interior,
-            )
-        };
-
-        let transition_mesh = {
-            let _mesh_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.extract.transvoxel"
-            )
-            .entered();
-            extract_clipmap_transvoxel_mesh(
-                &transition_density,
-                &central,
-                transition_sides,
-            )
-        };
-
-        (central, transition_mesh)
-    };
-
-    let (sanitized, transition_fallback) = {
-        let _span = bevy::log::info_span!(
-            "voxel.worker.presentation_resolution.sanitize"
-        )
-        .entered();
-        if let Some(sanitized) = sanitize_clipmap_mesh(
-            transition_mesh,
-            extent_f32,
-            spacing_f32,
-        ) {
-            (sanitized, false)
-        } else if !spec.transition_faces.is_empty() {
-            let regular_mesh = {
-                let _fallback_span = bevy::log::info_span!(
-                    "voxel.worker.presentation_resolution.fallback_extract"
-                )
-                .entered();
-                // Reuse the expensive already-filled central field.
-                extract_clipmap_transvoxel_mesh(
-                    &transition_density,
-                    &central,
-                    TransitionSide::none(),
-                )
-            };
-            (
-                sanitize_clipmap_mesh(
-                    regular_mesh,
-                    extent_f32,
-                    spacing_f32,
-                )?,
-                true,
-            )
-        } else {
-            return None;
-        }
-    };
-
-    if let Some(memo) = transition_memo.as_ref() {
-        let (hits, misses) = memo.stats();
-        trace!(
-            hits,
-            misses,
-            "binary clipmap transition-density memo stats"
-        );
-    }
-
-    let (semantic_corner_hits, semantic_corner_misses) =
-        sampler.semantic_noise_cache_stats();
-    // fine-residual-native-cell-megapass-v1
-    let (semantic_cell_hits, semantic_cell_misses) =
-        sampler.semantic_noise_cell_cache_stats();
-    let (
-        central_lattice_hits,
-        central_lattice_misses,
-        central_lattice_evictions,
-        central_lattice_resident,
-    ) = sample_cache.central_lattice_stats();
-    trace!(
-        central_may_contain_caves,
-        semantic_corner_hits,
-        semantic_corner_misses,
-        semantic_cell_hits,
-        semantic_cell_misses,
-        central_lattice_hits,
-        central_lattice_misses,
-        central_lattice_evictions,
-        central_lattice_resident,
-        "binary clipmap central-field specialization stats"
-    );
-
-    let _span = bevy::log::info_span!(
-        "voxel.worker.presentation_resolution.finalize"
-    )
-    .entered();
-
-    let positions = sanitized.positions;
-    let normals = sanitized.normals;
-    let indices = sanitized.indices;
-    let integrity_dropped_triangles = sanitized.dropped_triangles;
-
-    let uvs = positions
-        .iter()
-        .map(|p| {
-            [
-                ((origin.x + f64::from(p[0])) * 0.5) as f32,
-                ((origin.z + f64::from(p[2])) * 0.5) as f32,
-            ]
-        })
-        .collect::<Vec<_>>();
-    let tangents = normals
-        .iter()
-        .map(|normal| build_tangent(Vec3::from_array(*normal)))
-        .collect::<Vec<_>>();
-
-    Some(CelestialClipmapMeshData {
-        positions,
-        normals,
-        uvs,
-        tangents,
-        indices,
-        integrity_dropped_triangles,
-        integrity_transition_fallback: transition_fallback,
-    })
-}
-
-fn replace_clipmap_mesh_in_place(
-    commands: &mut Commands,
-    entity: Entity,
-    mesh3d: &Mesh3d,
-    replacement: Mesh,
-    meshes: &mut Assets<Mesh>,
-) {
-    if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
-        *existing = replacement;
-    } else {
-        commands
-            .entity(entity)
-            .insert(Mesh3d(meshes.add(replacement)));
-    }
-}
-
 fn park_clipmap_entity(
     commands: &mut Commands,
     entity: Entity,
@@ -3621,8 +2434,6 @@ fn park_clipmap_entity(
     block.material_relative_level = i16::MIN;
     *visibility = Visibility::Hidden;
 
-    // gpu-terrain-memory-pressure-repair-v1
-    // gpu-terrain-frontier-stability-v1
     //
     // GPU-native clipmap shells own substantial persistent MeshAllocator
     // ranges. Retaining retired shells kept those ranges alive and allowed the
@@ -3636,17 +2447,62 @@ fn park_clipmap_entity(
     }
 }
 
-fn coverage_for_specs(
-    specs: &[CelestialClipmapBlockSpec],
-) -> Vec<CelestialClipmapCoverageCell> {
-    specs
-        .iter()
-        .map(|spec| CelestialClipmapCoverageCell {
-            center_local_metres: spec.key.center_local_metres(),
-            half_extent_metres: spec.key.half_extent_metres(),
-            sample_spacing_metres: spec.key.spacing_metres(),
-        })
-        .collect()
+
+fn spawn_gpu_clipmap_entity(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    admission: PendingGpuAdmission,
+    presentation_material: Handle<VoxelRenderMaterial>,
+    build_id: u64,
+) -> Entity {
+    let extent = admission.spec.key.extent_metres() as f32;
+    let transition_face_count =
+        admission.spec.transition_faces.bits().count_ones();
+
+    assert!(
+        extent.is_finite() && extent > 0.0,
+        "GPU clipmap extent must be finite and positive"
+    );
+    assert!(
+        transition_face_count <= 6,
+        "GPU clipmap transitions must describe at most six faces"
+    );
+
+    let bounds = Aabb::from_min_max(
+        Vec3::ZERO,
+        Vec3::splat(extent),
+    );
+    let mesh = meshes.add(allocation_mesh(transition_face_count));
+
+    commands
+        .spawn((
+            Name::new("Celestial Binary Clipmap"),
+            CelestialClipmapBlock {
+                authority: admission.authority,
+                policy_revision: admission.policy_revision,
+                spec: admission.spec,
+                active: true,
+                committed: false,
+                projection_ready: false,
+                material_relative_level: admission.relative_level,
+            },
+            UsfPresentationProjectionOf(admission.authority),
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(presentation_material),
+            bounds,
+            NoAutoAabb,
+            GpuTerrainBlock::new(
+                mesh,
+                build_id,
+                admission.descriptor,
+            ),
+            Transform::IDENTITY,
+            RenderLayers::layer(USF_PRESENTATION_LAYER),
+            NotShadowCaster,
+            NotShadowReceiver,
+            Visibility::Hidden,
+        ))
+        .id()
 }
 
 fn sync_celestial_clipmap_realizations(
@@ -3668,9 +2524,6 @@ fn sync_celestial_clipmap_realizations(
     mut blocks: Query<(
         Entity,
         &mut CelestialClipmapBlock,
-        &Mesh3d,
-        &mut MeshMaterial3d<VoxelRenderMaterial>,
-        &mut Transform,
         &mut Visibility,
     )>,
     mut registry: ResMut<CelestialClipmapRegistry>,
@@ -3717,7 +2570,6 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             };
 
-            // rolling-predictive-clipmap-v1
             //
             // Aim reconstructible presentation work where the observer is
             // expected to be when planning+mesh work drains, not at the point
@@ -4001,7 +2853,7 @@ fn sync_celestial_clipmap_realizations(
             })
             .collect::<Vec<_>>();
         for entity in dead_entities {
-            if let Ok((_, mut block, _, _, _, mut visibility)) =
+            if let Ok((_, mut block, mut visibility)) =
                 blocks.get_mut(entity)
             {
                 park_clipmap_entity(
@@ -4034,7 +2886,6 @@ fn sync_celestial_clipmap_realizations(
     // becomes active and incrementally updated by worker results.
 
 
-    // gpu-binary-presentation-production-v1
     //
     // CPU planning decides which semantic blocks are required. Binary density,
     // Transvoxel extraction and terrain-buffer writes are GPU-owned.
@@ -4073,7 +2924,7 @@ fn sync_celestial_clipmap_realizations(
                 });
 
             if !valid {
-                if let Ok((_, mut block, _, _, _, mut visibility)) =
+                if let Ok((_, mut block, mut visibility)) =
                     blocks.get_mut(build.entity)
                 {
                     commands
@@ -4113,17 +2964,6 @@ fn sync_celestial_clipmap_realizations(
         }
 
         registry.build_tasks = pending_builds;
-    }
-
-    #[derive(Clone, Copy)]
-    struct PendingGpuAdmission {
-        authority: Entity,
-        generation: u64,
-        policy_revision: u64,
-        spec: CelestialClipmapBlockSpec,
-        field: CelestialVoxelField,
-        relative_level: i16,
-        descriptor: super::gpu::GpuTerrainDescriptor,
     }
 
     let mut admissions = Vec::<PendingGpuAdmission>::new();
@@ -4266,97 +3106,13 @@ fn sync_celestial_clipmap_realizations(
         };
 
         let build_id = gpu_runtime.next_build_id();
-        let extent = admission.spec.key.extent_metres() as f32;
-        let bounds = Aabb::from_min_max(
-            Vec3::ZERO,
-            Vec3::splat(extent),
+        let entity = spawn_gpu_clipmap_entity(
+            &mut commands,
+            &mut meshes,
+            admission,
+            presentation_material,
+            build_id,
         );
-
-        let mut published_entity = None;
-        while let Some(entity) = registry.pooled_entities.pop() {
-            let Ok((
-                _,
-                mut block,
-                mesh3d,
-                mut material,
-                mut transform,
-                mut visibility,
-            )) = blocks.get_mut(entity)
-            else {
-                commands.entity(entity).despawn();
-                continue;
-            };
-
-            *block = CelestialClipmapBlock {
-                authority: admission.authority,
-                policy_revision: admission.policy_revision,
-                spec: admission.spec,
-                active: true,
-                committed: false,
-                projection_ready: false,
-                material_relative_level: admission.relative_level,
-            };
-            material.0 = presentation_material.clone();
-            *transform = Transform::IDENTITY;
-            *visibility = Visibility::Hidden;
-
-            commands.entity(entity).insert((
-                UsfPresentationProjectionOf(admission.authority),
-                bounds,
-                NoAutoAabb,
-                GpuTerrainBlock::new(
-                    mesh3d.0.clone(),
-                    build_id,
-                    admission.descriptor,
-                ),
-            ));
-            published_entity = Some(entity);
-            break;
-        }
-
-        let entity = match published_entity {
-            Some(entity) => entity,
-            None => {
-                // Allocation shell only. CPU does not author terrain density or
-                // topology; compute owns these persistent MeshAllocator ranges.
-                let mesh = meshes.add(allocation_mesh(
-                    admission
-                        .spec
-                        .transition_faces
-                        .bits()
-                        .count_ones(),
-                ));
-                commands
-                    .spawn((
-                        Name::new("Celestial Binary Clipmap"),
-                        CelestialClipmapBlock {
-                            authority: admission.authority,
-                            policy_revision: admission.policy_revision,
-                            spec: admission.spec,
-                            active: true,
-                            committed: false,
-                            projection_ready: false,
-                            material_relative_level: admission.relative_level,
-                        },
-                        UsfPresentationProjectionOf(admission.authority),
-                        Mesh3d(mesh.clone()),
-                        MeshMaterial3d(presentation_material),
-                        bounds,
-                        NoAutoAabb,
-                        GpuTerrainBlock::new(
-                            mesh,
-                            build_id,
-                            admission.descriptor,
-                        ),
-                        Transform::IDENTITY,
-                        RenderLayers::layer(USF_PRESENTATION_LAYER),
-                        NotShadowCaster,
-                        NotShadowReceiver,
-                        Visibility::Hidden,
-                    ))
-                    .id()
-            }
-        };
 
         let key = (
             admission.authority,
@@ -4397,7 +3153,6 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            // changed-mesh-projection-barrier-v1
             //
             // Already-committed unchanged specs are not a dependency of this
             // transaction. Only replacement/new meshful specs must prove that
@@ -4410,7 +3165,7 @@ fn sync_celestial_clipmap_realizations(
                     active_entities
                         .get(&(authority, plan.key.policy_revision, *spec))
                         .and_then(|entity| blocks.get(*entity).ok())
-                        .is_some_and(|(_, block, _, _, _, _)| {
+                        .is_some_and(|(_, block, _)| {
                             block.active && block.projection_ready
                         })
                 })
@@ -4431,7 +3186,7 @@ fn sync_celestial_clipmap_realizations(
                 if *block_authority != authority {
                     continue;
                 }
-                let Ok((_, mut block, _, _, _, _)) = blocks.get_mut(entity)
+                let Ok((_, mut block, _)) = blocks.get_mut(entity)
                 else {
                     continue;
                 };
@@ -4502,7 +3257,7 @@ fn sync_celestial_clipmap_realizations(
             registry.mark_frontier_changed();
         }
         for entity in retired_entities {
-            if let Ok((_, mut block, _, _, _, mut visibility)) =
+            if let Ok((_, mut block, mut visibility)) =
                 blocks.get_mut(entity)
             {
                 park_clipmap_entity(
@@ -4527,7 +3282,6 @@ fn binary_frontier_projection_complete(
 }
 
 #[derive(Debug, Clone, Copy)]
-// runtime-pooling-transform-compile-repair-v1
 struct ClipmapProjectedAuthorityFrame {
     relative_metres: DVec3,
     orientation: bevy::math::DQuat,
@@ -4668,7 +3422,6 @@ fn sync_celestial_clipmap_transforms(
     }
 
     let view_stamp = ClipmapViewProjectionStamp {
-        // clipmap-view-stamp-anchor-deref-repair-v1
         anchor: *view.anchor(),
         metre_to_view_f64,
         projection_eye: view.projection_eye_offset_metres(),
@@ -4704,7 +3457,6 @@ fn sync_celestial_clipmap_transforms(
         }
         scratch.next_authority_stamps.insert(authority, stamp);
     }
-    // clipmap-transform-local-borrow-repair-v2
     {
         let CelestialClipmapTransformScratch {
             authority_stamps,
@@ -5081,7 +3833,6 @@ fn sync_celestial_clipmap_transforms(
 /// fallback only. The interaction Scale chooses which physical dense cache is
 /// available; it does not choose visual LOD. Once a complete binary frontier
 /// owns the authority, all dense visual chunks yield together.
-// scale-is-not-lod-dense-fallback-v1
 fn enforce_dense_interaction_presentation(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
@@ -5253,86 +4004,6 @@ pub(super) fn configure(app: &mut App) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn central_block_boundary_normal_extension_is_one_sided_linear() {
-        struct LinearField;
-        impl DataField<f32, f32> for LinearField {
-            fn get_data(&self, x: f32, y: f32, z: f32) -> f32 {
-                x * 2.0 + y * 3.0 - z * 5.0
-            }
-        }
-
-        let block = Block::new(
-            [0.0_f32, 0.0_f32, 0.0_f32],
-            8.0,
-            BLOCK_SUBDIVISIONS,
-        );
-        let cached = ClipmapCentralBlock::cache(&LinearField, block);
-        for index in [
-            VoxelIndex { x: -1, y: 4, z: 4 },
-            VoxelIndex { x: 9, y: 4, z: 4 },
-            VoxelIndex { x: 4, y: -1, z: 4 },
-            VoxelIndex { x: 4, y: 9, z: 4 },
-            VoxelIndex { x: 4, y: 4, z: -1 },
-            VoxelIndex { x: 4, y: 4, z: 9 },
-        ] {
-            let position = block.original_voxel_position(index);
-            let expected = LinearField.get_data(
-                position.x,
-                position.y,
-                position.z,
-            );
-            assert_eq!(cached.get(index).to_bits(), expected.to_bits());
-        }
-    }
-
-    #[test]
-    fn shared_presentation_sample_cache_is_exact_keyed() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let cache = CelestialPresentationSampleCache::new(field);
-        let evaluations = Cell::new(0_u32);
-        let point = DVec3::new(1.0, 2.0, 3.0);
-
-        let first = cache.get_or_compute(point, || {
-            evaluations.set(evaluations.get() + 1);
-            12.5
-        });
-        let second = cache.get_or_compute(point, || {
-            evaluations.set(evaluations.get() + 1);
-            99.0
-        });
-
-        assert_eq!(first, 12.5);
-        assert_eq!(second, 12.5);
-        assert_eq!(evaluations.get(), 1);
-    }
-
-    #[test]
-    fn transition_density_memo_reuses_exact_lattice_query() {
-        let memo = TransitionDensityMemo::new();
-        let evaluations = Cell::new(0_u32);
-        let key = [1_u32, 2_u32, 3_u32];
-
-        let first = memo.get_or_compute(key, || {
-            evaluations.set(evaluations.get() + 1);
-            7.25
-        });
-        let second = memo.get_or_compute(key, || {
-            evaluations.set(evaluations.get() + 1);
-            99.0
-        });
-
-        assert_eq!(first, 7.25);
-        assert_eq!(second, 7.25);
-        assert_eq!(evaluations.get(), 1);
-        assert_eq!(memo.stats(), (1, 1));
-    }
 
     #[test]
     fn binary_lod_debug_palette_uses_sixteen_band_hue_revolution() {

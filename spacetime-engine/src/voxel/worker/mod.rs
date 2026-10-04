@@ -17,7 +17,6 @@ use bevy::{
 
 type VoxelWorkerJob = Box<dyn FnOnce() + Send + 'static>;
 
-// critical-interaction-worker-priority-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum VoxelWorkerPriority {
     Normal,
@@ -30,27 +29,17 @@ pub(super) enum VoxelWorkerLane {
     Derivation,
     PlanetarySurface,
     PresentationPlanning,
-    PresentationResolution,
 }
-impl VoxelWorkerLane {
-    const COUNT: usize = 5;
 
-    // presentation-resolution-service-weight-v2
-    //
-    // Normal reconstructible presentation used to receive only 2/8 weighted
-    // service slots. Critical interaction work still preempts this wheel, so
-    // increasing presentation service improves visual latency without allowing
-    // it to outrank collision-critical jobs.
-    const SERVICE_WHEEL: [Self; 10] = [
+impl VoxelWorkerLane {
+    const COUNT: usize = 4;
+
+    const SERVICE_WHEEL: [Self; 6] = [
         Self::Generation,
-        Self::PresentationResolution,
         Self::Derivation,
-        Self::PresentationResolution,
         Self::PresentationPlanning,
-        Self::PresentationResolution,
         Self::Generation,
         Self::Derivation,
-        Self::PresentationResolution,
         Self::PlanetarySurface,
     ];
 
@@ -60,12 +49,10 @@ impl VoxelWorkerLane {
             Self::Derivation => 1,
             Self::PlanetarySurface => 2,
             Self::PresentationPlanning => 3,
-            Self::PresentationResolution => 4,
         }
     }
 }
 
-// bounded-critical-worker-burst-v1
 const MAX_CRITICAL_SERVICE_BURST: usize = 4;
 
 struct VoxelWorkerQueueState {
@@ -208,8 +195,6 @@ struct VoxelWorkerAdmission {
     limits: [usize; VoxelWorkerLane::COUNT],
     average_job_ns: [AtomicU64; VoxelWorkerLane::COUNT],
 
-    // first-touch-profiler-decontamination-v2
-    // gpu-terrain-tracy-observability-v1
     // Runtime pressure is scheduler state; Tracy only observes it.
 }
 impl VoxelWorkerAdmission {
@@ -218,11 +203,9 @@ impl VoxelWorkerAdmission {
         Self {
             outstanding: std::array::from_fn(|_| AtomicUsize::new(0)),
             running: std::array::from_fn(|_| AtomicUsize::new(0)),
-            // Dense generation/derivation and binary presentation resolution
-            // are streaming pipelines. Keep enough queued/running work to feed
-            // the shared pool; planning and legacy planetary surface remain
-            // deliberately narrow.
-            limits: [pipeline_depth, pipeline_depth, 1, 1, pipeline_depth],
+            // Dense generation/derivation are streaming pipelines.
+            // Planning and legacy planetary surface remain deliberately narrow.
+            limits: [pipeline_depth, pipeline_depth, 1, 1],
             average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
@@ -296,7 +279,6 @@ impl VoxelWorkerAdmission {
 
 }
 
-// voxel-compute-admission-lifetime-v1
 /// RAII lease for one queued/running worker computation.
 ///
 /// Admission is compute pressure only. It must end when worker computation
@@ -419,7 +401,6 @@ impl VoxelWorkerPool {
     }
 
     pub(super) fn estimated_latency_seconds(&self, lane: VoxelWorkerLane) -> f64 {
-        // weighted-worker-latency-estimate-v2
         //
         // "total jobs * this lane's average" badly underestimates latency when
         // expensive generation/resolution work shares the pool. Estimate queued
@@ -521,10 +502,6 @@ pub(super) fn try_submit<T, F>(
                     let _span = bevy::log::info_span!("voxel.worker.presentation_planning").entered();
                     job()
                 }
-                VoxelWorkerLane::PresentationResolution => {
-                    let _span = bevy::log::info_span!("voxel.worker.presentation_resolution").entered();
-                    job()
-                }
             };
             let elapsed_ns = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
             admission_for_job.record_job_duration(lane, elapsed_ns);
@@ -546,8 +523,6 @@ pub(super) fn try_submit<T, F>(
 
 }
 
-// first-touch-profiler-decontamination-v2
-// gpu-terrain-tracy-observability-v1
 #[cfg(feature = "profiling-tracy")]
 pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     let Some(client) = tracy_client::Client::running() else {
@@ -570,10 +545,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
         workers.admission.outstanding(VoxelWorkerLane::PresentationPlanning);
     let planning_running =
         workers.admission.running(VoxelWorkerLane::PresentationPlanning);
-    let resolution_outstanding =
-        workers.admission.outstanding(VoxelWorkerLane::PresentationResolution);
-    let resolution_running =
-        workers.admission.running(VoxelWorkerLane::PresentationResolution);
 
     client.plot(
         tracy_client::plot_name!("Voxel workers/capacity"),
@@ -663,22 +634,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
             * 1_000.0,
     );
 
-    client.plot(
-        tracy_client::plot_name!("Voxel workers/PresentationResolution running"),
-        resolution_running as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("Voxel workers/PresentationResolution queued"),
-        resolution_outstanding.saturating_sub(resolution_running) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("Voxel workers/PresentationResolution avg ms"),
-        workers
-            .admission
-            .average_job_seconds(VoxelWorkerLane::PresentationResolution)
-            .unwrap_or(0.0)
-            * 1_000.0,
-    );
 }
 
 fn recommended_worker_threads(available: usize) -> usize {
@@ -731,7 +686,7 @@ mod tests {
         let normal_order = Arc::clone(&order);
         queue
             .push(
-                VoxelWorkerLane::PresentationResolution,
+                VoxelWorkerLane::PresentationPlanning,
                 VoxelWorkerPriority::Normal,
                 Box::new(move || normal_order.lock().unwrap().push(2)),
             )

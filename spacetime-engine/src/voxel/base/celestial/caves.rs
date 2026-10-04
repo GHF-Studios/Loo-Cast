@@ -11,8 +11,8 @@ use bevy::{math::DVec3, prelude::Vec3};
 
 use super::super::noise::value_noise_3d;
 
-const CAVE_MIN_DEPTH_METRES: f64 = -12.0;
-pub(super) const CAVE_MAX_DEPTH_METRES: f64 = 2_400.0;
+pub(crate) const CAVE_START_DEPTH_METRES: f64 = 64.0;
+pub(crate) const CAVE_MAX_DEPTH_METRES: f64 = 2_400.0;
 
 #[inline]
 fn local_f32(point: DVec3) -> Vec3 {
@@ -45,7 +45,6 @@ fn tunnel_intersection_sdf(
 /// This is intentionally a pseudo-SDF rather than exact Euclidean distance.
 /// Only the zero crossing and stable sign are required by the current
 /// reconstructible Surface Nets / Transvoxel extraction path.
-// presentation-extract-hotpath-v1
 #[inline]
 pub(super) fn rocky_cave_void_signed_distance_metres_with_radial(
     local_point_metres: DVec3,
@@ -61,8 +60,8 @@ pub(super) fn rocky_cave_void_signed_distance_metres_with_radial(
 
     // Most clipmap/dense field samples are not inside the shallow cave-bearing
     // crust. Prove those points outside the void before paying for any 3D noise.
-    if depth_metres < CAVE_MIN_DEPTH_METRES {
-        return CAVE_MIN_DEPTH_METRES - depth_metres;
+    if depth_metres < CAVE_START_DEPTH_METRES {
+        return CAVE_START_DEPTH_METRES - depth_metres;
     }
     if depth_metres > CAVE_MAX_DEPTH_METRES {
         return depth_metres - CAVE_MAX_DEPTH_METRES;
@@ -102,11 +101,10 @@ pub(super) fn rocky_cave_void_signed_distance_metres_with_radial(
     let raw_void = major_tunnel.min(branching_tunnel).min(chamber);
 
     raw_void
-        .max(CAVE_MIN_DEPTH_METRES - depth_metres)
+        .max(CAVE_START_DEPTH_METRES - depth_metres)
         .max(depth_metres - CAVE_MAX_DEPTH_METRES)
 }
 
-// presentation-central-cache-specialization-v1
 //
 // value_noise_3d is smooth trilinear interpolation using smoothstep. Along one
 // noise-space axis, |d/dx| <= 3 because |corner_delta| <= 2 and
@@ -256,6 +254,13 @@ mod tests {
         assert!(
             rocky_cave_void_signed_distance_metres(far_above, radius, seed) > 0.0,
             "caves must not create detached void shells above the terrain"
+        );
+
+        let too_shallow = DVec3::new(0.0, radius - 32.0, 0.0);
+        assert!(
+            rocky_cave_void_signed_distance_metres(too_shallow, radius, seed)
+                > 0.0,
+            "ordinary caves must remain below the 64 m subterranean gate"
         );
 
         let too_deep = DVec3::new(0.0, radius - 3_000.0, 0.0);

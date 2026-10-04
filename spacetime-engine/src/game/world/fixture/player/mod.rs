@@ -171,7 +171,6 @@ pub(super) fn prepare_controlled_subject(
     // destination immediately. Interaction itself is coverage-gated below.
     traveler.commit_position(runtime_position);
 
-    // fixture-bootstrap-uses-controlled-affinity-v1
     //
     // The site owns canonical arrival POSITION. The controlled manifestation's
     // affinity owns interaction SCALE. Runtime evidence showed a flight-capable

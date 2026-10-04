@@ -31,7 +31,6 @@ use super::super::{
 /// Historical aggregate edge that bounded incremental rebuild amplification
 /// while reducing one-to-one collider-tree proxy count by up to 4³ = 64×.
 const COLLISION_GROUP_EDGE: i64 = 4;
-// runtime-pooling-transform-avian-megapass-v1
 const MAX_POOLED_COLLISION_AGGREGATES: usize = 512;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -335,7 +334,6 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     {
         let _span = bevy::log::info_span!("voxel_collision.aggregate_collect").entered();
 
-        // collision-before-presentation-v2
         //
         // Collision consumes store-owned derived surfaces directly. It must not
         // wait for a presentation runtime to exist: renderer manifestation is a

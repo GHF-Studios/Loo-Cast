@@ -79,12 +79,10 @@ pub(super) fn spawn_player(
                 UsfViewAnchor,
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
-                // player-explicit-s0-affinity-v1
                 UsfInteractionScaleAffinity::new(SpatialScale::ZERO).requiring(
                     UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
                 ),
                 ThermalSpatialSample,
-                // player-metric-spatial-demand-v2
                 // The parent-module constant is authored in physical metres.
                 SpatialDemandSource::cuboid_metres(
                     PLAYER_SPATIAL_DEMAND_HALF_EXTENT,

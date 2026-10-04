@@ -34,8 +34,6 @@ impl VoxelMaterializationStore {
         None
     }
 
-    // role-aware-derived-queue-v1
-    // persistent-work-rank-derived-v1
     /// Pops the best still-dirty address according to a caller-owned scheduling
     /// comparator while preserving the relative order of every other live item.
     ///

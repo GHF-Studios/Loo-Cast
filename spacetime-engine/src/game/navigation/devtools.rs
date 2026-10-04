@@ -49,7 +49,6 @@ impl CoverageGate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-// navtrace-explicit-scale-affinity-v1
 struct DiscreteState {
     current_interaction: SpatialScale,
     requested_interaction: Option<SpatialScale>,

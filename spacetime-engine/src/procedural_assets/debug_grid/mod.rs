@@ -1,6 +1,5 @@
 //! Analytical development-grid procedural asset contract.
 //!
-//! analytical-procedural-debug-grid-v1
 //!
 //! The debug grid is no longer a finite bitmap. Voxel presentation evaluates
 //! it analytically in the fragment shader from metric-stable UV coordinates.

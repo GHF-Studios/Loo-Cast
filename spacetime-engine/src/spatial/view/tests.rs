@@ -101,7 +101,6 @@ fn presentation_probe_filters_passes_without_changing_default_composition() {
     assert!(context.context_enabled());
 }
 
-// projection-similarity-invariant-v1
 #[test]
 fn same_semantic_point_projects_identically_from_different_source_scales() {
     let mut view = UsfViewContext::default();

@@ -33,7 +33,6 @@ const FALLBACK_MAX_SLOPE_DEGREES: f64 = 32.0;
 const MIN_PROBE_RADIUS_METRES: f64 = 75.0;
 const MAX_PROBE_RADIUS_METRES: f64 = 500.0;
 
-// volumetric-safe-spawn-v1
 //
 // `surface_local_metres()` resolves the radial outer shell. Rocky terrain can
 // subtract volumetric cave voids from that shell, so an outer-shell point is

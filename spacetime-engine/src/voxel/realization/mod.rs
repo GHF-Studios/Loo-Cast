@@ -1,6 +1,4 @@
 //! Multiscale voxel realization policy.
-// target-scale-preparation-bootstrap-deadlock-v1
-// interaction-terrain-readiness-megapass-v1
 //!
 //! Generic spatial interest says where gameplay currently cares about reality.
 //! [`SpatialRefinementDemand`] says how fine nearby capability realization is
@@ -33,7 +31,6 @@ use super::{
 
 const DEFAULT_REFINEMENT_ACTIVATION_NATIVE: f32 = 8_192.0;
 const DEFAULT_LOCAL_PATCH_HALF_EXTENT_NATIVE: f32 = 32.0;
-// directional-exterior-contact-horizon-v2
 // Speed extends physical preparation only when it closes on the nearest
 // canonical terrain boundary. It never selects decimal interaction Scale.
 const EXTERIOR_CONTACT_PREPARATION_SECONDS: f64 = 1.5;
@@ -130,7 +127,6 @@ pub(in crate::voxel) struct VoxelRealizationScope {
     roles: UsfScaleRoleMask,
     view_source: Option<Entity>,
     residency_half_extent_native: Vec3,
-    // priority-focus-propagation-v1
     // Canonical nearest semantic boundary used ONLY for reconstructible work
     // ordering. It never grants capability or semantic authority.
     priority_focus: Option<UsfPosition>,
@@ -344,8 +340,6 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
         .union(UsfScaleRoleMask::EDITING)
 }
 
-// interaction-scale-dense-role-ownership-v1
-// prepare-target-before-commit-v1
 fn roles_for_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
@@ -402,7 +396,6 @@ pub(super) fn collect_voxel_realization_intent(
     mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
     let mut next = VoxelRealizationIntentSnapshot::default();
-    // target-scale-preparation-bootstrap-deadlock-v1
     //
     // The destination must be able to build the capability that gates entry
     // into it. `scale()` is the committed outgoing chart; `target_scale()` is
@@ -423,7 +416,6 @@ pub(super) fn collect_voxel_realization_intent(
         sources.push(VoxelDemandSource {
             scope,
             minimum_realization_scale,
-            // metric-refinement-tip-conversion-v2
             // UsfRefinementPlan expects its footprint in TIP-native units.
             // During bootstrap the source may still be S+35 while the requested
             // tip is S0, so converting at source Scale would collapse the
@@ -439,7 +431,6 @@ pub(super) fn collect_voxel_realization_intent(
         // presentation hierarchy. Dense celestial worlds exist only from
         // explicit spatial/capability demand.
         //
-        // subject-boundary-contact-corridor-v1
         //
         // Local volumetric ownership follows the source, while nearby boundary
         // contact must be prepared before landing/handoff. Full-SDF clearance
@@ -473,7 +464,6 @@ pub(super) fn collect_voxel_realization_intent(
                 )
                 .map(|(boundary, _)| boundary);
 
-            // directional-exterior-contact-horizon-v2
             //
             // Compute only the component of canonical velocity that closes the
             // distance to the nearest full-SDF boundary. Tangential or outward
@@ -551,7 +541,6 @@ pub(super) fn collect_voxel_realization_intent(
                     }
                 });
 
-                // current-location-refinement-demand-v1
                 //
                 // Demand location follows the source immediately. The previous
                 // implementation retained the previous child scope until parent
@@ -745,7 +734,6 @@ fn realization_requests_scale(
     .requests_scale(target_scale)
 }
 
-// subject-boundary-contact-corridor-v1
 fn corridor_scope_between(
     source: SpatialDemandScope,
     boundary: UsfPosition,
@@ -777,7 +765,6 @@ fn corridor_scope_between(
     ))
 }
 
-// metric-demand-directional-contact-horizon-v2
 fn celestial_contact_volume_demand(
     boundary_center: Option<UsfPosition>,
     signed_clearance_metres: f64,
@@ -796,7 +783,6 @@ fn celestial_contact_volume_demand(
 
     let metres_per_native = target_scale.metres_per_native();
 
-    // dense-contact-horizon-replaces-refinement-activation-v2
     //
     // The old 8192-native activation radius belonged to a world where dense
     // terrain also carried far visual context. Binary presentation owns that

@@ -5,7 +5,6 @@
 //! This provider contributes disposable veto evidence before the canonical
 //! spatial transition commits.
 
-// collision-handoff-destination-admission-v1
 
 use std::collections::HashSet;
 

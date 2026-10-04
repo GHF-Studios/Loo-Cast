@@ -235,7 +235,6 @@ fn apply_local_control_transfers(
 
 /// Current game policy: the primary view/interaction focus follows local
 /// control. This is an adapter, not part of semantic control authority.
-// control-transfer-owns-interaction-scale-v1
 fn reconcile_local_control_focus(
     mut commands: Commands,
     mut applied: MessageReader<LocalControlTransferApplied>,

@@ -32,7 +32,6 @@ mod world;
 
 pub use authority::{CelestialVoxelField, VoxelAuthority};
 pub(in crate::voxel) use authority::CelestialPresentationFieldSampler;
-// planner-worker-hotpath-multimegapass-v1
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
     CelestialVoxelRealization, CelestialVoxelRealizationRegistry,
@@ -154,7 +153,6 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                // retire-regional-outer-shell-presentation-v1
                 //
                 // Celestial presentation is now one Cartesian volumetric
                 // hierarchy owned by voxel::resolution. The old cubed-sphere
@@ -272,7 +270,6 @@ impl Plugin for VoxelPlugin {
             worker::emit_worker_pressure.after(VoxelPostUpdateSet::SurfaceScheduling),
         );
 
-        // voxel-manifestation-pressure-v1
         devtools::configure(app);
     }
 }

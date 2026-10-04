@@ -304,7 +304,6 @@ pub(in crate::spatial) fn project_scenery_presentations(
             continue;
         }
 
-        // eye-relative-context-projection-v1
         // Position and size use one similarity frame. Camera eye/boom offset is
         // removed before projection so changing view exponent cannot change
         // parallax. Far-field radial compression then operates on that true

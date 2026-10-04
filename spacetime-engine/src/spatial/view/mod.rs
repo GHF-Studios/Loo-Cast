@@ -443,7 +443,6 @@ impl UsfViewContext {
         scale >= self.scale
     }
 
-    // projection-eye-similarity-frame-v1
     /// f64 scale conversion at the final presentation-chart boundary.
     ///
     /// Keep the scale algebra in f64 until the final render transform so the

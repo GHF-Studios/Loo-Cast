@@ -101,7 +101,6 @@ pub(super) fn sync_celestial_voxel_realizations(
     for (entity, realization) in &existing {
         let target = realization.target();
 
-        // realization-container-lifetime-v1
         //
         // Scale-world identity is owned by semantic authority + Scale, not by
         // this frame's demand. If demand disappears temporarily, keep the

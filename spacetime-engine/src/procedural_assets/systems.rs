@@ -61,7 +61,6 @@ pub(super) fn initialize_procedural_assets(
         ..default()
     });
 
-    // analytical-procedural-debug-grid-v1
     //
     // This is intentionally textureless. The handle remains the stable authored
     // material identity/marker, while voxel presentation evaluates the actual

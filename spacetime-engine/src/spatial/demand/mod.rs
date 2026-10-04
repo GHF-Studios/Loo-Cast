@@ -20,7 +20,6 @@ use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialDemandSource {
     half_extent_native: Vec3,
-    // metric-stable-spatial-demand-v2
     // Optional physical authority for local working-set size. When present,
     // native extent is derived at the actual current/transition Scale.
     half_extent_metres: Option<Vec3>,

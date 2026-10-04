@@ -537,7 +537,6 @@ fn integrate_local_inertial_velocity(
         && thrust_acceleration > 0.0
         && wish.length_squared() > 1.0e-18;
 
-    // local-flight-actuator-contract-v1
     // Gravity remains canonical sampled field state. RCS only changes this
     // subject's local-flight response to that field; it never mutates gravity.
     let gravity_acceleration = if rcs_enabled {
@@ -855,7 +854,6 @@ pub(super) fn flight_movement(
             )
             .clamp(0.0, 1.0);
 
-            // logarithmic-flight-pace-control-v1
             //
             // Pace multiplies the requested cruise speed *beneath* the
             // navigation envelope. Hard-body/medium limits remain authoritative.

@@ -15,11 +15,9 @@ pub(super) struct VoxelGenerationJob {
     pub(super) recipe: VoxelChunkRecipe,
 }
 
-// critical-generation-batches-v1
 pub(super) struct PendingGenerationBatch {
     pub(super) scope: VoxelGenerationScope,
     pub(super) critical: bool,
-    // latency-sensitive-generation-atoms-v1
     // Prevent PRESENTATION/physical atoms from being merged into a background
     // throughput batch whose result becomes visible only after every atom runs.
     latency_sensitive: bool,

@@ -21,7 +21,6 @@ var<storage, read> refinement_clip_boxes: array<vec4<f32>>;
 @group(#{MATERIAL_BIND_GROUP}) @binding(101)
 var<uniform> refinement_clip_meta: vec4<u32>;
 
-// analytical-procedural-debug-grid-v1
 // x = enabled, y = physical metres per incoming UV unit.
 @group(#{MATERIAL_BIND_GROUP}) @binding(102)
 var<uniform> debug_grid_meta: vec4<f32>;

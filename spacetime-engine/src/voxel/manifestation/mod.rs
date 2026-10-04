@@ -39,7 +39,6 @@ pub(super) fn configure(app: &mut App) {
     material::configure(app);
 }
 
-// first-touch-profiler-decontamination-v2
 const MAX_POOLED_MANIFESTATIONS: usize = 512;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -117,7 +116,6 @@ pub(super) struct VoxelMaterializationRuntimeRegistry {
     dirty: HashSet<ManifestationKey>,
     entities: HashMap<ManifestationKey, Entity>,
     pooled: Vec<Entity>,
-    // first-touch-profiler-decontamination-v2
 }
 
 impl VoxelMaterializationRuntimeRegistry {
@@ -133,7 +131,6 @@ impl VoxelMaterializationRuntimeRegistry {
         self.pooled.pop()
     }
 
-    // first-touch-profiler-decontamination-v2
     #[inline(always)]
     pub(super) fn record_spawned(&mut self) {}
 

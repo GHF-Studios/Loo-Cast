@@ -108,7 +108,6 @@ pub(in crate::voxel) fn sync_capability_realizations(
         .physics_interaction_radius_native
         .max(0.0);
 
-    // segmented-materialization-coverage-v1
     //
     // No-surface realization facts are store-owned. Publish them as one
     // deterministic batch on the VoxelWorld entity instead of manufacturing a
@@ -163,7 +162,6 @@ pub(in crate::voxel) fn sync_capability_realizations(
                 |streaming| streaming.effective_roles(key),
             );
 
-            // demand-owned-capability-publication-v1
             let mut roles = UsfScaleRoleMask::REALIZATION;
             let derived_current =
                 world.materializations().active_derived_revision(key)
@@ -275,7 +273,6 @@ pub(in crate::voxel) fn sync_capability_realizations(
                         && cache.surface.has_rigid_triangles()
                 });
 
-            // collision-before-presentation-v2
             //
             // PRESENTATION is a readiness claim, not just "a mesh exists".
             // Whenever this exact rigid materialization belongs to current

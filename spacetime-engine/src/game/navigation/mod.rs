@@ -197,7 +197,6 @@ pub struct TravelPace {
 impl TravelPace {
     pub const DEFAULT_MULTIPLIER: f32 = 1.0;
 
-    // logarithmic-flight-pace-control-v1
     //
     // Pace is dimensionless controller intent. Base-2 gives exact, predictable
     // octave steps while spanning many orders of magnitude without changing
@@ -419,7 +418,6 @@ impl Default for AdaptiveCruise {
     }
 }
 
-// approach-refinement-is-realization-only-v1
 /// Semantic progress through future capability refinement.
 ///
 /// This state owns readiness/refinement only. Interaction Scale is controlled
@@ -585,7 +583,6 @@ impl Plugin for NavigationPlugin {
                     .chain()
                     .in_set(NavigationSet::Plan),
             )
-            // navigation-no-longer-publishes-interaction-scale-v1
             // Navigation may refine ahead and choose presentation/travel policy,
             // but interaction Scale belongs to the controlled manifestation.
             .add_systems(

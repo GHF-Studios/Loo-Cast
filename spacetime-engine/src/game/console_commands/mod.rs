@@ -318,7 +318,6 @@ fn presentation_command(
     let probe = *world.resource::<UsfPresentationProbe>();
     let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
     let navigation = *world.resource::<NavigationAudit>();
-    // presentation-diagnostic-explicit-scale-affinity-v1
     let interaction_affinity = {
         let mut query = world.query_filtered::<
             &UsfInteractionScaleAffinity,

@@ -64,7 +64,6 @@ pub(super) fn spawn_body(
 
     audit_canonical_surface_relief(name, field);
 
-    // interaction-scale-physical-capability-domain-v1
     //
     // The domain describes where this semantic body *can* realize a capability;
     // it does not select which Scale is currently physical. That selection is

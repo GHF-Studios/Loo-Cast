@@ -65,7 +65,6 @@ use crate::game::GameWorld;
 
 const SHIP_SIZE: Vec3 = Vec3::new(4.0, 2.0, 8.0);
 const SHIP_PROXY_CLEARANCE_METRES: f32 = 0.08;
-// spacecraft-metric-spatial-demand-v2
 // Authored in physical metres. Recharting S0 -> S+1 must not turn this into a
 // ~960x640x960-metre half-extent.
 const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
@@ -74,7 +73,6 @@ const LANDING_PROBE_METRES: f32 = 2.0;
 const LANDING_PROBE_LIFT_METRES: f32 = LANDING_PROBE_METRES;
 const LANDING_SEPARATION_SPEED_EPSILON_METRES_PER_SECOND: f64 = 0.25;
 const ENTER_DISTANCE_METRES: f32 = 12.0;
-// spacecraft-contact-handoff-v1
 // Landing/disembark use actual hull shape casts; these constants are
 // reach/search policy, not hard-coded standing or terrain offsets.
 
@@ -249,7 +247,6 @@ fn spawn_reference_spacecraft(
     locomotion.set_thrusters_enabled(true);
     locomotion.set_rcs_enabled(true);
 
-    // spacecraft-explicit-s1-affinity-v1
     // Human body S0 -> small spacecraft S+1. Spawn placement may initially use
     // the player's current chart; control transfer explicitly recharts it.
     let ship_interaction_scale =
@@ -265,7 +262,6 @@ fn spawn_reference_spacecraft(
                 
                 UsfLogicalRealizationOf(ship_partition),
                 UsfScaleLayer::new(body_layer.scale()),
-                // spacecraft-interaction-terrain-readiness-v1
                 UsfInteractionScaleAffinity::new(ship_interaction_scale).requiring(
                     UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
                 ),
@@ -346,7 +342,6 @@ fn spawn_reference_spacecraft(
             Mesh3d(meshes.add(Cuboid::new(SHIP_SIZE.x, SHIP_SIZE.y, SHIP_SIZE.z))),
             MeshMaterial3d(materials.add(Color::srgb(0.68, 0.70, 0.76))),
             Transform::IDENTITY,
-            // playability-and-diagnostic-clarity-megapass-v1
             // ViewSubjectPresentation self-visibility is layer-driven. Keep the
             // controlled ship model alive on the derived-view layer just like
             // the player model; presentation sync promotes it to the ordinary
@@ -659,7 +654,6 @@ fn handle_spacecraft_actions(
         player_transform.rotation = aligned_player;
         player_control.snap_to(aligned_player);
 
-        // spacecraft-contact-handoff-layer-access-v4
         // Scale-Slice reassignment is part of the deferred control/handoff
         // transaction. The action system only needs to read the current player
         // layer, which keeps its collision-query SystemParams alias-safe.
@@ -670,7 +664,6 @@ fn handle_spacecraft_actions(
         *player_visibility = Visibility::Inherited;
         player_demand.set_enabled(true);
         player_enabled.0 = true;
-        // logarithmic-flight-pace-control-v1
         // Vehicle test pace is controller state, not character locomotion
         // policy. Reset it on disembark so 2^N ship tuning never leaks into
         // normal walking.
@@ -782,7 +775,6 @@ fn handle_spacecraft_actions(
     }
 }
 
-// embarked-player-visibility-invariant-v1
 fn enforce_embarked_player_hidden(
     ownership: UsfOwnershipQuery,
     constituents: Query<&UsfConstituentOf>,

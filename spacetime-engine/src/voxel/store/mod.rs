@@ -110,7 +110,6 @@ impl VoxelMaterializationStore {
     }
 
 
-    // role-refresh-render-membership-v1
     pub(in crate::voxel) fn refresh_render_membership(
         &mut self,
         key: VoxelMaterializationKey,

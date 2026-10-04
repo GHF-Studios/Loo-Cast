@@ -1,6 +1,5 @@
 //! Spacetime Engine.
 
-// realization-granularity-and-work-governor-v2
 //!
 //! The engine owns reusable simulation, spatial, physics, rendering-adjacent,
 //! diagnostics, developer-tooling, and world-generation infrastructure used by

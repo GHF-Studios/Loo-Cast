@@ -127,7 +127,6 @@ pub(in crate::game::player) fn sync_player_camera(
     };
 }
 
-// projection-eye-offset-publisher-v1
 fn projection_eye_offset_metres(
     semantic_runtime_anchor: Vec3,
     camera_runtime_position: Vec3,
@@ -245,7 +244,6 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
 /// primary first-person camera by moving body presentations onto the derived
 /// view layer. Portal cameras intentionally include that layer. Presentations
 /// of previous/unrelated view subjects are restored to ordinary world layers.
-// self-visibility-inserts-missing-render-layers-v1
 pub(in crate::game::player) fn sync_view_subject_presentations(
     mut commands: Commands,
     freecam: Res<DebugFreecam>,

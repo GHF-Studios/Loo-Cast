@@ -1,9 +1,6 @@
 // GPU-native binary terrain presentation.
 // Canonical authority remains CPU/USF-owned; this shader receives only one
 // bounded local semantic chart. No f64/i64 and no universe-scale coordinates.
-// gpu-binary-presentation-production-v1
-// gpu-terrain-wgsl-reserved-sweep-v1
-// gpu-terrain-wgsl-reserved-name-repair-v1
 
 const BLOCK: u32 = 8u;
 const REGULAR_LATTICE: u32 = 9u;
@@ -48,6 +45,7 @@ struct GpuTerrainDescriptor {
     chart_origin_and_spacing: vec4<f32>,
     anchor_direction_and_inverse_radius: vec4<f32>,
     extent_uv_radius: vec4<f32>,
+    reference_relief_and_cave_depths: vec4<f32>,
     terrain_meta: vec4<u32>,
     semantic_meta: vec4<i32>,
     seed_meta: vec4<u32>,
@@ -66,7 +64,6 @@ struct SurfaceVertex {
     normal: vec3<f32>,
 }
 
-// gpu-terrain-split-pipeline-v1
 @group(0) @binding(0) var<uniform> dispatch: GpuTerrainDispatch;
 @group(0) @binding(1) var<storage, read_write> scratch: array<f32>;
 
@@ -523,12 +520,18 @@ fn cave_value(chart: GpuCaveChart, delta_metres: vec3<f32>) -> f32 {
     return mix(mix(x00, x10, hermite.y), mix(x01, x11, hermite.y), hermite.z);
 }
 
+
 fn cave_void_sdf(delta_metres: vec3<f32>, outer_density: f32) -> f32 {
-    if outer_density < -12.0 {
-        return -12.0 - outer_density;
+    let depth_window =
+        dispatch.descriptor.reference_relief_and_cave_depths.yz;
+    let start_depth = depth_window.x;
+    let end_depth = depth_window.y;
+
+    if outer_density < start_depth {
+        return start_depth - outer_density;
     }
-    if outer_density > 2400.0 {
-        return outer_density - 2400.0;
+    if outer_density > end_depth {
+        return outer_density - end_depth;
     }
 
     let a = abs(cave_value(dispatch.descriptor.caves[0], delta_metres));
@@ -539,18 +542,22 @@ fn cave_void_sdf(delta_metres: vec3<f32>, outer_density: f32) -> f32 {
     let d = abs(cave_value(dispatch.descriptor.caves[3], delta_metres));
     let branching = max(c - 0.20, d - 0.18) * 90.0;
 
-    let chamber = (cave_value(dispatch.descriptor.caves[4], delta_metres) + 0.58) * 110.0;
+    let chamber =
+        (cave_value(dispatch.descriptor.caves[4], delta_metres) + 0.58)
+            * 110.0;
     var raw = min(min(major, branching), chamber);
-    raw = max(raw, -12.0 - outer_density);
-    raw = max(raw, outer_density - 2400.0);
+    raw = max(raw, start_depth - outer_density);
+    raw = max(raw, outer_density - end_depth);
     return raw;
 }
+
 
 fn sample_density(local_in_block: vec3<f32>) -> f32 {
     let anchor = dispatch.descriptor.anchor_direction_and_inverse_radius;
     let n0 = anchor.xyz;
     let inv_r = max(anchor.w, 0.0);
-    let delta = dispatch.descriptor.chart_origin_and_spacing.xyz + local_in_block;
+    let delta = dispatch.descriptor.chart_origin_and_spacing.xyz
+        + local_in_block;
 
     let a = dot(n0, delta);
     let delta2 = dot(delta, delta);
@@ -558,22 +565,20 @@ fn sample_density(local_in_block: vec3<f32>) -> f32 {
     let q_len = max(length(q), 1.0e-12);
     let direction = q / q_len;
 
-    // Exact local-chart forms that avoid multiplying or adding an absolute
-    // planet radius:
-    //   radial_delta = R * (|q| - 1)
-    //   sphere_delta = R * (direction - n0)
     let numerator = 2.0 * a + delta2 * inv_r;
     let radial_delta = numerator / (q_len + 1.0);
     let sphere_scalar = -numerator / (q_len * (q_len + 1.0));
     let sphere_delta = delta / q_len + n0 * sphere_scalar;
 
+    let anchor_relief =
+        dispatch.descriptor.reference_relief_and_cave_depths.x;
     let pre_fine_delta =
-        (macro_relief(direction) - macro_relief(n0))
-        + (coarse_relief(direction) - coarse_relief(n0));
+        macro_relief(direction) + coarse_relief(direction) - anchor_relief;
 
     let delta_ref = sphere_delta + direction * pre_fine_delta;
     var fine_delta = 0.0;
-    let fine_count = min(dispatch.descriptor.terrain_meta.w, MAX_FINE_BANDS);
+    let fine_count =
+        min(dispatch.descriptor.terrain_meta.w, MAX_FINE_BANDS);
     var i = 0u;
     loop {
         if i >= fine_count {
@@ -588,11 +593,13 @@ fn sample_density(local_in_block: vec3<f32>) -> f32 {
     if dispatch.descriptor.semantic_meta.y != 0
         && dispatch.descriptor.terrain_meta.x == 1u
     {
-        return min(outer_density, cave_void_sdf(delta, outer_density));
+        return min(
+            outer_density,
+            cave_void_sdf(delta, outer_density),
+        );
     }
     return outer_density;
 }
-
 
 
 fn transition_enabled(side: u32) -> bool {
@@ -667,7 +674,69 @@ fn face_scratch_index(side: u32, face_sample: u32) -> u32 {
         + (side * FACE_LATTICE_LEN + face_sample) * FACE_SAMPLE_STRIDE;
 }
 
+fn face_density(side: u32, hu: u32, hv: u32) -> f32 {
+    let sample = hu + FACE_LATTICE * hv;
+    return scratch[face_scratch_index(side, sample)];
+}
+
+fn face_difference_u(side: u32, hu: u32, hv: u32) -> f32 {
+    let last = FACE_LATTICE - 1u;
+    if hu == 0u {
+        return 2.0 * (
+            face_density(side, 1u, hv)
+                - face_density(side, 0u, hv)
+        );
+    }
+    if hu == last {
+        return 2.0 * (
+            face_density(side, last, hv)
+                - face_density(side, last - 1u, hv)
+        );
+    }
+    return face_density(side, hu + 1u, hv)
+        - face_density(side, hu - 1u, hv);
+}
+
+fn face_difference_v(side: u32, hu: u32, hv: u32) -> f32 {
+    let last = FACE_LATTICE - 1u;
+    if hv == 0u {
+        return 2.0 * (
+            face_density(side, hu, 1u)
+                - face_density(side, hu, 0u)
+        );
+    }
+    if hv == last {
+        return 2.0 * (
+            face_density(side, hu, last)
+                - face_density(side, hu, last - 1u)
+        );
+    }
+    return face_density(side, hu, hv + 1u)
+        - face_density(side, hu, hv - 1u);
+}
+
+fn transition_gradient(
+    side: u32,
+    hu: u32,
+    hv: u32,
+    position: vec3<f32>,
+) -> vec3<f32> {
+    let half_spacing =
+        dispatch.descriptor.chart_origin_and_spacing.w * 0.5;
+    let u = vec3<f32>(rotation_u(side));
+    let v = vec3<f32>(rotation_v(side));
+    let w = vec3<f32>(rotation_w(side));
+
+    let du = face_difference_u(side, hu, hv);
+    let dv = face_difference_v(side, hu, hv);
+    let dw = sample_density(position + w * half_spacing)
+        - sample_density(position - w * half_spacing);
+
+    return u * du + v * dv + w * dw;
+}
+
 @compute @workgroup_size(64)
+
 fn main(@builtin(local_invocation_index) lane: u32) {
     var sample = lane;
     loop {
@@ -693,30 +762,42 @@ fn main(@builtin(local_invocation_index) lane: u32) {
             if face_sample >= FACE_LATTICE_LEN {
                 break;
             }
-
-            let hu = i32(face_sample % FACE_LATTICE);
-            let hv = i32(face_sample / FACE_LATTICE);
-            let position = transition_position_half(side, hu, hv, 0);
-            let half_spacing =
-                dispatch.descriptor.chart_origin_and_spacing.w * 0.5;
-
-            let density = sample_density(position);
-            let gradient = vec3<f32>(
-                sample_density(position + vec3<f32>(half_spacing, 0.0, 0.0))
-                    - sample_density(position - vec3<f32>(half_spacing, 0.0, 0.0)),
-                sample_density(position + vec3<f32>(0.0, half_spacing, 0.0))
-                    - sample_density(position - vec3<f32>(0.0, half_spacing, 0.0)),
-                sample_density(position + vec3<f32>(0.0, 0.0, half_spacing))
-                    - sample_density(position - vec3<f32>(0.0, 0.0, half_spacing)),
-            );
-
+            let hu = face_sample % FACE_LATTICE;
+            let hv = face_sample / FACE_LATTICE;
+            let position =
+                transition_position_half(side, i32(hu), i32(hv), 0);
             let out = face_scratch_index(side, face_sample);
-            scratch[out + 0u] = density;
+            scratch[out] = sample_density(position);
+            face_sample += 64u;
+        }
+
+        workgroupBarrier();
+        storageBarrier();
+
+        face_sample = lane;
+        loop {
+            if face_sample >= FACE_LATTICE_LEN {
+                break;
+            }
+            let hu = face_sample % FACE_LATTICE;
+            let hv = face_sample / FACE_LATTICE;
+            let position =
+                transition_position_half(side, i32(hu), i32(hv), 0);
+            let gradient = transition_gradient(
+                side,
+                hu,
+                hv,
+                position,
+            );
+            let out = face_scratch_index(side, face_sample);
             scratch[out + 1u] = gradient.x;
             scratch[out + 2u] = gradient.y;
             scratch[out + 3u] = gradient.z;
-
             face_sample += 64u;
         }
+
+        workgroupBarrier();
+        storageBarrier();
     }
 }
+

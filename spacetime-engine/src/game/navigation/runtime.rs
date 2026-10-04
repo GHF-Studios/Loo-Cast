@@ -139,7 +139,6 @@ fn scale_for_resolution(
     SpatialScale::new(exponent).expect("clamped USF resolution scale")
 }
 
-// navigation-has-no-interaction-scale-authority-v1
 
 /// Semantic planner for approaching refinable structure.
 ///

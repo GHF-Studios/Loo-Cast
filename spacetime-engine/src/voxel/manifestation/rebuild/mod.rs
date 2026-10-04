@@ -114,7 +114,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         {
             break;
         }
-        // ranked-final-manifestation-publication-v1
         //
         // `dirty` is a HashSet, so iteration order is not scheduling policy.
         // Preserve the same demand/contact/trajectory rank used by generation
@@ -202,7 +201,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        // voxel-manifestation-pressure-v1
         registry.record_mesh_publication();
         let mut opaque_mesh = build_opaque_mesh(&cache.surface, cache.debug_color);
 

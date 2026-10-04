@@ -27,8 +27,10 @@ mod bands;
 mod caves;
 mod rocky;
 
+pub(crate) use caves::{
+    CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES,
+};
 use caves::{
-    CAVE_MAX_DEPTH_METRES,
     rocky_cave_void_may_intersect_aabb,
     rocky_cave_void_signed_distance_metres,
     rocky_cave_void_signed_distance_metres_with_radial,
@@ -108,8 +110,6 @@ pub(crate) struct PreparedProceduralCelestialBody {
     chunk_origin_local_metres: DVec3,
 }
 
-// presentation-central-cache-specialization-v1
-// central-cache-kernel-megapass-v1
 //
 // Presentation samples the same body's full residual stack 729 times per
 // central block. Resolve all Scale-dependent invariants once per sampler:
@@ -202,7 +202,6 @@ impl PreparedCelestialResidualStack {
     }
 }
 
-// first-touch-profiler-decontamination-v2
 //
 // Keep the 9^3 first-touch lattice itself as the profiling boundary. Per-sample
 // nested Tracy zones and sampled Instant accounting distorted the kernel being
@@ -519,7 +518,6 @@ pub(crate) fn prepare_local_sampler(
             .unwrap_or_else(|| VoxelSample::empty(EMPTY_DISTANCE))
     }
 
-    // resolution-filtered-celestial-surface-v1
     /// Body-local semantic surface point at full canonical terrain bandwidth.
     pub(crate) fn surface_local_metres(
         self,
@@ -673,7 +671,6 @@ pub(crate) fn prepare_local_sampler(
         through_scale: SpatialScale,
         include_caves: bool,
     ) -> Option<f64> {
-        // presentation-extract-hotpath-v1
         // Outer evaluation already paid for radial length. Preserve it through
         // cave composition instead of repeating the f64 square root.
         let (outer_sdf, radial) =
@@ -982,8 +979,6 @@ fn canonical_detail_noise_at(
         let native =
             local_position_metres / metres_per_native;
 
-        // fine-residual-native-cell-megapass-v1
-        // fine-residual-cold-miss-megapass-v1
         //
         // PERFORMANCE INVARIANT:
         // This path intentionally bypasses generic UsfPosition construction and

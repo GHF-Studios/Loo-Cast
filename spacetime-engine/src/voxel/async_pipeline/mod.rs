@@ -127,7 +127,6 @@ pub(super) fn retire_stale_chunk_builds(
 ///
 /// This is deliberately O(changes), not O(resident materializations). Quiet
 /// cached terrain does no per-frame geometry scheduling work.
-// fair-derived-world-rounds-v1
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     workers: Res<VoxelWorkerPool>,
@@ -190,7 +189,6 @@ pub(super) fn queue_dirty_chunk_builds(
                 continue;
             };
 
-            // derived-uses-persistent-work-rank-v1
             //
             // Generation completion order is not scheduling authority. Pick the
             // dirty surface whose current streaming rank says it is most useful.
@@ -243,7 +241,6 @@ pub(super) fn queue_dirty_chunk_builds(
                 continue;
             }
 
-            // relative-scale-rainbow-debug-v1
             //
             // Dense Scale-local geometry is diagnostic-colored by USF Scale
             // relative to the current physical interaction slice:
@@ -311,8 +308,6 @@ fn debug_scale_band_color(
     rainbow_debug_color(relative)
 }
 
-// rich-relative-scale-rainbow-v3
-// playability-and-diagnostic-clarity-megapass-v1
 //
 // This is still a *USF Scale* diagnostic, never presentation LOD. It shares the
 // slower sixteen-band visual language with binary LOD diagnostics so either

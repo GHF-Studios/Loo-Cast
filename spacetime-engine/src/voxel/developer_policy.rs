@@ -1,6 +1,5 @@
 //! Developer-only reconstructible celestial presentation policy.
 //!
-//! developer-celestial-terrain-script-api-v2
 //!
 //! Canonical celestial terrain remains authoritative and unchanged. This module
 //! exposes a narrow, deterministic Rhai domain API used to derive optional

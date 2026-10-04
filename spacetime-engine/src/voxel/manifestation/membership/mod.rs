@@ -87,7 +87,6 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 world: world_entity,
                 key: materialization_key,
             };
-            // demand-owned-render-membership-v1
             let presentation_requested = streaming.is_none_or(|streaming| {
                 streaming
                     .effective_roles(materialization_key)
@@ -112,7 +111,6 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                         .remove::<VoxelPresentationFallbackRetireReady>();
                 }
             } else {
-                // presentation-fallback-across-residency-v1
                 //
                 // Physical/store active residency may retire before the binary
                 // hierarchy has a visible replacement. If an already-built

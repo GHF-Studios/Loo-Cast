@@ -202,7 +202,6 @@ fn compact_refinement_clip_sources(
     compacted
 }
 
-// analytical-procedural-debug-grid-v1
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub(in crate::voxel) struct VoxelRefinementClipExtension {
     #[storage(100, read_only)]

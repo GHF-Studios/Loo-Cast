@@ -1,6 +1,5 @@
 //! Live developer override/preset composition.
 //!
-//! developer-lab-preset-stack-v1
 //!
 //! This layer composes existing typed runtime-variable adapters. It does not
 //! become a second config/cvar authority. Presets are reversible transactions:

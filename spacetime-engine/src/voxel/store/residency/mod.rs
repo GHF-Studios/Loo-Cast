@@ -91,7 +91,6 @@ impl VoxelMaterializationStore {
             self.inactive_count = self.inactive_count.saturating_sub(1);
         }
 
-        // segmented-materialization-v1
         //
         // A uniform dense result already proves that no surface representation
         // exists for this revision. Publish that derived fact immediately:
@@ -123,7 +122,6 @@ impl VoxelMaterializationStore {
 
     /// Publishes a worker generation result only if its reservation is still
     /// current. Demand migration therefore cannot resurrect retired work.
-    // role-gated-generated-surface-v1
     pub(in crate::voxel) fn publish_generated(
         &mut self,
         address: VoxelMaterializationKey,
@@ -147,7 +145,6 @@ impl VoxelMaterializationStore {
             return false;
         }
 
-        // generated-uniform-fast-path-v1
         let mut chunk = chunk;
         let uniform_revision =
             (!chunk.has_surface_transition()).then_some(chunk.revision());
@@ -240,7 +237,6 @@ impl VoxelMaterializationStore {
                 self.dirty_derived_set.remove(&address);
                 self.inactive_count = self.inactive_count.saturating_sub(1);
 
-                // eviction-retires-presentation-fallback-v1
                 // A presentation-only fallback may intentionally outlive active
                 // residency. Cache eviction is the hard lifetime boundary: wake
                 // membership so no renderer shell can outlive its source mesh.

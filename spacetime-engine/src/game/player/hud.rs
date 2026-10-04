@@ -119,11 +119,9 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
     ));
 }
 
-// main-thread-presentation-ui-megapass-v1
 const FLIGHT_HUD_METRIC_REFRESH_SECONDS: f32 = 1.0 / 20.0;
 
 #[derive(Default)]
-// flight-hud-refresh-state-visibility-repair-v1
 pub(super) struct FlightHudRefreshState {
     metric_accumulator_seconds: f32,
     was_flying: bool,

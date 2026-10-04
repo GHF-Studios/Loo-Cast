@@ -1,4 +1,3 @@
-// first-touch-profiler-decontamination-v2
 //! Procedural backing fields for voxel worlds.
 //!
 //! A base field is reconstructible and therefore does not need to be persisted
@@ -17,9 +16,9 @@ mod volume;
 
 pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
 pub(crate) use celestial::{
+    CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES,
     CelestialFieldSample, PreparedCelestialPresentationBody,
 };
-// presentation-central-cache-specialization-v1
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
@@ -28,7 +27,6 @@ pub(crate) use noise::{
     semantic_noise_diagnostic_snapshot,
     value_noise_3d as script_value_noise_3d,
 };
-// fine-residual-microdiagnostics-v1
 
 use volume::PreparedProceduralVolume;
 

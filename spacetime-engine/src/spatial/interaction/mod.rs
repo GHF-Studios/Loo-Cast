@@ -7,7 +7,6 @@ use super::{SpatialScale, UsfScaleRoleMask};
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct UsfInteractionProjection;
 
-// controlled-subject-interaction-scale-affinity-v1
 /// Authored interaction Scale affinity of one controllable runtime manifestation.
 ///
 /// This is semantic/control policy, not visual LOD and not an automatic
