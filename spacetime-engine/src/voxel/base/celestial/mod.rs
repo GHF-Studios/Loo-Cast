@@ -216,6 +216,7 @@ impl PreparedCelestialPresentationBody {
     }
 
     #[inline]
+    // density-lattice-diagnostic-instrumentation-v1
     fn semantic_surface_radius_metres(
         &self,
         direction: Vec3,
@@ -223,36 +224,61 @@ impl PreparedCelestialPresentationBody {
         // Preserve the reference normalization sequence exactly:
         // callers normalize once before this function and the reference
         // semantic surface function normalizes again here.
-        let direction = normalized_direction(direction);
-        let mut radius = self.body.radius_metres
-            + self.body.macro_surface_displacement_metres(
+        let direction = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.surface.normalize"
+            )
+            .entered();
+            normalized_direction(direction)
+        };
+
+        let macro_displacement = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.surface.macro_terrain"
+            )
+            .entered();
+            self.body.macro_surface_displacement_metres(
                 direction,
                 self.body.surface_detail_scale,
-            );
+            )
+        };
+        let mut radius = self.body.radius_metres + macro_displacement;
 
-        for band in self
-            .residual
-            .coarse
-            .iter()
-            .take(self.residual.coarse_len)
-            .flatten()
         {
-            let p = direction * band.angular_frequency;
-            let broad = value_noise_3d(
-                p + Vec3::new(13.7, -7.1, 3.9),
-                band.seed ^ 0xA341_316C,
-            );
-            let fine = value_noise_3d(
-                p * 2.31 + Vec3::new(-5.3, 11.9, 17.2),
-                band.seed ^ 0xC801_3EA4,
-            );
-            let detail_native =
-                f64::from(broad * 0.72 + fine * 0.28)
-                    * band.amplitude_native;
-            radius += detail_native * band.metres_per_native;
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.surface.coarse_residual"
+            )
+            .entered();
+
+            for band in self
+                .residual
+                .coarse
+                .iter()
+                .take(self.residual.coarse_len)
+                .flatten()
+            {
+                let p = direction * band.angular_frequency;
+                let broad = value_noise_3d(
+                    p + Vec3::new(13.7, -7.1, 3.9),
+                    band.seed ^ 0xA341_316C,
+                );
+                let fine = value_noise_3d(
+                    p * 2.31 + Vec3::new(-5.3, 11.9, 17.2),
+                    band.seed ^ 0xC801_3EA4,
+                );
+                let detail_native =
+                    f64::from(broad * 0.72 + fine * 0.28)
+                        * band.amplitude_native;
+                radius += detail_native * band.metres_per_native;
+            }
         }
 
         if self.residual.fine_len > 0 {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.surface.fine_residual"
+            )
+            .entered();
+
             let local_reference_metres = dvec(direction) * radius;
             for band in self
                 .residual
@@ -284,23 +310,38 @@ impl PreparedCelestialPresentationBody {
         &self,
         local_point_metres: DVec3,
     ) -> Option<(f64, f64)> {
-        let radial = local_point_metres.length();
-        if !radial.is_finite() || radial <= f64::EPSILON {
-            return None;
-        }
+        let (radial, direction) = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.radial_direction"
+            )
+            .entered();
 
-        let direction = Vec3::new(
-            (local_point_metres.x / radial) as f32,
-            (local_point_metres.y / radial) as f32,
-            (local_point_metres.z / radial) as f32,
-        )
-        .normalize_or_zero();
-        if direction == Vec3::ZERO {
-            return None;
-        }
+            let radial = local_point_metres.length();
+            if !radial.is_finite() || radial <= f64::EPSILON {
+                return None;
+            }
 
-        let surface_radius =
-            self.semantic_surface_radius_metres(direction).ok()?;
+            let direction = Vec3::new(
+                (local_point_metres.x / radial) as f32,
+                (local_point_metres.y / radial) as f32,
+                (local_point_metres.z / radial) as f32,
+            )
+            .normalize_or_zero();
+            if direction == Vec3::ZERO {
+                return None;
+            }
+
+            (radial, direction)
+        };
+
+        let surface_radius = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.surface_radius"
+            )
+            .entered();
+            self.semantic_surface_radius_metres(direction).ok()?
+        };
+
         Some((radial - surface_radius, radial))
     }
 
@@ -309,23 +350,33 @@ impl PreparedCelestialPresentationBody {
         &self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
-        let (outer_sdf, radial) =
+        let (outer_sdf, radial) = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.outer_sdf"
+            )
+            .entered();
             self.outer_signed_distance_and_radial_local_metres(
                 local_point_metres,
-            )?;
+            )?
+        };
 
         if self.body.profile != CelestialBodyProfile::Rocky {
             return Some(outer_sdf);
         }
 
         let outer_surface_radius_metres = radial - outer_sdf;
-        let void_sdf =
+        let void_sdf = {
+            let _span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.density_sample.caves"
+            )
+            .entered();
             rocky_cave_void_signed_distance_metres_with_radial(
                 local_point_metres,
                 radial,
                 outer_surface_radius_metres,
                 self.body.seed,
-            );
+            )
+        };
 
         Some(outer_sdf.max(-void_sdf))
     }

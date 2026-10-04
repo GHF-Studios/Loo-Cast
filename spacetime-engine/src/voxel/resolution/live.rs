@@ -2645,20 +2645,40 @@ impl CelestialPresentationSampleCache {
         compute: impl FnOnce() -> [f32; CLIPMAP_CENTRAL_SAMPLE_COUNT],
     ) -> Arc<[f32; CLIPMAP_CENTRAL_SAMPLE_COUNT]> {
         {
+            let _lookup_span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.generate_density_lattice.cache_lookup"
+            )
+            .entered();
+
             let mut cache = match self.central_lattices.lock() {
                 Ok(cache) => cache,
                 Err(poisoned) => poisoned.into_inner(),
             };
             if let Some(hit) = cache.blocks.get(&key).cloned() {
                 cache.hits = cache.hits.saturating_add(1);
+
+                let _hit_span = bevy::log::info_span!(
+                    "voxel.worker.presentation_resolution.generate_density_lattice.cache_hit"
+                )
+                .entered();
                 return hit;
             }
         }
 
-        // Compute outside the lock. Inflight scheduling already prevents the
-        // same presentation spec being deliberately submitted twice; if an
-        // unusual race still happens, the second insertion reuses the winner.
-        let computed = Arc::new(compute());
+        // Compute outside the lock. This is the expensive FIRST-TOUCH terrain
+        // generation kernel we actually care about profiling.
+        let computed = {
+            let _generate_span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.generate_density_lattice.first_touch_generate"
+            )
+            .entered();
+            Arc::new(compute())
+        };
+
+        let _publish_span = bevy::log::info_span!(
+            "voxel.worker.presentation_resolution.generate_density_lattice.cache_publish"
+        )
+        .entered();
 
         let mut cache = match self.central_lattices.lock() {
             Ok(cache) => cache,
@@ -3414,8 +3434,11 @@ fn build_clipmap_mesh(
         .entered();
 
         let central = {
+            // density-lattice-diagnostic-instrumentation-v1
+            // This span is the actual canonical density-lattice generator,
+            // not merely a cache lookup. Name it accordingly.
             let _cache_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.extract.central_cache"
+                "voxel.worker.presentation_resolution.generate_density_lattice"
             )
             .entered();
 
