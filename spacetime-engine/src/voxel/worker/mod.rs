@@ -199,20 +199,6 @@ impl VoxelWorkerQueue {
         self.ready.notify_all();
     }
 
-    fn depths(
-        &self,
-    ) -> (
-        [usize; VoxelWorkerLane::COUNT],
-        [usize; VoxelWorkerLane::COUNT],
-    ) {
-        let Ok(state) = self.state.lock() else {
-            return ([0; VoxelWorkerLane::COUNT], [0; VoxelWorkerLane::COUNT]);
-        };
-        (
-            std::array::from_fn(|index| state.normal[index].len()),
-            std::array::from_fn(|index| state.critical[index].len()),
-        )
-    }
 }
 
 #[derive(Debug)]
@@ -221,9 +207,8 @@ struct VoxelWorkerAdmission {
     limits: [usize; VoxelWorkerLane::COUNT],
     average_job_ns: [AtomicU64; VoxelWorkerLane::COUNT],
 
-    // worker-instrumentation-compact-noise-megapass-v1
-    active: [AtomicUsize; VoxelWorkerLane::COUNT],
-    average_queue_wait_ns: [AtomicU64; VoxelWorkerLane::COUNT],
+    // first-touch-profiler-decontamination-v2
+    // No plot-only pressure state lives in worker admission.
 }
 impl VoxelWorkerAdmission {
     fn new(worker_capacity: usize) -> Self {
@@ -236,9 +221,6 @@ impl VoxelWorkerAdmission {
             // deliberately narrow.
             limits: [pipeline_depth, pipeline_depth, 1, 1, pipeline_depth],
             average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
-            active: std::array::from_fn(|_| AtomicUsize::new(0)),
-            average_queue_wait_ns:
-                std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
 
@@ -300,68 +282,6 @@ impl VoxelWorkerAdmission {
         (value != 0).then_some(value as f64 * 1.0e-9)
     }
 
-    fn record_queue_wait(&self, lane: VoxelWorkerLane, elapsed_ns: u64) {
-        let average = &self.average_queue_wait_ns[lane.index()];
-        let mut current = average.load(Ordering::Relaxed);
-        loop {
-            let next = if current == 0 {
-                elapsed_ns.max(1)
-            } else {
-                current
-                    .saturating_mul(7)
-                    .saturating_add(elapsed_ns.max(1))
-                    / 8
-            };
-            match average.compare_exchange_weak(
-                current,
-                next,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            ) {
-                Ok(_) => break,
-                Err(observed) => current = observed,
-            }
-        }
-    }
-
-    fn average_queue_wait_seconds(
-        &self,
-        lane: VoxelWorkerLane,
-    ) -> Option<f64> {
-        let value =
-            self.average_queue_wait_ns[lane.index()]
-                .load(Ordering::Relaxed);
-        (value != 0).then_some(value as f64 * 1.0e-9)
-    }
-
-    fn active(&self, lane: VoxelWorkerLane) -> usize {
-        self.active[lane.index()].load(Ordering::Acquire)
-    }
-
-}
-
-// worker-instrumentation-compact-noise-megapass-v1
-struct VoxelWorkerActiveJob {
-    admission: Arc<VoxelWorkerAdmission>,
-    lane: VoxelWorkerLane,
-}
-
-impl VoxelWorkerActiveJob {
-    fn new(
-        admission: Arc<VoxelWorkerAdmission>,
-        lane: VoxelWorkerLane,
-    ) -> Self {
-        admission.active[lane.index()].fetch_add(1, Ordering::AcqRel);
-        Self { admission, lane }
-    }
-}
-
-impl Drop for VoxelWorkerActiveJob {
-    fn drop(&mut self) {
-        let previous = self.admission.active[self.lane.index()]
-            .fetch_sub(1, Ordering::AcqRel);
-        debug_assert!(previous > 0, "voxel worker active-job underflow");
-    }
 }
 
 // voxel-compute-admission-lifetime-v1
@@ -553,17 +473,7 @@ pub(super) fn try_submit<T, F>(
         let worker_cancelled = Arc::clone(&cancelled);
         let admission_for_job = Arc::clone(&self.admission);
 
-        let submitted_at = Instant::now();
         let worker_job: VoxelWorkerJob = Box::new(move || {
-            let dequeued_at = Instant::now();
-            admission_for_job.record_queue_wait(
-                lane,
-                dequeued_at
-                    .duration_since(submitted_at)
-                    .as_nanos()
-                    .min(u128::from(u64::MAX)) as u64,
-            );
-
             // The compute lease is created inside the durable worker job so it
             // is released on every closure exit path, including cancellation
             // before execution and panic unwind.
@@ -574,8 +484,6 @@ pub(super) fn try_submit<T, F>(
                 return;
             }
 
-            let _active_job =
-                VoxelWorkerActiveJob::new(admission_for_job.clone(), lane);
             let started = Instant::now();
             let output = match lane {
                 VoxelWorkerLane::Generation => {
@@ -619,91 +527,9 @@ pub(super) fn try_submit<T, F>(
 
 }
 
-// worker-profiler-signal-prune-v1
-//
-// Keep only signals that answer a distinct scheduling question:
-// - active.total: are the durable workers actually saturated?
-// - queued.*.total: is normal/critical work waiting for service?
-// - per-lane queue_wait_seconds: which lane is suffering scheduler latency?
-// - per-lane compute_seconds: which lane's jobs are intrinsically expensive?
-//
-// Per-lane outstanding/active/queue-depth mirrors and monotonically increasing
-// completion counters were visual noise and duplicated the same pressure state.
+// first-touch-profiler-decontamination-v2
 #[cfg(feature = "profiling-tracy")]
-pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
-    if !tracy_client::Client::is_connected() {
-        return;
-    }
-    let Some(client) = tracy_client::Client::running() else {
-        return;
-    };
-
-    let lanes = [
-        VoxelWorkerLane::Generation,
-        VoxelWorkerLane::Derivation,
-        VoxelWorkerLane::PlanetarySurface,
-        VoxelWorkerLane::PresentationPlanning,
-        VoxelWorkerLane::PresentationResolution,
-    ];
-    let (queued_normal, queued_critical) = workers.queue.depths();
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.active.total"),
-        lanes.iter()
-            .map(|&lane| workers.admission.active(lane))
-            .sum::<usize>() as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.normal.total"),
-        queued_normal.iter().sum::<usize>() as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queued.critical.total"),
-        queued_critical.iter().sum::<usize>() as f64,
-    );
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queue_wait_seconds.generation"),
-        workers.admission.average_queue_wait_seconds(lanes[0]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queue_wait_seconds.derivation"),
-        workers.admission.average_queue_wait_seconds(lanes[1]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queue_wait_seconds.planetary"),
-        workers.admission.average_queue_wait_seconds(lanes[2]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queue_wait_seconds.presentation_planning"),
-        workers.admission.average_queue_wait_seconds(lanes[3]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.queue_wait_seconds.presentation"),
-        workers.admission.average_queue_wait_seconds(lanes[4]).unwrap_or(0.0),
-    );
-
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.compute_seconds.generation"),
-        workers.admission.average_job_seconds(lanes[0]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.compute_seconds.derivation"),
-        workers.admission.average_job_seconds(lanes[1]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.compute_seconds.planetary"),
-        workers.admission.average_job_seconds(lanes[2]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.compute_seconds.presentation_planning"),
-        workers.admission.average_job_seconds(lanes[3]).unwrap_or(0.0),
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.compute_seconds.presentation"),
-        workers.admission.average_job_seconds(lanes[4]).unwrap_or(0.0),
-    );
-}
+pub(super) fn emit_worker_pressure(_workers: Res<VoxelWorkerPool>) {}
 
 fn recommended_worker_threads(available: usize) -> usize {
     let available = available.max(1);

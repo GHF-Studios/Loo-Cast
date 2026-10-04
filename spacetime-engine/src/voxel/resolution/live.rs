@@ -49,9 +49,7 @@ use crate::procedural_assets::{
     DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
 };
 use crate::view::USF_PRESENTATION_LAYER;
-// fine-residual-microdiagnostics-v1
-use crate::voxel::base::semantic_noise_diagnostic_snapshot;
-// surface-octave-microprofile-v1
+// first-touch-profiler-decontamination-v2
 use crate::voxel::{
     developer_policy::{
         presentation_surface_radius_bounds_metres,
@@ -87,9 +85,7 @@ use super::super::{
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
-// surface-octave-microprofile-v1
-#[cfg(feature = "profiling-tracy")]
-const SURFACE_MICRO_PROFILE_SAMPLE_STRIDE_FOR_TRACE: u64 = 29;
+// first-touch-profiler-decontamination-v2
 // presentation-extract-hotpath-v1
 //
 // Only lazy high-resolution transition-neighbour queries need an external memo.
@@ -3448,14 +3444,7 @@ fn build_clipmap_mesh(
             )
             .entered();
 
-            let semantic_diagnostics_before =
-                semantic_noise_diagnostic_snapshot();
-
-            // surface-octave-microprofile-v1
-            #[cfg(feature = "profiling-tracy")]
-            let surface_profile_before =
-                sampler.surface_micro_profile_snapshot();
-
+            // first-touch-profiler-decontamination-v2
             let interior =
                 sample_cache.central_lattice_get_or_compute(
                     spec.key,
@@ -3467,119 +3456,6 @@ fn build_clipmap_mesh(
                         )
                     },
                 );
-
-            let semantic_diagnostics =
-                semantic_noise_diagnostic_snapshot()
-                    .delta_since(semantic_diagnostics_before);
-
-            // surface-octave-microprofile-v1
-            #[cfg(feature = "profiling-tracy")]
-            {
-                let surface_profile =
-                    sampler.surface_micro_profile_snapshot()
-                        .delta_since(surface_profile_before);
-
-                let coarse_band_ns: u64 =
-                    surface_profile.coarse_band_ns
-                        .iter()
-                        .take(surface_profile.coarse_len)
-                        .copied()
-                        .sum();
-                let fine_band_ns: u64 =
-                    surface_profile.fine_band_ns
-                        .iter()
-                        .take(surface_profile.fine_len)
-                        .copied()
-                        .sum();
-                let categorized_ns = surface_profile.normalize_ns
-                    .saturating_add(surface_profile.macro_terrain_ns)
-                    .saturating_add(surface_profile.coarse_total_ns)
-                    .saturating_add(surface_profile.fine_total_ns);
-                let unattributed_surface_ns =
-                    surface_profile.surface_total_ns
-                        .saturating_sub(categorized_ns);
-                let coarse_loop_gap_ns =
-                    surface_profile.coarse_total_ns
-                        .saturating_sub(coarse_band_ns);
-                let fine_loop_gap_ns =
-                    surface_profile.fine_total_ns
-                        .saturating_sub(fine_band_ns);
-
-                trace!(
-                    sample_stride = SURFACE_MICRO_PROFILE_SAMPLE_STRIDE_FOR_TRACE,
-                    surface_calls = surface_profile.surface_calls,
-                    sampled_calls = surface_profile.sampled_calls,
-                    surface_total_ns = surface_profile.surface_total_ns,
-                    normalize_ns = surface_profile.normalize_ns,
-                    macro_terrain_ns = surface_profile.macro_terrain_ns,
-                    coarse_total_ns = surface_profile.coarse_total_ns,
-                    coarse_band_ns = coarse_band_ns,
-                    coarse_loop_gap_ns = coarse_loop_gap_ns,
-                    fine_total_ns = surface_profile.fine_total_ns,
-                    fine_band_ns = fine_band_ns,
-                    fine_loop_gap_ns = fine_loop_gap_ns,
-                    unattributed_surface_ns = unattributed_surface_ns,
-                    coarse_len = surface_profile.coarse_len,
-                    coarse_band_exponents =
-                        ?surface_profile.coarse_band_exponents,
-                    coarse_band_samples =
-                        ?surface_profile.coarse_band_samples,
-                    coarse_band_ns_by_octave =
-                        ?surface_profile.coarse_band_ns,
-                    fine_len = surface_profile.fine_len,
-                    fine_band_exponents =
-                        ?surface_profile.fine_band_exponents,
-                    fine_band_samples =
-                        ?surface_profile.fine_band_samples,
-                    fine_band_ns_by_octave =
-                        ?surface_profile.fine_band_ns,
-                    "surface octave microprofile"
-                );
-            }
-
-            trace!(
-                prepared_point_attempts =
-                    semantic_diagnostics.prepared_point_attempts,
-                prepared_point_successes =
-                    semantic_diagnostics.prepared_point_successes,
-                prepared_point_nonfinite_failures =
-                    semantic_diagnostics
-                        .prepared_point_nonfinite_failures,
-                prepared_point_range_failures =
-                    semantic_diagnostics
-                        .prepared_point_range_failures,
-                prepared_point_overflow_failures =
-                    semantic_diagnostics
-                        .prepared_point_overflow_failures,
-                prepared_cell_address_failures =
-                    semantic_diagnostics
-                        .prepared_cell_address_failures,
-                fast_path_completions =
-                    semantic_diagnostics.fast_path_completions,
-                generic_fallbacks =
-                    semantic_diagnostics.generic_fallbacks,
-                cell_20_hits = semantic_diagnostics.cell_20_hits,
-                cell_20_misses = semantic_diagnostics.cell_20_misses,
-                cell_5_hits = semantic_diagnostics.cell_5_hits,
-                cell_5_misses = semantic_diagnostics.cell_5_misses,
-                cell_empty_misses =
-                    semantic_diagnostics.cell_empty_misses,
-                cell_collision_misses =
-                    semantic_diagnostics.cell_collision_misses,
-                corner_hits = semantic_diagnostics.corner_hits,
-                corner_misses = semantic_diagnostics.corner_misses,
-                corner_empty_misses =
-                    semantic_diagnostics.corner_empty_misses,
-                corner_collision_misses =
-                    semantic_diagnostics.corner_collision_misses,
-                corner_hash_computes =
-                    semantic_diagnostics.corner_hash_computes,
-                compact_axis_decompositions =
-                    semantic_diagnostics.compact_axis_decompositions,
-                compact_digit_steps =
-                    semantic_diagnostics.compact_digit_steps,
-                "fine residual density-lattice microdiagnostics"
-            );
 
             ClipmapCentralBlock::from_lattice(
                 &central_shared_density,

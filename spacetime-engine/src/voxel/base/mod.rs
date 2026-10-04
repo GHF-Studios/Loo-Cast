@@ -1,3 +1,4 @@
+// first-touch-profiler-decontamination-v2
 //! Procedural backing fields for voxel worlds.
 //!
 //! A base field is reconstructible and therefore does not need to be persisted
@@ -18,9 +19,6 @@ pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
 pub(crate) use celestial::{
     CelestialFieldSample, PreparedCelestialPresentationBody,
 };
-// surface-octave-microprofile-v1
-#[cfg(feature = "profiling-tracy")]
-pub(crate) use celestial::CelestialSurfaceMicroProfileSnapshot;
 // presentation-central-cache-specialization-v1
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;

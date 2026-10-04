@@ -1,3 +1,4 @@
+// first-touch-profiler-decontamination-v2
 //! Shared semantic authority for voxel fields with multiple realizations.
 // canonical-celestial-surface-coherence-v4
 //!
@@ -108,13 +109,6 @@ impl CelestialPresentationFieldSampler {
         self.body.noise_cell_cache_stats()
     }
 
-    // surface-octave-microprofile-v1
-    #[cfg(feature = "profiling-tracy")]
-    pub(crate) fn surface_micro_profile_snapshot(
-        &self,
-    ) -> super::base::CelestialSurfaceMicroProfileSnapshot {
-        self.body.surface_micro_profile_snapshot()
-    }
 }
 
 impl CelestialVoxelField {
