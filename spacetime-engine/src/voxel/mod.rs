@@ -31,6 +31,8 @@ mod streaming;
 mod world;
 
 pub use authority::{CelestialVoxelField, VoxelAuthority};
+pub(in crate::voxel) use authority::CelestialPresentationFieldSampler;
+// planner-worker-hotpath-multimegapass-v1
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
     CelestialVoxelRealization, CelestialVoxelRealizationRegistry,

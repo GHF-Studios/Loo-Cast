@@ -10,7 +10,9 @@
 
 use std::collections::HashMap;
 
-use avian3d::prelude::{Collider, CollisionMargin, Position, RigidBody};
+use avian3d::prelude::{
+    Collider, ColliderDisabled, CollisionMargin, Position, RigidBody,
+};
 use bevy::prelude::*;
 
 use crate::{
@@ -29,6 +31,8 @@ use super::super::{
 /// Historical aggregate edge that bounded incremental rebuild amplification
 /// while reducing one-to-one collider-tree proxy count by up to 4³ = 64×.
 const COLLISION_GROUP_EDGE: i64 = 4;
+// runtime-pooling-transform-avian-megapass-v1
+const MAX_POOLED_COLLISION_AGGREGATES: usize = 512;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::voxel) struct VoxelCollisionAggregateKey {
@@ -52,6 +56,7 @@ struct VoxelCollisionAggregateState {
 pub(in crate::voxel) struct VoxelCollisionAggregateRegistry {
     groups: HashMap<VoxelCollisionAggregateKey, VoxelCollisionAggregateState>,
     published_members: HashMap<(Entity, VoxelMaterializationKey), u64>,
+    pooled_entities: Vec<Entity>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +75,19 @@ pub(in crate::voxel) struct VoxelCollisionReconcileCache {
 }
 
 impl VoxelCollisionAggregateRegistry {
+    fn recycle(&mut self, commands: &mut Commands, entity: Entity) {
+        if self.pooled_entities.len() < MAX_POOLED_COLLISION_AGGREGATES {
+            commands.entity(entity).insert(ColliderDisabled);
+            self.pooled_entities.push(entity);
+        } else {
+            commands.entity(entity).despawn();
+        }
+    }
+
+    fn take_pooled(&mut self) -> Option<Entity> {
+        self.pooled_entities.pop()
+    }
+
     pub(super) fn member_current(
         &self,
         world: Entity,
@@ -375,7 +393,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         .collect::<Vec<_>>();
     for key in stale {
         if let Some(state) = registry.groups.remove(&key) {
-            commands.entity(state.entity).despawn();
+            registry.recycle(&mut commands, state.entity);
         }
     }
 
@@ -404,7 +422,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                 build_aggregate_collider(aggregate.origin, members, world)
             else {
                 if let Some(state) = registry.groups.remove(&aggregate) {
-                    commands.entity(state.entity).despawn();
+                    registry.recycle(&mut commands, state.entity);
                 }
                 continue;
             };
@@ -421,24 +439,40 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                 continue;
             };
 
-            let entity = commands
-                .spawn((
-                    Name::new("Voxel Collision Aggregate"),
-                    *layer,
-                    RigidBody::Static,
-                    Position::new(translation),
-                    Transform::from_translation(translation),
-                    collider,
-                    CollisionMargin(
-                        layer
-                            .scale()
-                            .metres_to_native_f32(
-                                physics::VOXEL_COLLISION_MARGIN_METRES,
-                            )
-                            .max(f32::MIN_POSITIVE),
-                    ),
-                ))
-                .id();
+            let collision_margin = CollisionMargin(
+                layer
+                    .scale()
+                    .metres_to_native_f32(
+                        physics::VOXEL_COLLISION_MARGIN_METRES,
+                    )
+                    .max(f32::MIN_POSITIVE),
+            );
+            let entity = if let Some(entity) = registry.take_pooled() {
+                commands
+                    .entity(entity)
+                    .insert((
+                        *layer,
+                        RigidBody::Static,
+                        Position::new(translation),
+                        Transform::from_translation(translation),
+                        collider,
+                        collision_margin,
+                    ))
+                    .remove::<ColliderDisabled>();
+                entity
+            } else {
+                commands
+                    .spawn((
+                        Name::new("Voxel Collision Aggregate"),
+                        *layer,
+                        RigidBody::Static,
+                        Position::new(translation),
+                        Transform::from_translation(translation),
+                        collider,
+                        collision_margin,
+                    ))
+                    .id()
+            };
 
             registry.groups.insert(
                 aggregate,

@@ -198,14 +198,24 @@ impl CelestialVoxelField {
         })
     }
 
+    // planner-worker-hotpath-multimegapass-v1
+    // These are ONE-SHOT adapters. Constructing PreparedCelestialPresentationBody
+    // here allocated a 4096-slot semantic-corner cache for every planner sample.
+    // Reuse belongs to explicit `presentation_sampler()` owners instead.
     pub(crate) fn presentation_surface_local_metres(
         self,
         direction: Vec3,
         sample_spacing_metres: f64,
     ) -> Result<DVec3, UsfPositionError> {
-        self.presentation_sampler(sample_spacing_metres)
-            .ok_or(UsfPositionError::NonFiniteTranslation)?
-            .surface_local_metres(direction)
+        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .surface_local_metres(direction)
     }
 
     pub(crate) fn presentation_signed_distance_local_metres(
@@ -213,8 +223,15 @@ impl CelestialVoxelField {
         local_point_metres: DVec3,
         sample_spacing_metres: f64,
     ) -> Option<f64> {
-        self.presentation_sampler(sample_spacing_metres)?
-            .signed_distance_local_metres(local_point_metres)
+        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
+            return None;
+        }
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .signed_distance_local_metres(local_point_metres)
     }
 
     pub(crate) fn presentation_caves_may_intersect_aabb(
