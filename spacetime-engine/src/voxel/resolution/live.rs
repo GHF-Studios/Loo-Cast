@@ -2688,10 +2688,21 @@ struct ClipmapCentralBlock<'a> {
 }
 
 impl<'a> ClipmapCentralBlock<'a> {
-    fn cache(
-        field: &'a dyn DataField<f32, f32>,
+    // central-cache-kernel-megapass-v1
+    //
+    // The previous `&dyn DataField` forced 729 virtual calls through the hottest
+    // loop. Keep the concrete closure type here so rustc can inline the complete
+    // central-density path into the fixed 9^3 fill. We still retain a trait
+    // object only for the extremely rare defensive out-of-contract extension
+    // access after the fill is complete.
+    #[inline]
+    fn cache<F>(
+        field: &'a F,
         block: Block<f32>,
-    ) -> Self {
+    ) -> Self
+    where
+        F: DataField<f32, f32>,
+    {
         debug_assert_eq!(block.subdivisions, BLOCK_SUBDIVISIONS);
         let mut interior = [0.0_f32; CLIPMAP_CENTRAL_SAMPLE_COUNT];
         let step = block.size / block.subdivisions as f32;
@@ -2703,13 +2714,18 @@ impl<'a> ClipmapCentralBlock<'a> {
                 let py = block.base[1] + y as f32 * step;
                 for z in 0..=BLOCK_SUBDIVISIONS {
                     let pz = block.base[2] + z as f32 * step;
-                    interior[cursor] = field.get_data(px, py, pz);
+                    interior[cursor] =
+                        field.get_data(px, py, pz);
                     cursor += 1;
                 }
             }
         }
 
-        Self { block, interior, extension_field: field }
+        Self {
+            block,
+            interior,
+            extension_field: field,
+        }
     }
 
     #[inline]

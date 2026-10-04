@@ -23,21 +23,133 @@ pub(super) fn volumetric_noise(
     }
 }
 
+// central-cache-kernel-megapass-v1
+//
+// Most canonical surface evaluation is ordinary value-noise interpolation.
+// Within one 9^3 clipmap block, dozens of independent terrain domains repeatedly
+// sample the same integer noise cell. Cache the COMPLETE eight-corner cell per
+// durable worker thread: one lookup per value_noise_3d call instead of eight
+// repeated hash_noise_3d evaluations. Collisions only recompute.
+const VALUE_NOISE_CELL_CACHE_SLOTS: usize = 16_384;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ValueNoiseCellKey {
+    seed: u32,
+    x: i32,
+    y: i32,
+    z: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ValueNoiseCellEntry {
+    key: ValueNoiseCellKey,
+    corners: [f32; 8],
+    occupied: bool,
+}
+
+impl ValueNoiseCellEntry {
+    const EMPTY: Self = Self {
+        key: ValueNoiseCellKey {
+            seed: 0,
+            x: 0,
+            y: 0,
+            z: 0,
+        },
+        corners: [0.0; 8],
+        occupied: false,
+    };
+}
+
+struct ValueNoiseCellCache {
+    slots: Box<[Cell<ValueNoiseCellEntry>]>,
+    hits: Cell<u64>,
+    misses: Cell<u64>,
+}
+
+impl ValueNoiseCellCache {
+    fn new() -> Self {
+        debug_assert!(VALUE_NOISE_CELL_CACHE_SLOTS.is_power_of_two());
+        let slots = (0..VALUE_NOISE_CELL_CACHE_SLOTS)
+            .map(|_| Cell::new(ValueNoiseCellEntry::EMPTY))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+
+        Self {
+            slots,
+            hits: Cell::new(0),
+            misses: Cell::new(0),
+        }
+    }
+
+    #[inline]
+    fn slot_index(key: ValueNoiseCellKey) -> usize {
+        let mut value = key.seed
+            ^ (key.x as u32).wrapping_mul(0x9E37_79B9)
+            ^ (key.y as u32).wrapping_mul(0x85EB_CA6B)
+            ^ (key.z as u32).wrapping_mul(0xC2B2_AE35);
+        value ^= value >> 16;
+        value = value.wrapping_mul(0x7FEB_352D);
+        value ^= value >> 15;
+        (value as usize) & (VALUE_NOISE_CELL_CACHE_SLOTS - 1)
+    }
+
+    #[inline]
+    fn corners(&self, cell: bevy::prelude::IVec3, seed: u32) -> [f32; 8] {
+        let key = ValueNoiseCellKey {
+            seed,
+            x: cell.x,
+            y: cell.y,
+            z: cell.z,
+        };
+        let slot = &self.slots[Self::slot_index(key)];
+        let entry = slot.get();
+        if entry.occupied && entry.key == key {
+            self.hits.set(self.hits.get().saturating_add(1));
+            return entry.corners;
+        }
+
+        self.misses.set(self.misses.get().saturating_add(1));
+        let corners = [
+            hash_noise_3d(cell.x,     cell.y,     cell.z,     seed),
+            hash_noise_3d(cell.x + 1, cell.y,     cell.z,     seed),
+            hash_noise_3d(cell.x,     cell.y + 1, cell.z,     seed),
+            hash_noise_3d(cell.x + 1, cell.y + 1, cell.z,     seed),
+            hash_noise_3d(cell.x,     cell.y,     cell.z + 1, seed),
+            hash_noise_3d(cell.x + 1, cell.y,     cell.z + 1, seed),
+            hash_noise_3d(cell.x,     cell.y + 1, cell.z + 1, seed),
+            hash_noise_3d(cell.x + 1, cell.y + 1, cell.z + 1, seed),
+        ];
+        slot.set(ValueNoiseCellEntry {
+            key,
+            corners,
+            occupied: true,
+        });
+        corners
+    }
+
+    #[cfg(test)]
+    fn stats(&self) -> (u64, u64) {
+        (self.hits.get(), self.misses.get())
+    }
+}
+
+std::thread_local! {
+    static VALUE_NOISE_CELL_CACHE: ValueNoiseCellCache =
+        ValueNoiseCellCache::new();
+}
+
+#[inline]
 pub(crate) fn value_noise_3d(point: Vec3, seed: u32) -> f32 {
     let cell = point.floor().as_ivec3();
     let fraction = point - cell.as_vec3();
-    let smooth = fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
-    let corner =
-        |dx: i32, dy: i32, dz: i32| hash_noise_3d(cell.x + dx, cell.y + dy, cell.z + dz, seed);
+    let smooth =
+        fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
 
-    let c000 = corner(0, 0, 0);
-    let c100 = corner(1, 0, 0);
-    let c010 = corner(0, 1, 0);
-    let c110 = corner(1, 1, 0);
-    let c001 = corner(0, 0, 1);
-    let c101 = corner(1, 0, 1);
-    let c011 = corner(0, 1, 1);
-    let c111 = corner(1, 1, 1);
+    let [
+        c000, c100, c010, c110,
+        c001, c101, c011, c111,
+    ] = VALUE_NOISE_CELL_CACHE.with(|cache| cache.corners(cell, seed));
+
     let x00 = c000 + (c100 - c000) * smooth.x;
     let x10 = c010 + (c110 - c010) * smooth.x;
     let x01 = c001 + (c101 - c001) * smooth.x;
@@ -45,6 +157,11 @@ pub(crate) fn value_noise_3d(point: Vec3, seed: u32) -> f32 {
     let y0 = x00 + (x10 - x00) * smooth.y;
     let y1 = x01 + (x11 - x01) * smooth.y;
     y0 + (y1 - y0) * smooth.z
+}
+
+#[cfg(test)]
+fn value_noise_cell_cache_stats() -> (u64, u64) {
+    VALUE_NOISE_CELL_CACHE.with(ValueNoiseCellCache::stats)
 }
 
 fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
@@ -563,6 +680,67 @@ mod semantic_corner_cache_tests {
     use super::*;
     use bevy::math::DVec3;
     use crate::spatial::UsfPosition;
+
+    fn value_noise_3d_reference(point: Vec3, seed: u32) -> f32 {
+        let cell = point.floor().as_ivec3();
+        let fraction = point - cell.as_vec3();
+        let smooth =
+            fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
+        let corner = |dx: i32, dy: i32, dz: i32| {
+            hash_noise_3d(
+                cell.x + dx,
+                cell.y + dy,
+                cell.z + dz,
+                seed,
+            )
+        };
+
+        let c000 = corner(0, 0, 0);
+        let c100 = corner(1, 0, 0);
+        let c010 = corner(0, 1, 0);
+        let c110 = corner(1, 1, 0);
+        let c001 = corner(0, 0, 1);
+        let c101 = corner(1, 0, 1);
+        let c011 = corner(0, 1, 1);
+        let c111 = corner(1, 1, 1);
+        let x00 = c000 + (c100 - c000) * smooth.x;
+        let x10 = c010 + (c110 - c010) * smooth.x;
+        let x01 = c001 + (c101 - c001) * smooth.x;
+        let x11 = c011 + (c111 - c011) * smooth.x;
+        let y0 = x00 + (x10 - x00) * smooth.y;
+        let y1 = x01 + (x11 - x01) * smooth.y;
+        y0 + (y1 - y0) * smooth.z
+    }
+
+    #[test]
+    fn cached_value_noise_cells_are_bit_exact_and_reused() {
+        let seed = 0xB10C_CACE;
+        let before = value_noise_cell_cache_stats();
+
+        for point in [
+            Vec3::new(0.125, 0.250, 0.375),
+            Vec3::new(0.875, 0.750, 0.625),
+            Vec3::new(-12.25, 19.5, -7.75),
+            Vec3::new(4_321.125, -2_111.875, 997.5),
+        ] {
+            let reference = value_noise_3d_reference(point, seed);
+            let cached = value_noise_3d(point, seed);
+            assert_eq!(reference.to_bits(), cached.to_bits());
+
+            let again = value_noise_3d(point, seed);
+            assert_eq!(reference.to_bits(), again.to_bits());
+        }
+
+        let after = value_noise_cell_cache_stats();
+        assert!(
+            after.0 > before.0,
+            "expected repeated value-noise cell cache hits",
+        );
+        assert!(
+            after.1 > before.1,
+            "expected first-touch value-noise cell cache misses",
+        );
+    }
 
     #[test]
     fn compact_semantic_corner_hash_matches_usf_reference() {

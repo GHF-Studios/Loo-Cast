@@ -5,7 +5,10 @@
 
 use bevy::{math::DVec3, prelude::Vec3};
 
-use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError, UsfSemanticFrame};
+use crate::spatial::{
+    SPATIAL_SCALE_COUNT, SpatialScale, UsfPosition, UsfPositionError,
+    UsfSemanticFrame,
+};
 
 use super::{
     EMPTY_DISTANCE,
@@ -103,14 +106,104 @@ pub(crate) struct PreparedProceduralCelestialBody {
 }
 
 // presentation-central-cache-specialization-v1
+// central-cache-kernel-megapass-v1
 //
-// Presentation evaluates many nearby body-local points. Keep expensive
-// deterministic semantic-noise corner reuse inside this reconstructible sampler
-// rather than in semantic authority or global process state.
+// Presentation samples the same body's full residual stack 729 times per
+// central block. Resolve all Scale-dependent invariants once per sampler:
+// SpatialScale construction, metres/native, growth.powi(), angular frequency
+// and keyed seed leave the inner SDF loop.
+#[derive(Debug, Clone, Copy)]
+struct PreparedCelestialResidualBand {
+    level: SpatialScale,
+    metres_per_native: f64,
+    amplitude_native: f64,
+    angular_frequency: f32,
+    seed: u32,
+}
+
+#[derive(Debug)]
+struct PreparedCelestialResidualStack {
+    coarse: [Option<PreparedCelestialResidualBand>; SPATIAL_SCALE_COUNT],
+    coarse_len: usize,
+    fine: [Option<PreparedCelestialResidualBand>; SPATIAL_SCALE_COUNT],
+    fine_len: usize,
+}
+
+impl PreparedCelestialResidualStack {
+    fn new(body: ProceduralCelestialBody) -> Self {
+        let mut stack = Self {
+            coarse: [None; SPATIAL_SCALE_COUNT],
+            coarse_len: 0,
+            fine: [None; SPATIAL_SCALE_COUNT],
+            fine_len: 0,
+        };
+
+        let floor = body.surface_detail_scale.exponent();
+        let root = body.coarsest_detail_scale.exponent();
+        let (frequency_factor, _, _, salt) = body.detail_parameters();
+
+        let coarse_lower = floor.max(1);
+        if coarse_lower <= root {
+            for raw in (coarse_lower..=root).rev() {
+                let level = SpatialScale::new(raw)
+                    .expect("validated coarse celestial semantic detail scale");
+                let metres_per_native = level.metres_per_native();
+                let amplitude_native = body.detail_amplitude_native(level);
+                let radius_at_level =
+                    body.radius_metres / metres_per_native;
+                let angular_frequency = (
+                    radius_at_level * frequency_factor
+                )
+                    .max(4.0)
+                    .min(f64::from(f32::MAX))
+                    as f32;
+                let seed = scale_layer_seed(
+                    body.seed ^ salt,
+                    level,
+                );
+
+                stack.coarse[stack.coarse_len] =
+                    Some(PreparedCelestialResidualBand {
+                        level,
+                        metres_per_native,
+                        amplitude_native,
+                        angular_frequency,
+                        seed,
+                    });
+                stack.coarse_len += 1;
+            }
+        }
+
+        let fine_upper = root.min(0);
+        if floor <= fine_upper {
+            for raw in (floor..=fine_upper).rev() {
+                let level = SpatialScale::new(raw)
+                    .expect("validated fine celestial semantic detail scale");
+                stack.fine[stack.fine_len] =
+                    Some(PreparedCelestialResidualBand {
+                        level,
+                        metres_per_native: level.metres_per_native(),
+                        amplitude_native:
+                            body.detail_amplitude_native(level),
+                        angular_frequency: 0.0,
+                        seed: scale_layer_seed(
+                            body.seed ^ salt,
+                            level,
+                        ),
+                    });
+                stack.fine_len += 1;
+            }
+        }
+
+        stack
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct PreparedCelestialPresentationBody {
     body: ProceduralCelestialBody,
     canonical_noise_cache: SemanticNoiseCornerCache,
+    residual: PreparedCelestialResidualStack,
 }
 
 impl PreparedCelestialPresentationBody {
@@ -118,7 +211,97 @@ impl PreparedCelestialPresentationBody {
         Self {
             body,
             canonical_noise_cache: SemanticNoiseCornerCache::new(),
+            residual: PreparedCelestialResidualStack::new(body),
         }
+    }
+
+    #[inline]
+    fn semantic_surface_radius_metres(
+        &self,
+        direction: Vec3,
+    ) -> Result<f64, UsfPositionError> {
+        // Preserve the reference normalization sequence exactly:
+        // callers normalize once before this function and the reference
+        // semantic surface function normalizes again here.
+        let direction = normalized_direction(direction);
+        let mut radius = self.body.radius_metres
+            + self.body.macro_surface_displacement_metres(
+                direction,
+                self.body.surface_detail_scale,
+            );
+
+        for band in self
+            .residual
+            .coarse
+            .iter()
+            .take(self.residual.coarse_len)
+            .flatten()
+        {
+            let p = direction * band.angular_frequency;
+            let broad = value_noise_3d(
+                p + Vec3::new(13.7, -7.1, 3.9),
+                band.seed ^ 0xA341_316C,
+            );
+            let fine = value_noise_3d(
+                p * 2.31 + Vec3::new(-5.3, 11.9, 17.2),
+                band.seed ^ 0xC801_3EA4,
+            );
+            let detail_native =
+                f64::from(broad * 0.72 + fine * 0.28)
+                    * band.amplitude_native;
+            radius += detail_native * band.metres_per_native;
+        }
+
+        if self.residual.fine_len > 0 {
+            let local_reference_metres = dvec(direction) * radius;
+            for band in self
+                .residual
+                .fine
+                .iter()
+                .take(self.residual.fine_len)
+                .flatten()
+            {
+                let noise = self
+                    .body
+                    .canonical_detail_noise_at_local_metres_cached_prepared(
+                        local_reference_metres,
+                        band.level,
+                        band.metres_per_native,
+                        band.seed,
+                        &self.canonical_noise_cache,
+                    )?;
+                radius += f64::from(noise)
+                    * band.amplitude_native
+                    * band.metres_per_native;
+            }
+        }
+
+        Ok(radius)
+    }
+
+    #[inline]
+    fn outer_signed_distance_and_radial_local_metres(
+        &self,
+        local_point_metres: DVec3,
+    ) -> Option<(f64, f64)> {
+        let radial = local_point_metres.length();
+        if !radial.is_finite() || radial <= f64::EPSILON {
+            return None;
+        }
+
+        let direction = Vec3::new(
+            (local_point_metres.x / radial) as f32,
+            (local_point_metres.y / radial) as f32,
+            (local_point_metres.z / radial) as f32,
+        )
+        .normalize_or_zero();
+        if direction == Vec3::ZERO {
+            return None;
+        }
+
+        let surface_radius =
+            self.semantic_surface_radius_metres(direction).ok()?;
+        Some((radial - surface_radius, radial))
     }
 
     #[inline]
@@ -126,12 +309,25 @@ impl PreparedCelestialPresentationBody {
         &self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
-        self.body
-            .signed_distance_local_metres_with_detail_cache(
+        let (outer_sdf, radial) =
+            self.outer_signed_distance_and_radial_local_metres(
                 local_point_metres,
-                &self.canonical_noise_cache,
-                true,
-            )
+            )?;
+
+        if self.body.profile != CelestialBodyProfile::Rocky {
+            return Some(outer_sdf);
+        }
+
+        let outer_surface_radius_metres = radial - outer_sdf;
+        let void_sdf =
+            rocky_cave_void_signed_distance_metres_with_radial(
+                local_point_metres,
+                radial,
+                outer_surface_radius_metres,
+                self.body.seed,
+            );
+
+        Some(outer_sdf.max(-void_sdf))
     }
 
     #[inline]
@@ -139,13 +335,10 @@ impl PreparedCelestialPresentationBody {
         &self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
-        self.body
-            .outer_signed_distance_and_radial_local_metres_through_with_cache(
-                local_point_metres,
-                self.body.surface_detail_scale,
-                Some(&self.canonical_noise_cache),
-            )
-            .map(|(distance, _)| distance)
+        self.outer_signed_distance_and_radial_local_metres(
+            local_point_metres,
+        )
+        .map(|(distance, _)| distance)
     }
 
     #[inline]
@@ -154,12 +347,7 @@ impl PreparedCelestialPresentationBody {
         direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
         let direction = normalized_direction(direction);
-        let radius =
-            self.body.semantic_surface_radius_metres_through_with_cache(
-                direction,
-                self.body.surface_detail_scale,
-                Some(&self.canonical_noise_cache),
-            )?;
+        let radius = self.semantic_surface_radius_metres(direction)?;
         Ok(dvec(direction) * radius)
     }
 
@@ -737,16 +925,35 @@ fn canonical_detail_noise_at(
         level: SpatialScale,
         cache: &SemanticNoiseCornerCache,
     ) -> Result<f32, UsfPositionError> {
+        let metres_per_native = level.metres_per_native();
+        let (_, _, _, salt) = self.detail_parameters();
+        let seed = scale_layer_seed(self.seed ^ salt, level);
+        self.canonical_detail_noise_at_local_metres_cached_prepared(
+            local_position_metres,
+            level,
+            metres_per_native,
+            seed,
+            cache,
+        )
+    }
+
+    #[inline]
+    fn canonical_detail_noise_at_local_metres_cached_prepared(
+        self,
+        local_position_metres: DVec3,
+        level: SpatialScale,
+        metres_per_native: f64,
+        seed: u32,
+        cache: &SemanticNoiseCornerCache,
+    ) -> Result<f32, UsfPositionError> {
         let native =
-            local_position_metres / level.metres_per_native();
+            local_position_metres / metres_per_native;
         let canonical = UsfPosition::from_scale_native_f64(
             native,
             level,
             level,
         )?;
         let point = VoxelQueryPosition::new(canonical);
-        let (_, _, _, salt) = self.detail_parameters();
-        let seed = scale_layer_seed(self.seed ^ salt, level);
         let broad = semantic_value_noise_3d_cached(
             point,
             CANONICAL_DETAIL_CELL_NATIVE,
@@ -977,6 +1184,38 @@ mod tests {
             SpatialScale::MIN,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn prepared_presentation_sampler_matches_reference_sdf_bits() {
+        let body = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+        let prepared = body.prepare_presentation_sampler();
+
+        for point in [
+            DVec3::new(0.0, 6_371_025.0, 0.0),
+            DVec3::new(37.0, 6_370_900.0, -83.0),
+            DVec3::new(1_234.5, 6_371_111.25, -777.75),
+            DVec3::new(-9_876.25, 6_369_500.0, 4_321.5),
+        ] {
+            let reference =
+                body.signed_distance_local_metres(point).unwrap();
+            let optimized =
+                prepared.signed_distance_local_metres(point).unwrap();
+            assert_eq!(
+                reference.to_bits(),
+                optimized.to_bits(),
+                "prepared presentation SDF changed canonical field at {point:?}",
+            );
+        }
     }
 
     #[test]
