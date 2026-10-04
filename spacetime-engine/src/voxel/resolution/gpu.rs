@@ -6,6 +6,7 @@
 //! MeshAllocator slabs. No density/geometry readback is performed.
 //!
 //! gpu-binary-presentation-production-v1
+// gpu-terrain-table-readonly-binding-repair-v1
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -22,7 +23,9 @@ use bevy::{
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         mesh::allocator::{MeshAllocator, MeshAllocatorSettings},
         render_resource::{
-            binding_types::{storage_buffer, uniform_buffer},
+            binding_types::{
+                storage_buffer, storage_buffer_read_only, uniform_buffer,
+            },
             *,
         },
         renderer::{RenderContext, RenderGraph, RenderQueue},
@@ -662,7 +665,9 @@ fn init_gpu_terrain_pipeline(
             ShaderStages::COMPUTE,
             (
                 uniform_buffer::<GpuTerrainDispatch>(false),
-                storage_buffer::<Vec<u32>>(true),
+                // Canonical Transvoxel lookup payload: shader reads, never writes.
+                storage_buffer_read_only::<Vec<u32>>(false),
+                // MeshAllocator slabs: compute writes generated geometry directly.
                 storage_buffer::<Vec<f32>>(false),
                 storage_buffer::<Vec<u32>>(false),
             ),
