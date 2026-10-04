@@ -1008,68 +1008,40 @@ fn canonical_detail_noise_at(
             local_position_metres / metres_per_native;
 
         // fine-residual-native-cell-megapass-v1
-        // fine-residual-microdiagnostics-v1
+        // fine-residual-cold-miss-megapass-v1
         //
-        // Keep these spans coarse. The important distinction is whether we
-        // remain on the compact prepared path, whether 20/5-native semantic
-        // cells hit or miss, and whether we fall all the way back to generic
-        // USF construction. Individual corner hits are counters, not spans.
-        let prepared = {
-            let _span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.prepare_compact"
-            )
-            .entered();
+        // PERFORMANCE INVARIANT:
+        // This path intentionally bypasses generic UsfPosition construction and
+        // profiling spans for ordinary presentation samples. It is called for
+        // every fine residual of every density point; seemingly "cleaner"
+        // abstraction here multiplies directly into 9^3 clipmap generation.
+        //
+        // Keep this path bit-equivalent to semantic_value_noise_3d(...).
+        if let Some(prepared) =
             PreparedSemanticNoisePoint::from_native_f64(
                 native,
                 level,
             )
-        };
-
-        if let Some(prepared) = prepared {
-            let _fast_span = bevy::log::info_span!(
-                "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.prepared_fast_path"
-            )
-            .entered();
-
-            let broad = {
-                let _span = bevy::log::info_span!(
-                    "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.20_native"
-                )
-                .entered();
+            && let Some(broad) =
                 semantic_value_noise_3d_cached_prepared(
                     prepared,
                     CANONICAL_DETAIL_CELL_NATIVE,
                     seed ^ 0xA341_316C,
                     cache,
                 )
-            };
-
-            if let Some(broad) = broad {
-                let fine = {
-                    let _span = bevy::log::info_span!(
-                        "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.5_native"
-                    )
-                    .entered();
-                    semantic_value_noise_3d_cached_prepared(
-                        prepared,
-                        CANONICAL_DETAIL_FINE_CELL_NATIVE,
-                        seed ^ 0xC801_3EA4,
-                        cache,
-                    )
-                };
-
-                if let Some(fine) = fine {
-                    record_fine_residual_fast_path_completion();
-                    return Ok(broad * 0.72 + fine * 0.28);
-                }
-            }
+            && let Some(fine) =
+                semantic_value_noise_3d_cached_prepared(
+                    prepared,
+                    CANONICAL_DETAIL_FINE_CELL_NATIVE,
+                    seed ^ 0xC801_3EA4,
+                    cache,
+                )
+        {
+            record_fine_residual_fast_path_completion();
+            return Ok(broad * 0.72 + fine * 0.28);
         }
 
         record_fine_residual_generic_fallback();
-        let _fallback_span = bevy::log::info_span!(
-            "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.generic_usf_fallback"
-        )
-        .entered();
 
         let canonical = UsfPosition::from_scale_native_f64(
             native,

@@ -183,7 +183,7 @@ fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
 // fine presentation samples repeatedly visit the same 5 m / 20 m corners.
 // Cache those exact corner values explicitly instead of re-hashing the full USF
 // digit stack eight times for every interpolated sample.
-const SEMANTIC_NOISE_CORNER_CACHE_SLOTS: usize = 4_096;
+const SEMANTIC_NOISE_CORNER_CACHE_SLOTS: usize = 16_384;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct SemanticNoiseCornerKey {
@@ -216,7 +216,14 @@ impl SemanticNoiseCornerEntry {
 }
 
 // fine-residual-native-cell-megapass-v1
-const SEMANTIC_NOISE_CELL_CACHE_SLOTS: usize = 8_192;
+// fine-residual-cold-miss-megapass-v1
+//
+// 20-native and 5-native fine residual domains deliberately DO NOT share one
+// direct-mapped cell cache anymore. Every density sample queries 20m and then
+// 5m; with one cache, the fine-domain lookup can evict the broad-domain entry
+// that the next nearby sample wants. Separate caches turn that pathological
+// ping-pong into actual spatial reuse.
+const SEMANTIC_NOISE_CELL_CACHE_SLOTS: usize = 16_384;
 const SEMANTIC_NATIVE_CHUNK_SIZE: i64 = 1_000;
 const SEMANTIC_NATIVE_HALF_CHUNK: f64 = 500.0;
 
@@ -500,9 +507,9 @@ struct SemanticNoiseCellCacheStorage {
 }
 
 impl SemanticNoiseCellCacheStorage {
-    fn new() -> Self {
-        debug_assert!(SEMANTIC_NOISE_CELL_CACHE_SLOTS.is_power_of_two());
-        let slots = (0..SEMANTIC_NOISE_CELL_CACHE_SLOTS)
+    fn new(slot_count: usize) -> Self {
+        debug_assert!(slot_count.is_power_of_two());
+        let slots = (0..slot_count)
             .map(|_| Cell::new(SemanticNoiseCellEntry::EMPTY))
             .collect::<Vec<_>>()
             .into_boxed_slice();
@@ -514,7 +521,7 @@ impl SemanticNoiseCellCacheStorage {
     }
 
     #[inline]
-    fn slot_index(key: SemanticNoiseCellKey) -> usize {
+    fn slot_index(&self, key: SemanticNoiseCellKey) -> usize {
         #[inline]
         fn mix64(mut value: u64) -> u64 {
             value ^= value >> 30;
@@ -532,7 +539,7 @@ impl SemanticNoiseCellCacheStorage {
                 ^ ((key.leaf_exponent as i64 as u64) << 48)
                 ^ ((key.cell_size as i64 as u64) << 32),
         );
-        (hash as usize) & (SEMANTIC_NOISE_CELL_CACHE_SLOTS - 1)
+        (hash as usize) & (self.slots.len() - 1)
     }
 
     #[inline]
@@ -541,7 +548,7 @@ impl SemanticNoiseCellCacheStorage {
         key: SemanticNoiseCellKey,
         compute: impl FnOnce() -> [f32; 8],
     ) -> [f32; 8] {
-        let slot = &self.slots[Self::slot_index(key)];
+        let slot = &self.slots[self.slot_index(key)];
         let entry = slot.get();
         if entry.occupied && entry.key == key {
             self.hits.set(self.hits.get().saturating_add(1));
@@ -559,26 +566,9 @@ impl SemanticNoiseCellCacheStorage {
             );
         });
 
-        // Misses are the fan-out point: one cell miss may require eight corner
-        // lookups, and cold/colliding corner misses then pay canonical digit
-        // decomposition. Span ONLY misses so ordinary hits stay cheap.
-        let _miss_span = if key.cell_size == 20 {
-            Some(
-                bevy::log::info_span!(
-                    "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.semantic_cell_miss.20_native"
-                )
-                .entered(),
-            )
-        } else if key.cell_size == 5 {
-            Some(
-                bevy::log::info_span!(
-                    "voxel.worker.presentation_resolution.density_sample.surface.fine_residual.semantic_cell_miss.5_native"
-                )
-                .entered(),
-            )
-        } else {
-            None
-        };
+        // PERFORMANCE: no Tracy span here. This branch can execute hundreds
+        // of times per 9^3 block; aggregate counters already capture miss
+        // frequency without turning every cold cell into profiler overhead.
 
         let corners = compute();
         slot.set(SemanticNoiseCellEntry {
@@ -802,27 +792,119 @@ impl PreparedSemanticNoisePoint {
 // from the compact integer native coordinate.
 const COMPACT_SEMANTIC_DIGITS: usize = 71;
 
+// fine-residual-cold-miss-megapass-v1
+//
+// Canonical semantic corner hashing conceptually walks every Scale from S+35
+// down to the leaf, including all leading all-zero digits. For an Earth-local
+// S0 coordinate only ~4-6 low digits are normally populated, yet the previous
+// compact path still decomposed and mixed all 36 levels for every cold corner.
+//
+// We CANNOT simply skip those zero levels: `mix(state, 0)` still mutates the
+// hash. Instead cache the exact hash state after N all-zero (x,y,z) Scale
+// triplets for each seed. A cold corner can then jump over the enormous zero
+// prefix in O(1) and process only the actually populated balanced-decimal suffix.
+// This is bit-exact with the canonical full-stack hash.
+const SEMANTIC_ZERO_PREFIX_CACHE_SLOTS: usize = 32;
+
+#[derive(Debug, Clone, Copy)]
+struct SemanticZeroPrefixEntry {
+    seed: u32,
+    states: [u32; COMPACT_SEMANTIC_DIGITS + 1],
+    occupied: bool,
+}
+
+impl SemanticZeroPrefixEntry {
+    const EMPTY: Self = Self {
+        seed: 0,
+        states: [0; COMPACT_SEMANTIC_DIGITS + 1],
+        occupied: false,
+    };
+}
+
+#[derive(Debug)]
+struct SemanticZeroPrefixCacheStorage {
+    slots: Box<[Cell<SemanticZeroPrefixEntry>]>,
+}
+
+impl SemanticZeroPrefixCacheStorage {
+    fn new() -> Self {
+        debug_assert!(SEMANTIC_ZERO_PREFIX_CACHE_SLOTS.is_power_of_two());
+        let slots = (0..SEMANTIC_ZERO_PREFIX_CACHE_SLOTS)
+            .map(|_| Cell::new(SemanticZeroPrefixEntry::EMPTY))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        Self { slots }
+    }
+
+    #[inline]
+    fn slot_index(seed: u32) -> usize {
+        let mut value = seed;
+        value ^= value >> 16;
+        value = value.wrapping_mul(0x7FEB_352D);
+        value ^= value >> 15;
+        (value as usize) & (SEMANTIC_ZERO_PREFIX_CACHE_SLOTS - 1)
+    }
+
+    #[inline]
+    fn state_after_zero_triplets(
+        &self,
+        seed: u32,
+        zero_scale_count: usize,
+    ) -> u32 {
+        debug_assert!(zero_scale_count <= COMPACT_SEMANTIC_DIGITS);
+
+        let slot = &self.slots[Self::slot_index(seed)];
+        let entry = slot.get();
+        if entry.occupied && entry.seed == seed {
+            return entry.states[zero_scale_count];
+        }
+
+        let mut states = [0_u32; COMPACT_SEMANTIC_DIGITS + 1];
+        let mut state = seed ^ 0x517C_C1B7;
+        states[0] = state;
+
+        for item in states.iter_mut().skip(1) {
+            state = mix(state, 0);
+            state = mix(state, 0);
+            state = mix(state, 0);
+            *item = state;
+        }
+
+        slot.set(SemanticZeroPrefixEntry {
+            seed,
+            states,
+            occupied: true,
+        });
+        states[zero_scale_count]
+    }
+}
+
 #[inline]
-fn decompose_compact_semantic_axis(
+fn decompose_compact_semantic_axis_sparse(
     coordinate: i64,
     digit_count: usize,
-) -> ([i8; COMPACT_SEMANTIC_DIGITS], f32) {
+) -> ([i8; COMPACT_SEMANTIC_DIGITS], f32, usize) {
     let mut digits = [0_i8; COMPACT_SEMANTIC_DIGITS];
     let coordinate = i128::from(coordinate);
 
     let mut carry = (coordinate + 500).div_euclid(1_000);
     let offset = coordinate - carry * 1_000;
+    let mut used = 0usize;
 
-    for digit in digits.iter_mut().take(digit_count) {
+    // PERFORMANCE: stop once the balanced-decimal carry reaches zero. Remaining
+    // higher digits are provably zero and are represented by the cached zero
+    // prefix state rather than dozens of divide/mix iterations per corner.
+    while carry != 0 && used < digit_count {
         let parent = (carry + 5).div_euclid(10);
         let value = carry - parent * 10;
         debug_assert!((-5..5).contains(&value));
-        *digit = value as i8;
+        digits[used] = value as i8;
+        used += 1;
         carry = parent;
     }
 
     debug_assert_eq!(carry, 0);
-    (digits, offset as f32)
+    (digits, offset as f32, used)
 }
 
 #[inline]
@@ -835,10 +917,27 @@ fn semantic_corner_noise_3d_compact(
             + 1) as usize;
     debug_assert!(digit_count <= COMPACT_SEMANTIC_DIGITS);
 
-    // One corner miss performs three balanced-decimal decompositions, each
-    // walking `digit_count` levels, followed by one hash pass over the same
-    // depth. Count the work explicitly; this tells us whether the "slow path"
-    // is genuinely cache-cold or dominated by canonical hierarchy walking.
+    let (x_digits, x_offset, x_used) =
+        decompose_compact_semantic_axis_sparse(
+            key.x,
+            digit_count,
+        );
+    let (y_digits, y_offset, y_used) =
+        decompose_compact_semantic_axis_sparse(
+            key.y,
+            digit_count,
+        );
+    let (z_digits, z_offset, z_used) =
+        decompose_compact_semantic_axis_sparse(
+            key.z,
+            digit_count,
+        );
+
+    let active_digits = x_used.max(y_used).max(z_used);
+    debug_assert!(active_digits <= digit_count);
+    let leading_zero_scales =
+        digit_count.saturating_sub(active_digits);
+
     SEMANTIC_NOISE_DIAGNOSTICS.with(|diagnostics| {
         SemanticNoiseDiagnosticsStorage::bump(
             &diagnostics.corner_hash_computes,
@@ -849,19 +948,19 @@ fn semantic_corner_noise_3d_compact(
         );
         SemanticNoiseDiagnosticsStorage::add(
             &diagnostics.compact_digit_steps,
-            (digit_count as u64).saturating_mul(3),
+            (x_used + y_used + z_used) as u64,
         );
     });
 
-    let (x_digits, x_offset) =
-        decompose_compact_semantic_axis(key.x, digit_count);
-    let (y_digits, y_offset) =
-        decompose_compact_semantic_axis(key.y, digit_count);
-    let (z_digits, z_offset) =
-        decompose_compact_semantic_axis(key.z, digit_count);
+    let mut value =
+        SEMANTIC_ZERO_PREFIX_CACHE.with(|prefixes| {
+            prefixes.state_after_zero_triplets(
+                key.seed,
+                leading_zero_scales,
+            )
+        });
 
-    let mut value = key.seed ^ 0x517C_C1B7;
-    for index in (0..digit_count).rev() {
+    for index in (0..active_digits).rev() {
         value = mix(
             value,
             i32::from(x_digits[index]) as u32,
@@ -970,12 +1069,52 @@ std::thread_local! {
     static SEMANTIC_NOISE_CORNER_CACHE:
         SemanticNoiseCornerCacheStorage =
         SemanticNoiseCornerCacheStorage::new();
-    static SEMANTIC_NOISE_CELL_CACHE:
+
+    static SEMANTIC_NOISE_CELL_CACHE_20:
         SemanticNoiseCellCacheStorage =
-        SemanticNoiseCellCacheStorage::new();
+        SemanticNoiseCellCacheStorage::new(
+            SEMANTIC_NOISE_CELL_CACHE_SLOTS,
+        );
+    static SEMANTIC_NOISE_CELL_CACHE_5:
+        SemanticNoiseCellCacheStorage =
+        SemanticNoiseCellCacheStorage::new(
+            SEMANTIC_NOISE_CELL_CACHE_SLOTS,
+        );
+    static SEMANTIC_NOISE_CELL_CACHE_OTHER:
+        SemanticNoiseCellCacheStorage =
+        SemanticNoiseCellCacheStorage::new(2_048);
+
+    static SEMANTIC_ZERO_PREFIX_CACHE:
+        SemanticZeroPrefixCacheStorage =
+        SemanticZeroPrefixCacheStorage::new();
+
     static SEMANTIC_NOISE_DIAGNOSTICS:
         SemanticNoiseDiagnosticsStorage =
         SemanticNoiseDiagnosticsStorage::new();
+}
+
+fn semantic_noise_cell_cache_stats_total() -> (u64, u64) {
+    let (hits_20, misses_20) =
+        SEMANTIC_NOISE_CELL_CACHE_20.with(
+            SemanticNoiseCellCacheStorage::stats,
+        );
+    let (hits_5, misses_5) =
+        SEMANTIC_NOISE_CELL_CACHE_5.with(
+            SemanticNoiseCellCacheStorage::stats,
+        );
+    let (hits_other, misses_other) =
+        SEMANTIC_NOISE_CELL_CACHE_OTHER.with(
+            SemanticNoiseCellCacheStorage::stats,
+        );
+
+    (
+        hits_20
+            .saturating_add(hits_5)
+            .saturating_add(hits_other),
+        misses_20
+            .saturating_add(misses_5)
+            .saturating_add(misses_other),
+    )
 }
 
 /// Lightweight per-sampler view into the durable worker-thread cache.
@@ -997,9 +1136,7 @@ impl SemanticNoiseCornerCache {
                 SemanticNoiseCornerCacheStorage::stats,
             );
         let (baseline_cell_hits, baseline_cell_misses) =
-            SEMANTIC_NOISE_CELL_CACHE.with(
-                SemanticNoiseCellCacheStorage::stats,
-            );
+            semantic_noise_cell_cache_stats_total();
         Self {
             baseline_hits,
             baseline_misses,
@@ -1032,9 +1169,7 @@ impl SemanticNoiseCornerCache {
 
     pub(crate) fn cell_stats(&self) -> (u64, u64) {
         let (hits, misses) =
-            SEMANTIC_NOISE_CELL_CACHE.with(
-                SemanticNoiseCellCacheStorage::stats,
-            );
+            semantic_noise_cell_cache_stats_total();
         (
             hits.saturating_sub(self.baseline_cell_hits),
             misses.saturating_sub(self.baseline_cell_misses),
@@ -1049,7 +1184,11 @@ fn semantic_value_noise_from_compact_cell(
     cache: &SemanticNoiseCornerCache,
 ) -> f32 {
     let cell_size = i64::from(key.cell_size);
-    let corners = SEMANTIC_NOISE_CELL_CACHE.with(|cell_cache| {
+
+    // PERFORMANCE: 20m and 5m use independent durable caches. They are queried
+    // back-to-back for every fine residual sample; sharing one direct-mapped
+    // cache let the fine domain evict the broad domain before the next sample.
+    let get_corners = |cell_cache: &SemanticNoiseCellCacheStorage| {
         cell_cache.get_or_compute(key, || {
             let corner = |dx: i64, dy: i64, dz: i64| {
                 let corner_key = SemanticNoiseCornerKey {
@@ -1081,7 +1220,13 @@ fn semantic_value_noise_from_compact_cell(
                 corner(1, 1, 1),
             ]
         })
-    });
+    };
+
+    let corners = match key.cell_size {
+        20 => SEMANTIC_NOISE_CELL_CACHE_20.with(get_corners),
+        5 => SEMANTIC_NOISE_CELL_CACHE_5.with(get_corners),
+        _ => SEMANTIC_NOISE_CELL_CACHE_OTHER.with(get_corners),
+    };
 
     let [c000, c100, c010, c110, c001, c101, c011, c111] =
         corners;
@@ -1481,6 +1626,57 @@ mod semantic_corner_cache_tests {
                         optimized.to_bits(),
                         "prepared semantic noise changed canonical result \
                          at S{exponent}, cell={cell_size}, native={native:?}",
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn sparse_compact_corner_hash_matches_reference_across_coordinate_ranges() {
+        use crate::spatial::UsfPosition;
+
+        for exponent in [-6_i8, -3_i8, 0_i8, 3_i8] {
+            let scale = SpatialScale::new(exponent).unwrap();
+
+            for coordinate in [
+                [0_i64, 0_i64, 0_i64],
+                [20, -40, 60],
+                [6_371_020, -4_211_000, 2_005_000],
+                [-9_876_540, 7_654_320, -1_234_560],
+                [9_000_000_000, -8_000_000_020, 7_000_000_040],
+            ] {
+                let p = UsfPosition::from_scale_native_f64(
+                    DVec3::new(
+                        coordinate[0] as f64,
+                        coordinate[1] as f64,
+                        coordinate[2] as f64,
+                    ),
+                    scale,
+                    scale,
+                )
+                .unwrap();
+
+                for seed in [0_u32, 1, 0x51A7_C0DE, 0xFFFF_FFFF] {
+                    let reference = semantic_corner_noise_3d(
+                        VoxelQueryPosition::new(p),
+                        seed,
+                    );
+                    let optimized = semantic_corner_noise_3d_compact(
+                        SemanticNoiseCornerKey {
+                            leaf_exponent: exponent,
+                            seed,
+                            x: coordinate[0],
+                            y: coordinate[1],
+                            z: coordinate[2],
+                        },
+                    );
+
+                    assert_eq!(
+                        reference.to_bits(),
+                        optimized.to_bits(),
+                        "sparse compact corner hash changed at S{exponent}, \
+                         seed={seed:#010x}, coordinate={coordinate:?}",
                     );
                 }
             }
