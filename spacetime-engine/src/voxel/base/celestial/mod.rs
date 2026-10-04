@@ -13,9 +13,10 @@ use crate::spatial::{
 use super::{
     EMPTY_DISTANCE,
     noise::{
-        SemanticNoiseCornerCache, scale_layer_seed,
-        semantic_value_noise_3d, semantic_value_noise_3d_cached,
-        value_noise_3d,
+        PreparedSemanticNoisePoint, SemanticNoiseCornerCache,
+        scale_layer_seed, semantic_value_noise_3d,
+        semantic_value_noise_3d_cached,
+        semantic_value_noise_3d_cached_prepared, value_noise_3d,
     },
 };
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
@@ -404,6 +405,10 @@ impl PreparedCelestialPresentationBody {
 
     pub(crate) fn noise_cache_stats(&self) -> (u64, u64) {
         self.canonical_noise_cache.stats()
+    }
+
+    pub(crate) fn noise_cell_cache_stats(&self) -> (u64, u64) {
+        self.canonical_noise_cache.cell_stats()
     }
 }
 
@@ -999,6 +1004,31 @@ fn canonical_detail_noise_at(
     ) -> Result<f32, UsfPositionError> {
         let native =
             local_position_metres / metres_per_native;
+
+        // fine-residual-native-cell-megapass-v1
+        if let Some(prepared) =
+            PreparedSemanticNoisePoint::from_native_f64(
+                native,
+                level,
+            )
+            && let Some(broad) =
+                semantic_value_noise_3d_cached_prepared(
+                    prepared,
+                    CANONICAL_DETAIL_CELL_NATIVE,
+                    seed ^ 0xA341_316C,
+                    cache,
+                )
+            && let Some(fine) =
+                semantic_value_noise_3d_cached_prepared(
+                    prepared,
+                    CANONICAL_DETAIL_FINE_CELL_NATIVE,
+                    seed ^ 0xC801_3EA4,
+                    cache,
+                )
+        {
+            return Ok(broad * 0.72 + fine * 0.28);
+        }
+
         let canonical = UsfPosition::from_scale_native_f64(
             native,
             level,

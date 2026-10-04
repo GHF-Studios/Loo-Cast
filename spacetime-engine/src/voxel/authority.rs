@@ -100,6 +100,13 @@ impl CelestialPresentationFieldSampler {
     pub(crate) fn semantic_noise_cache_stats(&self) -> (u64, u64) {
         self.body.noise_cache_stats()
     }
+
+    // fine-residual-native-cell-megapass-v1
+    pub(crate) fn semantic_noise_cell_cache_stats(
+        &self,
+    ) -> (u64, u64) {
+        self.body.noise_cell_cache_stats()
+    }
 }
 
 impl CelestialVoxelField {

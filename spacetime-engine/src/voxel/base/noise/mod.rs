@@ -2,7 +2,7 @@
 
 use std::cell::Cell;
 
-use bevy::prelude::{Vec2, Vec3};
+use bevy::{math::DVec3, prelude::{Vec2, Vec3}};
 
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale};
 
@@ -215,6 +215,248 @@ impl SemanticNoiseCornerEntry {
     };
 }
 
+// fine-residual-native-cell-megapass-v1
+const SEMANTIC_NOISE_CELL_CACHE_SLOTS: usize = 8_192;
+const SEMANTIC_NATIVE_CHUNK_SIZE: i64 = 1_000;
+const SEMANTIC_NATIVE_HALF_CHUNK: f64 = 500.0;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SemanticNoiseCellKey {
+    leaf_exponent: i8,
+    cell_size: i32,
+    seed: u32,
+    x: i64,
+    y: i64,
+    z: i64,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SemanticNoiseCellEntry {
+    key: SemanticNoiseCellKey,
+    corners: [f32; 8],
+    occupied: bool,
+}
+
+impl SemanticNoiseCellEntry {
+    const EMPTY: Self = Self {
+        key: SemanticNoiseCellKey {
+            leaf_exponent: 0,
+            cell_size: 0,
+            seed: 0,
+            x: 0,
+            y: 0,
+            z: 0,
+        },
+        corners: [0.0; 8],
+        occupied: false,
+    };
+}
+
+#[derive(Debug)]
+struct SemanticNoiseCellCacheStorage {
+    slots: Box<[Cell<SemanticNoiseCellEntry>]>,
+    hits: Cell<u64>,
+    misses: Cell<u64>,
+}
+
+impl SemanticNoiseCellCacheStorage {
+    fn new() -> Self {
+        debug_assert!(SEMANTIC_NOISE_CELL_CACHE_SLOTS.is_power_of_two());
+        let slots = (0..SEMANTIC_NOISE_CELL_CACHE_SLOTS)
+            .map(|_| Cell::new(SemanticNoiseCellEntry::EMPTY))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        Self {
+            slots,
+            hits: Cell::new(0),
+            misses: Cell::new(0),
+        }
+    }
+
+    #[inline]
+    fn slot_index(key: SemanticNoiseCellKey) -> usize {
+        #[inline]
+        fn mix64(mut value: u64) -> u64 {
+            value ^= value >> 30;
+            value = value.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            value ^= value >> 27;
+            value = value.wrapping_mul(0x94D0_49BB_1331_11EB);
+            value ^ (value >> 31)
+        }
+
+        let mut hash = mix64(key.x as u64);
+        hash ^= mix64((key.y as u64).rotate_left(17));
+        hash ^= mix64((key.z as u64).rotate_left(33));
+        hash ^= mix64(
+            u64::from(key.seed)
+                ^ ((key.leaf_exponent as i64 as u64) << 48)
+                ^ ((key.cell_size as i64 as u64) << 32),
+        );
+        (hash as usize) & (SEMANTIC_NOISE_CELL_CACHE_SLOTS - 1)
+    }
+
+    #[inline]
+    fn get_or_compute(
+        &self,
+        key: SemanticNoiseCellKey,
+        compute: impl FnOnce() -> [f32; 8],
+    ) -> [f32; 8] {
+        let slot = &self.slots[Self::slot_index(key)];
+        let entry = slot.get();
+        if entry.occupied && entry.key == key {
+            self.hits.set(self.hits.get().saturating_add(1));
+            return entry.corners;
+        }
+
+        self.misses.set(self.misses.get().saturating_add(1));
+        let corners = compute();
+        slot.set(SemanticNoiseCellEntry {
+            key,
+            corners,
+            occupied: true,
+        });
+        corners
+    }
+
+    fn stats(&self) -> (u64, u64) {
+        (self.hits.get(), self.misses.get())
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PreparedSemanticNoisePoint {
+    leaf_exponent: i8,
+    chunk_coordinate: [i64; 3],
+    offset: Vec3,
+}
+
+impl PreparedSemanticNoisePoint {
+    pub(crate) fn from_native_f64(
+        native: DVec3,
+        scale: SpatialScale,
+    ) -> Option<Self> {
+        if !native.is_finite() {
+            return None;
+        }
+
+        #[inline]
+        fn canonical_axis(value: f64) -> Option<(i64, f32)> {
+            let chunk_size = SEMANTIC_NATIVE_CHUNK_SIZE as f64;
+            let carry_f =
+                ((value + SEMANTIC_NATIVE_HALF_CHUNK) / chunk_size).floor();
+            if carry_f < i64::MIN as f64 || carry_f > i64::MAX as f64 {
+                return None;
+            }
+
+            let mut chunk = carry_f as i64;
+            let remainder = value - chunk as f64 * chunk_size;
+            let stored = remainder as f32;
+            if !stored.is_finite() {
+                return None;
+            }
+
+            let stored_f64 = f64::from(stored);
+            let carry2_f =
+                ((stored_f64 + SEMANTIC_NATIVE_HALF_CHUNK) / chunk_size)
+                    .floor();
+            let carry2 = carry2_f as i64;
+            let mut local =
+                (stored_f64 - carry2 as f64 * chunk_size) as f32;
+            chunk = chunk.checked_add(carry2)?;
+
+            if local >= 500.0 {
+                local -= 1_000.0;
+                chunk = chunk.checked_add(1)?;
+            } else if local < -500.0 {
+                local += 1_000.0;
+                chunk = chunk.checked_sub(1)?;
+            }
+
+            Some((chunk, local))
+        }
+
+        let (cx, ox) = canonical_axis(native.x)?;
+        let (cy, oy) = canonical_axis(native.y)?;
+        let (cz, oz) = canonical_axis(native.z)?;
+
+        Some(Self {
+            leaf_exponent: scale.exponent(),
+            chunk_coordinate: [cx, cy, cz],
+            offset: Vec3::new(ox, oy, oz),
+        })
+    }
+
+    #[inline]
+    fn cell_key_and_smooth(
+        self,
+        cell_size: i64,
+        seed: u32,
+    ) -> Option<(SemanticNoiseCellKey, Vec3)> {
+        if cell_size <= 0 || cell_size > i64::from(i32::MAX) {
+            return None;
+        }
+        if SEMANTIC_NATIVE_CHUNK_SIZE % cell_size != 0 {
+            return None;
+        }
+
+        let size = cell_size as f32;
+        let remainder = Vec3::new(
+            self.offset.x.rem_euclid(size),
+            self.offset.y.rem_euclid(size),
+            self.offset.z.rem_euclid(size),
+        );
+        let fraction = remainder / size;
+        let smooth =
+            fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
+
+        #[inline]
+        fn lower_axis(
+            chunk: i64,
+            offset: f32,
+            remainder: f32,
+        ) -> Option<i64> {
+            let local = offset - remainder;
+            let rounded = local.round();
+            if (local - rounded).abs() > 1.0e-4 {
+                return None;
+            }
+            chunk
+                .checked_mul(SEMANTIC_NATIVE_CHUNK_SIZE)?
+                .checked_add(rounded as i64)
+        }
+
+        let base = [
+            lower_axis(
+                self.chunk_coordinate[0],
+                self.offset.x,
+                remainder.x,
+            )?,
+            lower_axis(
+                self.chunk_coordinate[1],
+                self.offset.y,
+                remainder.y,
+            )?,
+            lower_axis(
+                self.chunk_coordinate[2],
+                self.offset.z,
+                remainder.z,
+            )?,
+        ];
+
+        Some((
+            SemanticNoiseCellKey {
+                leaf_exponent: self.leaf_exponent,
+                cell_size: cell_size as i32,
+                seed,
+                x: base[0],
+                y: base[1],
+                z: base[2],
+            },
+            smooth,
+        ))
+    }
+}
+
 // worker-instrumentation-compact-noise-megapass-v1
 //
 // `SemanticNoiseCornerKey` is already the complete canonical identity of one
@@ -367,6 +609,9 @@ std::thread_local! {
     static SEMANTIC_NOISE_CORNER_CACHE:
         SemanticNoiseCornerCacheStorage =
         SemanticNoiseCornerCacheStorage::new();
+    static SEMANTIC_NOISE_CELL_CACHE:
+        SemanticNoiseCellCacheStorage =
+        SemanticNoiseCellCacheStorage::new();
 }
 
 /// Lightweight per-sampler view into the durable worker-thread cache.
@@ -377,6 +622,8 @@ std::thread_local! {
 pub(crate) struct SemanticNoiseCornerCache {
     baseline_hits: u64,
     baseline_misses: u64,
+    baseline_cell_hits: u64,
+    baseline_cell_misses: u64,
 }
 
 impl SemanticNoiseCornerCache {
@@ -385,9 +632,15 @@ impl SemanticNoiseCornerCache {
             SEMANTIC_NOISE_CORNER_CACHE.with(
                 SemanticNoiseCornerCacheStorage::stats,
             );
+        let (baseline_cell_hits, baseline_cell_misses) =
+            SEMANTIC_NOISE_CELL_CACHE.with(
+                SemanticNoiseCellCacheStorage::stats,
+            );
         Self {
             baseline_hits,
             baseline_misses,
+            baseline_cell_hits,
+            baseline_cell_misses,
         }
     }
 
@@ -412,6 +665,85 @@ impl SemanticNoiseCornerCache {
             misses.saturating_sub(self.baseline_misses),
         )
     }
+
+    pub(crate) fn cell_stats(&self) -> (u64, u64) {
+        let (hits, misses) =
+            SEMANTIC_NOISE_CELL_CACHE.with(
+                SemanticNoiseCellCacheStorage::stats,
+            );
+        (
+            hits.saturating_sub(self.baseline_cell_hits),
+            misses.saturating_sub(self.baseline_cell_misses),
+        )
+    }
+}
+
+#[inline]
+fn semantic_value_noise_from_compact_cell(
+    key: SemanticNoiseCellKey,
+    smooth: Vec3,
+    cache: &SemanticNoiseCornerCache,
+) -> f32 {
+    let cell_size = i64::from(key.cell_size);
+    let corners = SEMANTIC_NOISE_CELL_CACHE.with(|cell_cache| {
+        cell_cache.get_or_compute(key, || {
+            let corner = |dx: i64, dy: i64, dz: i64| {
+                let corner_key = SemanticNoiseCornerKey {
+                    leaf_exponent: key.leaf_exponent,
+                    seed: key.seed,
+                    x: key.x.saturating_add(
+                        dx.saturating_mul(cell_size),
+                    ),
+                    y: key.y.saturating_add(
+                        dy.saturating_mul(cell_size),
+                    ),
+                    z: key.z.saturating_add(
+                        dz.saturating_mul(cell_size),
+                    ),
+                };
+                cache.get_or_compute(corner_key, || {
+                    semantic_corner_noise_3d_compact(corner_key)
+                })
+            };
+
+            [
+                corner(0, 0, 0),
+                corner(1, 0, 0),
+                corner(0, 1, 0),
+                corner(1, 1, 0),
+                corner(0, 0, 1),
+                corner(1, 0, 1),
+                corner(0, 1, 1),
+                corner(1, 1, 1),
+            ]
+        })
+    });
+
+    let [c000, c100, c010, c110, c001, c101, c011, c111] =
+        corners;
+    let x00 = c000 + (c100 - c000) * smooth.x;
+    let x10 = c010 + (c110 - c010) * smooth.x;
+    let x01 = c001 + (c101 - c001) * smooth.x;
+    let x11 = c011 + (c111 - c011) * smooth.x;
+    let y0 = x00 + (x10 - x00) * smooth.y;
+    let y1 = x01 + (x11 - x01) * smooth.y;
+    y0 + (y1 - y0) * smooth.z
+}
+
+#[inline]
+pub(crate) fn semantic_value_noise_3d_cached_prepared(
+    point: PreparedSemanticNoisePoint,
+    cell_size: i64,
+    seed: u32,
+    cache: &SemanticNoiseCornerCache,
+) -> Option<f32> {
+    let (key, smooth) =
+        point.cell_key_and_smooth(cell_size, seed)?;
+    Some(semantic_value_noise_from_compact_cell(
+        key,
+        smooth,
+        cache,
+    ))
 }
 
 fn compact_native_lattice_coordinate(
@@ -469,38 +801,19 @@ pub(crate) fn semantic_value_noise_3d_cached(
     let Some(base) = compact_native_lattice_coordinate(lower) else {
         return semantic_value_noise_3d(point, cell_size, seed);
     };
-    let leaf_exponent = lower.usf().leaf_scale().exponent();
-
-    let corner = |dx: i64, dy: i64, dz: i64| {
-        let key = SemanticNoiseCornerKey {
-            leaf_exponent,
-            seed,
-            x: base[0].saturating_add(dx.saturating_mul(cell_size)),
-            y: base[1].saturating_add(dy.saturating_mul(cell_size)),
-            z: base[2].saturating_add(dz.saturating_mul(cell_size)),
-        };
-
-        cache.get_or_compute(key, || {
-            semantic_corner_noise_3d_compact(key)
-        })
+    let Ok(cell_size_i32) = i32::try_from(cell_size) else {
+        return semantic_value_noise_3d(point, cell_size, seed);
     };
 
-    let c000 = corner(0, 0, 0);
-    let c100 = corner(1, 0, 0);
-    let c010 = corner(0, 1, 0);
-    let c110 = corner(1, 1, 0);
-    let c001 = corner(0, 0, 1);
-    let c101 = corner(1, 0, 1);
-    let c011 = corner(0, 1, 1);
-    let c111 = corner(1, 1, 1);
-
-    let x00 = c000 + (c100 - c000) * smooth.x;
-    let x10 = c010 + (c110 - c010) * smooth.x;
-    let x01 = c001 + (c101 - c001) * smooth.x;
-    let x11 = c011 + (c111 - c011) * smooth.x;
-    let y0 = x00 + (x10 - x00) * smooth.y;
-    let y1 = x01 + (x11 - x01) * smooth.y;
-    y0 + (y1 - y0) * smooth.z
+    let key = SemanticNoiseCellKey {
+        leaf_exponent: lower.usf().leaf_scale().exponent(),
+        cell_size: cell_size_i32,
+        seed,
+        x: base[0],
+        y: base[1],
+        z: base[2],
+    };
+    semantic_value_noise_from_compact_cell(key, smooth, cache)
 }
 
 pub(super) fn semantic_value_noise_3d(point: VoxelQueryPosition, cell_size: i64, seed: u32) -> f32 {
@@ -740,6 +1053,74 @@ mod semantic_corner_cache_tests {
             after.1 > before.1,
             "expected first-touch value-noise cell cache misses",
         );
+    }
+
+    #[test]
+    fn prepared_semantic_native_noise_matches_usf_reference_bits() {
+        use crate::spatial::UsfPosition;
+
+        let cache = SemanticNoiseCornerCache::new();
+        for exponent in [-2_i8, -1_i8, 0_i8, 2_i8] {
+            let scale = SpatialScale::new(exponent).unwrap();
+
+            for native in [
+                DVec3::new(0.0, 0.0, 0.0),
+                DVec3::new(499.875, -499.5, 1_001.125),
+                DVec3::new(
+                    6_371_025.375,
+                    -4_211_003.625,
+                    2_004_999.875,
+                ),
+                DVec3::new(
+                    -9_876_543.125,
+                    7_654_320.5,
+                    -1_234_565.75,
+                ),
+            ] {
+                let canonical =
+                    UsfPosition::from_scale_native_f64(
+                        native,
+                        scale,
+                        scale,
+                    )
+                    .unwrap();
+                let reference_point =
+                    VoxelQueryPosition::new(canonical);
+                let prepared =
+                    PreparedSemanticNoisePoint::from_native_f64(
+                        native,
+                        scale,
+                    )
+                    .unwrap();
+
+                for cell_size in [5_i64, 20_i64] {
+                    let seed = 0x51A7_C0DE
+                        ^ u32::from(exponent as u8)
+                        ^ cell_size as u32;
+
+                    let reference = semantic_value_noise_3d(
+                        reference_point,
+                        cell_size,
+                        seed,
+                    );
+                    let optimized =
+                        semantic_value_noise_3d_cached_prepared(
+                            prepared,
+                            cell_size,
+                            seed,
+                            &cache,
+                        )
+                        .unwrap();
+
+                    assert_eq!(
+                        reference.to_bits(),
+                        optimized.to_bits(),
+                        "prepared semantic noise changed canonical result \
+                         at S{exponent}, cell={cell_size}, native={native:?}",
+                    );
+                }
+            }
+        }
     }
 
     #[test]

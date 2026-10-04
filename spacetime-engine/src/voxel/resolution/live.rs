@@ -3524,6 +3524,9 @@ fn build_clipmap_mesh(
 
     let (semantic_corner_hits, semantic_corner_misses) =
         sampler.semantic_noise_cache_stats();
+    // fine-residual-native-cell-megapass-v1
+    let (semantic_cell_hits, semantic_cell_misses) =
+        sampler.semantic_noise_cell_cache_stats();
     let (
         central_lattice_hits,
         central_lattice_misses,
@@ -3534,6 +3537,8 @@ fn build_clipmap_mesh(
         central_may_contain_caves,
         semantic_corner_hits,
         semantic_corner_misses,
+        semantic_cell_hits,
+        semantic_cell_misses,
         central_lattice_hits,
         central_lattice_misses,
         central_lattice_evictions,
