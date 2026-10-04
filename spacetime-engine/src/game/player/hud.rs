@@ -119,7 +119,38 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
     ));
 }
 
+// main-thread-presentation-ui-megapass-v1
+const FLIGHT_HUD_METRIC_REFRESH_SECONDS: f32 = 1.0 / 20.0;
+
+#[derive(Default)]
+struct FlightHudRefreshState {
+    metric_accumulator_seconds: f32,
+    was_flying: bool,
+}
+
+#[inline]
+fn set_display_if_changed(node: &mut Node, next: Display) {
+    if node.display != next {
+        node.display = next;
+    }
+}
+
+#[inline]
+fn set_text_if_changed(text: &mut Text, next: String) {
+    if text.0 != next {
+        text.0 = next;
+    }
+}
+
+#[inline]
+fn clear_text_if_needed(text: &mut Text) {
+    if !text.0.is_empty() {
+        text.0.clear();
+    }
+}
+
 pub(super) fn update_flight_hud(
+    time: Res<Time>,
     bindings: Res<PlayerInputBindings>,
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
     pace: Single<&TravelPace, With<Player>>,
@@ -129,89 +160,128 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudRight>>,
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
+    mut refresh: Local<FlightHudRefreshState>,
 ) {
     let telemetry = telemetry.into_inner();
     let flying = telemetry.active();
+    let desired_display = if flying {
+        Display::Flex
+    } else {
+        Display::None
+    };
 
     {
         let mut left = hud.p0();
-        left.1.display = if flying { Display::Flex } else { Display::None };
+        set_display_if_changed(&mut left.1, desired_display);
     }
     {
         let mut right = hud.p1();
-        right.1.display = if flying { Display::Flex } else { Display::None };
+        set_display_if_changed(&mut right.1, desired_display);
     }
 
     if !flying {
         let mut alert = hud.p2();
-        alert.0.0.clear();
-        alert.1.display = Display::None;
+        clear_text_if_needed(&mut alert.0);
+        set_display_if_changed(&mut alert.1, Display::None);
+        refresh.metric_accumulator_seconds = 0.0;
+        refresh.was_flying = false;
         return;
     }
 
-    let cruising = telemetry.mode() == Some(FlightMode::Cruise);
-    let speed = format_speed(telemetry.speed_metres_per_second());
-    let pace = format!(
-        "2^{:+.0}  x{:.3}",
-        pace.log2_multiplier(),
-        pace.multiplier,
-    );
-    let actuator_status = match telemetry.mode() {
-        Some(FlightMode::Local) => format!(
-            "THR {} • RCS {}",
-            if telemetry.thrusters_enabled() { "ON" } else { "OFF" },
-            if telemetry.rcs_enabled() { "ON" } else { "OFF" },
-        ),
-        Some(FlightMode::Cruise) => {
-            format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0)
-        }
-        _ => "THR -- • RCS --".to_string(),
-    };
+    refresh.metric_accumulator_seconds += time.delta_secs();
+    let refresh_metrics = !refresh.was_flying
+        || refresh.metric_accumulator_seconds
+            >= FLIGHT_HUD_METRIC_REFRESH_SECONDS;
+    refresh.was_flying = true;
 
-    {
-        let mut left = hud.p0();
-        left.0.0 = format!(
+    if refresh_metrics {
+        refresh.metric_accumulator_seconds = 0.0;
+
+        let speed =
+            format_speed(telemetry.speed_metres_per_second());
+        let pace_text = format!(
+            "2^{:+.0}  x{:.3}",
+            pace.log2_multiplier(),
+            pace.multiplier,
+        );
+        let actuator_status = match telemetry.mode() {
+            Some(FlightMode::Local) => format!(
+                "THR {} • RCS {}",
+                if telemetry.thrusters_enabled() {
+                    "ON"
+                } else {
+                    "OFF"
+                },
+                if telemetry.rcs_enabled() {
+                    "ON"
+                } else {
+                    "OFF"
+                },
+            ),
+            Some(FlightMode::Cruise) => {
+                format!(
+                    "CRZ {:>3.0}%",
+                    telemetry.throttle() * 100.0,
+                )
+            }
+            _ => "THR -- • RCS --".to_string(),
+        };
+
+        let left_text = format!(
             "{}\nSPD  {}\nPACE {}\n{}",
             telemetry.display_mode_label(),
             speed,
-            pace,
+            pace_text,
             actuator_status,
         );
-    }
-
-    let body_name = telemetry
-        .primary_body()
-        .and_then(|entity| body_names.get(entity).ok())
-        .map(Name::as_str)
-        .unwrap_or("DEEP SPACE");
-
-    let agl = telemetry
-        .surface_clearance_metres()
-        .map(format_distance)
-        .unwrap_or_else(|| "--".to_string());
-    let gravity = if telemetry.local_gravity_metres_per_second2() > 0.001 {
-        format!("{:.2} m/s²", telemetry.local_gravity_metres_per_second2())
-    } else {
-        "--".to_string()
-    };
-    let surface_state = if telemetry.detailed_interaction() {
-        if telemetry.surface_collision_ready() {
-            "READY"
-        } else {
-            "LOADING"
+        {
+            let mut left = hud.p0();
+            set_text_if_changed(&mut left.0, left_text);
         }
-    } else {
-        "REMOTE"
-    };
 
-    {
-        let mut right = hud.p1();
-        right.0.0 = format!(
+        let body_name = telemetry
+            .primary_body()
+            .and_then(|entity| body_names.get(entity).ok())
+            .map(Name::as_str)
+            .unwrap_or("DEEP SPACE");
+
+        let agl = telemetry
+            .surface_clearance_metres()
+            .map(format_distance)
+            .unwrap_or_else(|| "--".to_string());
+        let gravity =
+            if telemetry.local_gravity_metres_per_second2() > 0.001 {
+                format!(
+                    "{:.2} m/s²",
+                    telemetry.local_gravity_metres_per_second2(),
+                )
+            } else {
+                "--".to_string()
+            };
+        let surface_state = if telemetry.detailed_interaction() {
+            if telemetry.surface_collision_ready() {
+                "READY"
+            } else {
+                "LOADING"
+            }
+        } else {
+            "REMOTE"
+        };
+
+        let right_text = format!(
             "{}\nAGL  {}\nGRV  {}\nSURF {}",
-            body_name, agl, gravity, surface_state,
+            body_name,
+            agl,
+            gravity,
+            surface_state,
         );
+        {
+            let mut right = hud.p1();
+            set_text_if_changed(&mut right.0, right_text);
+        }
     }
 
+    let cruising = telemetry.mode() == Some(FlightMode::Cruise);
     let warning = if telemetry.contact().is_landed() {
         Some(format!(
             "[{}] TAKE OFF   [{}] EXIT SHIP",
@@ -243,17 +313,16 @@ pub(super) fn update_flight_hud(
         let mut alert = hud.p2();
         match warning {
             Some(warning) => {
-                alert.0.0 = warning;
-                alert.1.display = Display::Flex;
+                set_text_if_changed(&mut alert.0, warning);
+                set_display_if_changed(&mut alert.1, Display::Flex);
             }
             None => {
-                alert.0.0.clear();
-                alert.1.display = Display::None;
+                clear_text_if_needed(&mut alert.0);
+                set_display_if_changed(&mut alert.1, Display::None);
             }
         }
     }
 }
-
 fn format_speed(value: f64) -> String {
     if value >= 1.0e9 {
         format!("{:.2} Gm/s", value / 1.0e9)

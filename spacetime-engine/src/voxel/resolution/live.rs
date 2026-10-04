@@ -354,6 +354,8 @@ struct CelestialClipmapPlan {
     stages: Vec<Vec<CelestialClipmapBlockSpec>>,
     stage_index: usize,
     desired: Vec<CelestialClipmapBlockSpec>,
+    // main-thread-presentation-ui-megapass-v1
+    desired_set: HashSet<CelestialClipmapBlockSpec>,
     completed: HashSet<CelestialClipmapBlockSpec>,
     meshful: HashSet<CelestialClipmapBlockSpec>,
     /// Specs already proven to contain no presentation triangles. Unlike mesh
@@ -364,6 +366,28 @@ struct CelestialClipmapPlan {
     committed_generation: Option<u64>,
 }
 
+
+fn seed_clipmap_stage_completion(
+    authority: Entity,
+    plan: &mut CelestialClipmapPlan,
+    active_entities: &HashMap<
+        (Entity, u64, CelestialClipmapBlockSpec),
+        Entity,
+    >,
+) {
+    plan.completed.clear();
+    plan.meshful.clear();
+
+    for &spec in &plan.desired {
+        let key = (authority, plan.key.policy_revision, spec);
+        if active_entities.contains_key(&key) {
+            plan.completed.insert(spec);
+            plan.meshful.insert(spec);
+        } else if plan.known_empty.contains(&spec) {
+            plan.completed.insert(spec);
+        }
+    }
+}
 
 // aggressive-demand-and-clipmap-local-balance-v1
 // celestial-clipmap-planner-superpass-v1
@@ -988,12 +1012,26 @@ struct CelestialClipmapRegistry {
     pooled_entities: Vec<Entity>,
     plan_tasks: Vec<CelestialClipmapPlanBuildTask>,
     build_tasks: Vec<CelestialClipmapBuildTask>,
+
+    // main-thread-presentation-ui-megapass-v1
+    projection_epoch: u64,
+    frontier_epoch: u64,
+    projection_pending: Vec<Entity>,
 }
 
 impl CelestialClipmapRegistry {
     fn next_generation(&mut self) -> u64 {
         self.next_generation = self.next_generation.wrapping_add(1).max(1);
         self.next_generation
+    }
+
+    fn mark_projection_pending(&mut self, entity: Entity) {
+        self.projection_pending.push(entity);
+        self.projection_epoch = self.projection_epoch.wrapping_add(1).max(1);
+    }
+
+    fn mark_frontier_changed(&mut self) {
+        self.frontier_epoch = self.frontier_epoch.wrapping_add(1).max(1);
     }
 }
 
@@ -3357,6 +3395,7 @@ fn park_clipmap_entity(
         return;
     }
 
+    let affected_visible_frontier = block.committed;
     registry.active_entities.remove(&(
         block.authority,
         block.policy_revision,
@@ -3372,6 +3411,10 @@ fn park_clipmap_entity(
         registry.pooled_entities.push(entity);
     } else {
         commands.entity(entity).despawn();
+    }
+
+    if affected_visible_frontier {
+        registry.mark_frontier_changed();
     }
 }
 
@@ -3490,6 +3533,8 @@ fn sync_celestial_clipmap_realizations(
     let mut planning_authorities = HashSet::<Entity>::new();
     let mut plans_changed = false;
 
+    let _poll_plan_tasks_span =
+        bevy::log::info_span!("celestial_clipmap.poll_plans").entered();
     let mut pending_plan_tasks = Vec::with_capacity(registry.plan_tasks.len());
     for mut build in std::mem::take(&mut registry.plan_tasks) {
         let Some(&(current_input, current_field)) =
@@ -3625,6 +3670,7 @@ fn sync_celestial_clipmap_realizations(
                 generation,
                 stages,
                 stage_index,
+                desired_set: desired.iter().copied().collect(),
                 desired,
                 completed: HashSet::new(),
                 meshful: HashSet::new(),
@@ -3633,11 +3679,30 @@ fn sync_celestial_clipmap_realizations(
                 committed_generation,
             },
         );
+
+        {
+            let CelestialClipmapRegistry {
+                plans,
+                active_entities,
+                ..
+            } = &mut *registry;
+            if let Some(plan) = plans.get_mut(&build.authority) {
+                seed_clipmap_stage_completion(
+                    build.authority,
+                    plan,
+                    active_entities,
+                );
+            }
+        }
+        registry.mark_frontier_changed();
         plans_changed = true;
     }
 
     registry.plan_tasks = pending_plan_tasks;
+    drop(_poll_plan_tasks_span);
 
+    let _schedule_plan_span =
+        bevy::log::info_span!("celestial_clipmap.schedule_plans").entered();
     let mut planning_slots =
         workers.available_slots(VoxelWorkerLane::PresentationPlanning);
     let committed_focus_lag = current_inputs
@@ -3714,6 +3779,7 @@ fn sync_celestial_clipmap_realizations(
         planning_slots -= 1;
         frame_budget.finish(work_token);
     }
+    drop(_schedule_plan_span);
 
     let plan_count_before_retain = registry.plans.len();
     registry
@@ -3765,25 +3831,8 @@ fn sync_celestial_clipmap_realizations(
         return;
     }
 
-    // runtime-pooling-transform-avian-megapass-v1
-    // `active_entities` is maintained transactionally on publish/park. Avoid a
-    // complete ECS block scan and duplicate HashMap rebuild every Update frame.
-    {
-        let CelestialClipmapRegistry {
-            plans, active_entities, ..
-        } = &mut *registry;
-        for (&authority, plan) in plans {
-            for &spec in &plan.desired {
-                let key = (authority, plan.key.policy_revision, spec);
-                if active_entities.contains_key(&key) {
-                    plan.completed.insert(spec);
-                    plan.meshful.insert(spec);
-                } else if plan.known_empty.contains(&spec) {
-                    plan.completed.insert(spec);
-                }
-            }
-        }
-    }
+    // Current-stage completion is seeded exactly once when a stage
+    // becomes active and incrementally updated by worker results.
 
     let mut inflight =
         HashSet::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
@@ -3809,7 +3858,7 @@ fn sync_celestial_clipmap_realizations(
                 .is_some_and(|plan| {
                     build.generation == plan.generation
                         && build.policy_revision == plan.key.policy_revision
-                        && plan.desired.contains(&build.spec)
+                        && plan.desired_set.contains(&build.spec)
                         && build.field == plan.field
                 });
             if !valid {
@@ -3999,6 +4048,7 @@ fn sync_celestial_clipmap_realizations(
                 };
 
                 registry.active_entities.insert(key, entity);
+                registry.mark_projection_pending(entity);
                 if let Some(plan) = registry.plans.get_mut(&build.authority) {
                     plan.meshful.insert(build.spec);
                 }
@@ -4109,6 +4159,7 @@ fn sync_celestial_clipmap_realizations(
         let CelestialClipmapRegistry {
             plans, active_entities, ..
         } = &mut *registry;
+        let mut committed_any_frontier = false;
         for (&authority, plan) in plans {
             if plan.committed_generation == Some(plan.generation) {
                 continue;
@@ -4142,20 +4193,28 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            let desired =
-                plan.desired.iter().copied().collect::<HashSet<_>>();
-            let added_blocks =
-                desired.difference(&plan.committed_specs).count();
-            let retired_blocks =
-                plan.committed_specs.difference(&desired).count();
-            plan.committed_specs = desired.clone();
+            let added_blocks = plan
+                .desired_set
+                .difference(&plan.committed_specs)
+                .count();
+            let retired_blocks = plan
+                .committed_specs
+                .difference(&plan.desired_set)
+                .count();
 
-            for (entity, mut block, _, _, _, _) in &mut blocks {
-                if !block.active || block.authority != authority {
+            for ((block_authority, _, _), &entity) in active_entities.iter() {
+                if *block_authority != authority {
+                    continue;
+                }
+                let Ok((_, mut block, _, _, _, _)) = blocks.get_mut(entity)
+                else {
+                    continue;
+                };
+                if !block.active {
                     continue;
                 }
                 if block.policy_revision == plan.key.policy_revision
-                    && desired.contains(&block.spec)
+                    && plan.desired_set.contains(&block.spec)
                 {
                     block.committed = true;
                 } else {
@@ -4163,16 +4222,28 @@ fn sync_celestial_clipmap_realizations(
                 }
             }
 
+            std::mem::swap(
+                &mut plan.committed_specs,
+                &mut plan.desired_set,
+            );
+
             let committed_generation = plan.generation;
+            committed_any_frontier = true;
 
             if plan.stage_index + 1 < plan.stages.len() {
                 plan.committed_generation = Some(committed_generation);
                 plan.stage_index += 1;
                 plan.generation =
                     plan.generation.wrapping_add(1).max(1);
-                plan.desired = plan.stages[plan.stage_index].clone();
-                plan.completed.clear();
-                plan.meshful.clear();
+                plan.desired.clone_from(&plan.stages[plan.stage_index]);
+                plan.desired_set.clear();
+                plan.desired_set
+                    .extend(plan.desired.iter().copied());
+                seed_clipmap_stage_completion(
+                    authority,
+                    plan,
+                    active_entities,
+                );
 
                 trace!(
                     authority = ?authority,
@@ -4186,6 +4257,7 @@ fn sync_celestial_clipmap_realizations(
                 );
             } else {
                 plan.committed_generation = Some(committed_generation);
+                plan.desired_set.clear();
                 trace!(
                     authority = ?authority,
                     committed_stage = plan.stage_index + 1,
@@ -4201,6 +4273,9 @@ fn sync_celestial_clipmap_realizations(
         // End the disjoint field borrows before touching the pool itself.
         let _ = plans;
         let _ = active_entities;
+        if committed_any_frontier {
+            registry.mark_frontier_changed();
+        }
         for entity in retired_entities {
             if let Ok((_, mut block, _, _, _, mut visibility)) =
                 blocks.get_mut(entity)
@@ -4234,6 +4309,21 @@ struct ClipmapProjectedAuthorityFrame {
     rotation: Quat,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct ClipmapAuthorityProjectionStamp {
+    origin: UsfPosition,
+    orientation: bevy::math::DQuat,
+    presentation_material: Handle<StandardMaterial>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ClipmapViewProjectionStamp {
+    anchor: UsfPosition,
+    metre_to_view_f64: f64,
+    projection_eye: DVec3,
+    presentation_origin: Vec3,
+}
+
 #[derive(Default)]
 struct CelestialClipmapTransformScratch {
     frames: HashMap<Entity, ClipmapProjectedAuthorityFrame>,
@@ -4244,11 +4334,59 @@ struct CelestialClipmapTransformScratch {
     visible_by_authority:
         HashMap<Entity, Vec<CelestialClipmapCoverageCell>>,
     live_authorities: HashSet<Entity>,
+    authority_stamps: HashMap<Entity, ClipmapAuthorityProjectionStamp>,
+    next_authority_stamps: HashMap<Entity, ClipmapAuthorityProjectionStamp>,
+    last_view_stamp: Option<ClipmapViewProjectionStamp>,
+    last_projection_epoch: u64,
+    last_frontier_epoch: u64,
+    initialized: bool,
+    pending_entities: Vec<Entity>,
+}
+
+#[inline]
+fn project_clipmap_shell(
+    block: &mut CelestialClipmapBlock,
+    transform: &mut Transform,
+    visibility: &mut Visibility,
+    frame: ClipmapProjectedAuthorityFrame,
+    projection_eye: DVec3,
+    presentation_origin: Vec3,
+    metre_to_view_f64: f64,
+    metre_to_view: f32,
+) -> bool {
+    let local_origin = block.spec.key.origin_local_metres();
+    let relative_metres =
+        frame.relative_metres + frame.orientation * local_origin;
+    let projected =
+        (relative_metres - projection_eye) * metre_to_view_f64;
+    if !projected.is_finite() {
+        block.projection_ready = false;
+        *visibility = Visibility::Hidden;
+        return false;
+    }
+
+    let projected = Vec3::new(
+        projected.x as f32,
+        projected.y as f32,
+        projected.z as f32,
+    );
+    let translation = presentation_origin + projected;
+    if !translation.is_finite() {
+        block.projection_ready = false;
+        *visibility = Visibility::Hidden;
+        return false;
+    }
+
+    transform.translation = translation;
+    transform.rotation = frame.rotation;
+    transform.scale = Vec3::splat(metre_to_view);
+    block.projection_ready = true;
+    true
 }
 
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    registry: Res<CelestialClipmapRegistry>,
+    mut registry: ResMut<CelestialClipmapRegistry>,
     mut material_params: CelestialClipmapMaterialParams,
     authorities: Query<(
         &UsfPosition,
@@ -4288,13 +4426,139 @@ fn sync_celestial_clipmap_transforms(
             coverage.replace_authority_from_slice(authority, &[]);
         }
         presentation_state.clear();
-        telemetry.record_visible_frontier(0, 0, &HashSet::new(), None, None);
+        telemetry.record_visible_frontier(
+            0,
+            0,
+            &HashSet::new(),
+            None,
+            None,
+        );
+        scratch.initialized = false;
         return;
     };
+
     let metre_to_view = metre_to_view_f64 as f32;
     if !metre_to_view.is_finite() || metre_to_view <= 0.0 {
         return;
     }
+
+    let view_stamp = ClipmapViewProjectionStamp {
+        anchor: view.anchor(),
+        metre_to_view_f64,
+        projection_eye: view.projection_eye_offset_metres(),
+        presentation_origin: view.presentation_origin(),
+    };
+    let view_changed =
+        scratch.last_view_stamp != Some(view_stamp);
+
+    let _dirty_span =
+        bevy::log::info_span!(
+            "celestial_clipmap.transform_dirty_check"
+        )
+        .entered();
+
+    scratch.next_authority_stamps.clear();
+    let mut authority_changed =
+        scratch.authority_stamps.len() != registry.plans.len();
+    for &authority in registry.plans.keys() {
+        let Ok((body_origin, body_frame, _, policy)) =
+            authorities.get(authority)
+        else {
+            authority_changed = true;
+            continue;
+        };
+        let stamp = ClipmapAuthorityProjectionStamp {
+            origin: *body_origin,
+            orientation: body_frame.orientation(),
+            presentation_material:
+                policy.presentation_material().clone(),
+        };
+        if scratch.authority_stamps.get(&authority) != Some(&stamp) {
+            authority_changed = true;
+        }
+        scratch.next_authority_stamps.insert(authority, stamp);
+    }
+    std::mem::swap(
+        &mut scratch.authority_stamps,
+        &mut scratch.next_authority_stamps,
+    );
+
+    let frontier_changed = !scratch.initialized
+        || scratch.last_frontier_epoch != registry.frontier_epoch;
+    let projection_changed = !scratch.initialized
+        || scratch.last_projection_epoch != registry.projection_epoch
+        || !registry.projection_pending.is_empty();
+
+    drop(_dirty_span);
+
+    if scratch.initialized
+        && !view_changed
+        && !authority_changed
+        && !frontier_changed
+        && !projection_changed
+    {
+        return;
+    }
+
+    if scratch.initialized
+        && !view_changed
+        && !authority_changed
+        && !frontier_changed
+        && projection_changed
+    {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.project_pending"
+        )
+        .entered();
+
+        scratch.pending_entities.clear();
+        std::mem::swap(
+            &mut scratch.pending_entities,
+            &mut registry.projection_pending,
+        );
+
+        for entity in scratch.pending_entities.drain(..) {
+            let Ok((mut block, mut transform, mut visibility, _)) =
+                blocks.get_mut(entity)
+            else {
+                continue;
+            };
+            if !block.active || block.committed {
+                continue;
+            }
+            let Some(frame) =
+                scratch.frames.get(&block.authority).copied()
+            else {
+                continue;
+            };
+            project_clipmap_shell(
+                &mut block,
+                &mut transform,
+                &mut visibility,
+                frame,
+                view_stamp.projection_eye,
+                view_stamp.presentation_origin,
+                metre_to_view_f64,
+                metre_to_view,
+            );
+        }
+
+        scratch.last_projection_epoch = registry.projection_epoch;
+        return;
+    }
+
+    let _full_span =
+        bevy::log::info_span!(
+            "celestial_clipmap.transform_full"
+        )
+        .entered();
+
+    scratch.pending_entities.clear();
+    std::mem::swap(
+        &mut scratch.pending_entities,
+        &mut registry.projection_pending,
+    );
+    scratch.pending_entities.clear();
 
     scratch.frames.clear();
     scratch.counts.clear();
@@ -4309,140 +4573,146 @@ fn sync_celestial_clipmap_transforms(
         cells.clear();
     }
 
-    // Resolve the expensive hierarchical body/view relationship ONCE per body.
-    for &authority in registry.plans.keys() {
-        let Ok((body_origin, body_frame, _, _)) = authorities.get(authority)
-        else {
-            continue;
-        };
-        let Ok(relative_metres) = body_origin.relative_at_scale_bounded_f64(
-            view.anchor(),
-            SpatialScale::ZERO,
-            f64::MAX,
-        ) else {
-            continue;
-        };
-        let orientation = body_frame.orientation();
-        let rotation = Quat::from_xyzw(
-            orientation.x as f32,
-            orientation.y as f32,
-            orientation.z as f32,
-            orientation.w as f32,
+    {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.transform_authority_frames"
         )
-        .normalize();
-        scratch.frames.insert(
-            authority,
-            ClipmapProjectedAuthorityFrame {
-                relative_metres,
-                orientation,
-                rotation,
-            },
-        );
-        scratch.counts.insert(authority, (0, 0));
+        .entered();
+
+        for &authority in registry.plans.keys() {
+            let Ok((body_origin, body_frame, _, _)) =
+                authorities.get(authority)
+            else {
+                continue;
+            };
+            let Ok(relative_metres) =
+                body_origin.relative_at_scale_bounded_f64(
+                    view.anchor(),
+                    SpatialScale::ZERO,
+                    f64::MAX,
+                )
+            else {
+                continue;
+            };
+            let orientation = body_frame.orientation();
+            let rotation = Quat::from_xyzw(
+                orientation.x as f32,
+                orientation.y as f32,
+                orientation.z as f32,
+                orientation.w as f32,
+            )
+            .normalize();
+
+            scratch.frames.insert(
+                authority,
+                ClipmapProjectedAuthorityFrame {
+                    relative_metres,
+                    orientation,
+                    rotation,
+                },
+            );
+            scratch.counts.insert(authority, (0, 0));
+        }
     }
 
-    let projection_eye = view.projection_eye_offset_metres();
-    let presentation_origin = view.presentation_origin();
     let mut projected_any = false;
 
-    // One pass over ACTIVE shells only. `committed` is transaction state on the
-    // shell, so there is no per-block HashSet membership lookup.
-    for &entity in registry.active_entities.values() {
-        let Ok((mut block, mut transform, mut visibility, mut material)) =
-            blocks.get_mut(entity)
-        else {
-            continue;
-        };
-        if !block.active {
-            continue;
-        }
+    {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.transform_active_shells"
+        )
+        .entered();
 
-        let Some(frame) = scratch.frames.get(&block.authority).copied() else {
-            block.projection_ready = false;
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        let Some(plan) = registry.plans.get(&block.authority) else {
-            block.projection_ready = false;
-            *visibility = Visibility::Hidden;
-            continue;
-        };
+        for &entity in registry.active_entities.values() {
+            let Ok((
+                mut block,
+                mut transform,
+                mut visibility,
+                mut material,
+            )) = blocks.get_mut(entity)
+            else {
+                continue;
+            };
+            if !block.active {
+                continue;
+            }
 
-        let relative_level = block
-            .spec
-            .key
-            .resolution
-            .binary_exponent()
-            .saturating_sub(plan.key.finest_exponent);
-        if block.material_relative_level != relative_level {
-            if let Ok((_, _, _, policy)) = authorities.get(block.authority) {
-                let standard_materials = &material_params.standard_materials;
-                let debug_grid = &material_params.library.debug_grid;
-                let render_materials = &mut material_params.render_materials;
-                let shader_buffers = &mut material_params.shader_buffers;
-                let band_materials = &mut material_params.band_materials;
-                let desired = band_materials.material_for(
-                    standard_materials,
-                    render_materials,
-                    shader_buffers,
-                    debug_grid,
-                    policy.presentation_material(),
-                    relative_level,
-                );
-                if let Some(desired) = desired {
-                    material.0 = desired;
-                    block.material_relative_level = relative_level;
+            let Some(frame) =
+                scratch.frames.get(&block.authority).copied()
+            else {
+                block.projection_ready = false;
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+            let Some(plan) = registry.plans.get(&block.authority) else {
+                block.projection_ready = false;
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+
+            let relative_level = block
+                .spec
+                .key
+                .resolution
+                .binary_exponent()
+                .saturating_sub(plan.key.finest_exponent);
+            if block.material_relative_level != relative_level {
+                if let Ok((_, _, _, policy)) =
+                    authorities.get(block.authority)
+                {
+                    let standard_materials =
+                        &material_params.standard_materials;
+                    let debug_grid =
+                        &material_params.library.debug_grid;
+                    let render_materials =
+                        &mut material_params.render_materials;
+                    let shader_buffers =
+                        &mut material_params.shader_buffers;
+                    let band_materials =
+                        &mut material_params.band_materials;
+                    if let Some(desired) =
+                        band_materials.material_for(
+                            standard_materials,
+                            render_materials,
+                            shader_buffers,
+                            debug_grid,
+                            policy.presentation_material(),
+                            relative_level,
+                        )
+                    {
+                        material.0 = desired;
+                        block.material_relative_level = relative_level;
+                    }
+                }
+            }
+
+            if block.committed {
+                let counts =
+                    scratch.counts.entry(block.authority).or_default();
+                counts.0 = counts.0.saturating_add(1);
+            }
+
+            if project_clipmap_shell(
+                &mut block,
+                &mut transform,
+                &mut visibility,
+                frame,
+                view_stamp.projection_eye,
+                view_stamp.presentation_origin,
+                metre_to_view_f64,
+                metre_to_view,
+            ) {
+                projected_any = true;
+                if block.committed {
+                    let counts =
+                        scratch.counts.entry(block.authority).or_default();
+                    counts.1 = counts.1.saturating_add(1);
+                    scratch.projected_committed.push(entity);
                 }
             }
         }
-
-        if block.committed {
-            let counts = scratch.counts.entry(block.authority).or_default();
-            counts.0 = counts.0.saturating_add(1);
-        }
-
-        // `local_metres_to_world` followed by a canonical relative conversion is
-        // affine inside this body-local chart. Resolve the body anchor once and
-        // add the rotated local block origin directly in SI f64.
-        let local_origin = block.spec.key.origin_local_metres();
-        let relative_metres =
-            frame.relative_metres + frame.orientation * local_origin;
-        let projected = (relative_metres - projection_eye) * metre_to_view_f64;
-        if !projected.is_finite() {
-            block.projection_ready = false;
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-        let projected = Vec3::new(
-            projected.x as f32,
-            projected.y as f32,
-            projected.z as f32,
-        );
-        let translation = presentation_origin + projected;
-        if !translation.is_finite() {
-            block.projection_ready = false;
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        transform.translation = translation;
-        transform.rotation = frame.rotation;
-        transform.scale = Vec3::splat(metre_to_view);
-        block.projection_ready = true;
-        projected_any = true;
-
-        if block.committed {
-            let counts = scratch.counts.entry(block.authority).or_default();
-            counts.1 = counts.1.saturating_add(1);
-            scratch.projected_committed.push(entity);
-        }
     }
 
-    // clipmap-transform-scratch-borrow-repair-v1
-    //
-    // Borrow disjoint scratch fields directly. Borrowing `scratch.counts`
-    // through the whole Local wrapper kept an immutable borrow of `scratch`
-    // alive while inserting into `binary_primary`.
     {
         let CelestialClipmapTransformScratch {
             counts,
@@ -4458,12 +4728,16 @@ fn sync_celestial_clipmap_transforms(
     }
     let binary_primary_count = scratch.binary_primary.len();
 
-    // Only successfully projected COMMITTED shells need a second touch. Failed,
-    // pooled and uncommitted shells are already hidden.
     let mut visible_blocks = 0usize;
     let mut finest_visible_spacing = None::<f64>;
     let mut coarsest_visible_spacing = None::<f64>;
+
     {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.transform_visibility_coverage"
+        )
+        .entered();
+
         let CelestialClipmapTransformScratch {
             projected_committed,
             binary_primary,
@@ -4473,10 +4747,13 @@ fn sync_celestial_clipmap_transforms(
         } = &mut *scratch;
 
         for &entity in projected_committed.iter() {
-            let Ok((block, _, mut visibility, _)) = blocks.get_mut(entity) else {
+            let Ok((block, _, mut visibility, _)) =
+                blocks.get_mut(entity)
+            else {
                 continue;
             };
-            let visible = binary_primary.contains(&block.authority);
+            let visible =
+                binary_primary.contains(&block.authority);
             *visibility = if visible {
                 Visibility::Inherited
             } else {
@@ -4492,16 +4769,12 @@ fn sync_celestial_clipmap_transforms(
                 block.spec.key.resolution.binary_exponent(),
             );
             finest_visible_spacing = Some(
-                finest_visible_spacing.map_or(
-                    spacing,
-                    |value| value.min(spacing),
-                ),
+                finest_visible_spacing
+                    .map_or(spacing, |value| value.min(spacing)),
             );
             coarsest_visible_spacing = Some(
-                coarsest_visible_spacing.map_or(
-                    spacing,
-                    |value| value.max(spacing),
-                ),
+                coarsest_visible_spacing
+                    .map_or(spacing, |value| value.max(spacing)),
             );
             visible_by_authority
                 .entry(block.authority)
@@ -4516,26 +4789,38 @@ fn sync_celestial_clipmap_transforms(
         }
     }
 
-    coverage.retain_authorities(&scratch.live_authorities);
-    for &authority in &scratch.live_authorities {
-        let next = scratch
-            .visible_by_authority
-            .get(&authority)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        coverage.replace_authority_from_slice(authority, next);
+    {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.transform_publish_coverage"
+        )
+        .entered();
+
+        coverage.retain_authorities(&scratch.live_authorities);
+        for &authority in &scratch.live_authorities {
+            let next = scratch
+                .visible_by_authority
+                .get(&authority)
+                .map(Vec::as_slice)
+                .unwrap_or(&[]);
+            coverage.replace_authority_from_slice(authority, next);
+        }
+
+        presentation_state.replace_binary_primary_from(
+            &scratch.binary_primary,
+        );
+        telemetry.record_visible_frontier(
+            visible_blocks,
+            binary_primary_count,
+            &scratch.visible_levels,
+            finest_visible_spacing,
+            coarsest_visible_spacing,
+        );
     }
 
-    presentation_state.replace_binary_primary_from(
-        &scratch.binary_primary,
-    );
-    telemetry.record_visible_frontier(
-        visible_blocks,
-        binary_primary_count,
-        &scratch.visible_levels,
-        finest_visible_spacing,
-        coarsest_visible_spacing,
-    );
+    scratch.last_view_stamp = Some(view_stamp);
+    scratch.last_projection_epoch = registry.projection_epoch;
+    scratch.last_frontier_epoch = registry.frontier_epoch;
+    scratch.initialized = true;
 
     if projected_any && !*logged_projection {
         info!(

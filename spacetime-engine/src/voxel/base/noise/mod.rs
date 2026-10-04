@@ -98,6 +98,77 @@ impl SemanticNoiseCornerEntry {
     };
 }
 
+// worker-instrumentation-compact-noise-megapass-v1
+//
+// `SemanticNoiseCornerKey` is already the complete canonical identity of one
+// integer-aligned body-local noise corner. Reconstructing a UsfPosition,
+// translating it, normalizing it, then walking its digit array on every cache
+// miss is redundant. Reproduce the exact balanced-decimal digit stream directly
+// from the compact integer native coordinate.
+const COMPACT_SEMANTIC_DIGITS: usize = 71;
+
+#[inline]
+fn decompose_compact_semantic_axis(
+    coordinate: i64,
+    digit_count: usize,
+) -> ([i8; COMPACT_SEMANTIC_DIGITS], f32) {
+    let mut digits = [0_i8; COMPACT_SEMANTIC_DIGITS];
+    let coordinate = i128::from(coordinate);
+
+    let mut carry = (coordinate + 500).div_euclid(1_000);
+    let offset = coordinate - carry * 1_000;
+
+    for digit in digits.iter_mut().take(digit_count) {
+        let parent = (carry + 5).div_euclid(10);
+        let value = carry - parent * 10;
+        debug_assert!((-5..5).contains(&value));
+        *digit = value as i8;
+        carry = parent;
+    }
+
+    debug_assert_eq!(carry, 0);
+    (digits, offset as f32)
+}
+
+#[inline]
+fn semantic_corner_noise_3d_compact(
+    key: SemanticNoiseCornerKey,
+) -> f32 {
+    let digit_count =
+        (i16::from(SPATIAL_SCALE_MAX)
+            - i16::from(key.leaf_exponent)
+            + 1) as usize;
+    debug_assert!(digit_count <= COMPACT_SEMANTIC_DIGITS);
+
+    let (x_digits, x_offset) =
+        decompose_compact_semantic_axis(key.x, digit_count);
+    let (y_digits, y_offset) =
+        decompose_compact_semantic_axis(key.y, digit_count);
+    let (z_digits, z_offset) =
+        decompose_compact_semantic_axis(key.z, digit_count);
+
+    let mut value = key.seed ^ 0x517C_C1B7;
+    for index in (0..digit_count).rev() {
+        value = mix(
+            value,
+            i32::from(x_digits[index]) as u32,
+        );
+        value = mix(
+            value,
+            i32::from(y_digits[index]) as u32,
+        );
+        value = mix(
+            value,
+            i32::from(z_digits[index]) as u32,
+        );
+    }
+
+    value = mix(value, canonical_f32_bits(x_offset));
+    value = mix(value, canonical_f32_bits(y_offset));
+    value = mix(value, canonical_f32_bits(z_offset));
+    (value as f32 / u32::MAX as f32) * 2.0 - 1.0
+}
+
 // progressive-publication-and-worker-cache-lifetime-v1
 //
 // This cache belongs to worker-thread lifetime, not mesh-build lifetime.
@@ -293,17 +364,7 @@ pub(crate) fn semantic_value_noise_3d_cached(
         };
 
         cache.get_or_compute(key, || {
-            let p = VoxelQueryPosition::new(
-                lower
-                    .usf()
-                    .translated_whole_native([
-                        dx * cell_size,
-                        dy * cell_size,
-                        dz * cell_size,
-                    ])
-                    .expect("bounded semantic noise-lattice translation"),
-            );
-            semantic_corner_noise_3d(p, seed)
+            semantic_corner_noise_3d_compact(key)
         })
     };
 
@@ -502,6 +563,47 @@ mod semantic_corner_cache_tests {
     use super::*;
     use bevy::math::DVec3;
     use crate::spatial::UsfPosition;
+
+    #[test]
+    fn compact_semantic_corner_hash_matches_usf_reference() {
+        let seed = 0x51A7_C0DE;
+
+        for exponent in [-3_i8, 0_i8, 4_i8] {
+            let scale = SpatialScale::new(exponent).unwrap();
+            for [x, y, z] in [
+                [0_i64, 0_i64, 0_i64],
+                [499, -500, 1_001],
+                [6_371_000, -4_321_125, 2_111_460],
+                [-9_876_543, 7_654_320, -1_234_565],
+            ] {
+                let position = UsfPosition::from_scale_native_f64(
+                    DVec3::new(x as f64, y as f64, z as f64),
+                    scale,
+                    scale,
+                )
+                .unwrap();
+                let reference = semantic_corner_noise_3d(
+                    VoxelQueryPosition::new(position),
+                    seed,
+                );
+                let compact = semantic_corner_noise_3d_compact(
+                    SemanticNoiseCornerKey {
+                        leaf_exponent: exponent,
+                        seed,
+                        x,
+                        y,
+                        z,
+                    },
+                );
+
+                assert_eq!(
+                    reference.to_bits(),
+                    compact.to_bits(),
+                    "compact semantic corner mismatch at scale {exponent}: [{x}, {y}, {z}]",
+                );
+            }
+        }
+    }
 
     #[test]
     fn cached_semantic_noise_is_bit_exact_and_reuses_corners() {
