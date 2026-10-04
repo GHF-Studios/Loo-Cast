@@ -45,19 +45,27 @@ const GPU_TERRAIN_TOPOLOGY_SHADER: Handle<Shader> =
     uuid_handle!("96b866c0-a48a-4558-9e24-b8773dcf569e");
 // gpu-terrain-split-pipeline-v1
 // gpu-terrain-memory-pressure-repair-v1
+// gpu-terrain-frontier-stability-v1
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 const REGULAR_MAX_TRIANGLES: usize = BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS
     * BLOCK_SUBDIVISIONS * 5;
+const REGULAR_MAX_VERTICES: usize =
+    3 * BLOCK_SUBDIVISIONS * (BLOCK_SUBDIVISIONS + 1) * (BLOCK_SUBDIVISIONS + 1);
+const REGULAR_MAX_INDICES: usize = REGULAR_MAX_TRIANGLES * 3;
 const TRANSITION_MAX_TRIANGLES_PER_FACE: usize =
     BLOCK_SUBDIVISIONS * BLOCK_SUBDIVISIONS * 12;
+const TRANSITION_MAX_VERTICES_PER_FACE: usize =
+    TRANSITION_MAX_TRIANGLES_PER_FACE * 3;
+const TRANSITION_MAX_INDICES_PER_FACE: usize =
+    TRANSITION_MAX_TRIANGLES_PER_FACE * 3;
 const GPU_VERTEX_FLOATS: u32 = 8;
 
 const MAX_COARSE_BANDS: usize = 35;
 const MAX_FINE_BANDS: usize = 36;
 const HASH_DIGIT_WINDOW: usize = 20;
 const HASH_DIGIT_PACKS: usize = HASH_DIGIT_WINDOW / 4;
-const UV_PHASE_WRAP_METRES: f64 = 1_048_576.0;
+const UV_PHASE_WRAP_METRES: f64 = 65_536.0;
 
 #[derive(Debug, Clone, Copy, Default, ShaderType)]
 pub(crate) struct GpuCoarseBand {
@@ -245,10 +253,17 @@ impl Plugin for GpuTerrainPresentationPlugin {
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };
-        render_app
+        let mut settings = render_app
             .world_mut()
-            .resource_mut::<MeshAllocatorSettings>()
-            .extra_buffer_usages |= BufferUsages::STORAGE;
+            .resource_mut::<MeshAllocatorSettings>();
+        settings.extra_buffer_usages |= BufferUsages::STORAGE;
+
+        // gpu-terrain-frontier-stability-v1
+        // Bound general-slab growth so streaming terrain cannot trigger
+        // progressively larger hundreds-of-MiB relocation copies.
+        settings.slab_allocator_settings.min_slab_size = 8 * 1024 * 1024;
+        settings.slab_allocator_settings.max_slab_size = 64 * 1024 * 1024;
+        settings.slab_allocator_settings.large_threshold = 32 * 1024 * 1024;
     }
 }
 
@@ -272,10 +287,10 @@ pub(crate) fn allocation_mesh(
     // six-face worst case.
     let transition_face_count =
         transition_face_count.min(6) as usize;
-    let max_triangles = REGULAR_MAX_TRIANGLES
-        + TRANSITION_MAX_TRIANGLES_PER_FACE * transition_face_count;
-    let max_vertices = max_triangles * 3;
-    let max_indices = max_vertices;
+    let max_vertices = REGULAR_MAX_VERTICES
+        + TRANSITION_MAX_VERTICES_PER_FACE * transition_face_count;
+    let max_indices = REGULAR_MAX_INDICES
+        + TRANSITION_MAX_INDICES_PER_FACE * transition_face_count;
 
     Mesh::new(
         PrimitiveTopology::TriangleList,

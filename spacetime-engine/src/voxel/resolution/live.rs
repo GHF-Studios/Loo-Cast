@@ -16,7 +16,7 @@ use std::{
 
 use bevy::{
     asset::RenderAssetUsages,
-    camera::{primitives::Aabb, visibility::RenderLayers},
+    camera::{primitives::Aabb, visibility::{NoAutoAabb, RenderLayers}},
     light::{NotShadowCaster, NotShadowReceiver},
     math::DVec3,
     mesh::{Indices, PrimitiveTopology},
@@ -3622,6 +3622,7 @@ fn park_clipmap_entity(
     *visibility = Visibility::Hidden;
 
     // gpu-terrain-memory-pressure-repair-v1
+    // gpu-terrain-frontier-stability-v1
     //
     // GPU-native clipmap shells own substantial persistent MeshAllocator
     // ranges. Retaining retired shells kept those ranges alive and allowed the
@@ -4302,6 +4303,7 @@ fn sync_celestial_clipmap_realizations(
             commands.entity(entity).insert((
                 UsfPresentationProjectionOf(admission.authority),
                 bounds,
+                NoAutoAabb,
                 GpuTerrainBlock::new(
                     mesh3d.0.clone(),
                     build_id,
@@ -4340,6 +4342,7 @@ fn sync_celestial_clipmap_realizations(
                         Mesh3d(mesh.clone()),
                         MeshMaterial3d(presentation_material),
                         bounds,
+                        NoAutoAabb,
                         GpuTerrainBlock::new(
                             mesh,
                             build_id,

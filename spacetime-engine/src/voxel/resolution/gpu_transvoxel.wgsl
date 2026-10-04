@@ -10,6 +10,7 @@ const REGULAR_LATTICE: u32 = 9u;
 const REGULAR_LATTICE_LEN: u32 = 729u;
 const FACE_LATTICE: u32 = 17u;
 const FACE_LATTICE_LEN: u32 = 289u;
+const REGULAR_EDGE_VERTEX_COUNT: u32 = 1944u;
 const HASH_DIGITS: u32 = 20u;
 const MAX_COARSE_BANDS: u32 = 35u;
 const MAX_FINE_BANDS: u32 = 36u;
@@ -68,13 +69,15 @@ struct SurfaceVertex {
 
 // gpu-terrain-split-pipeline-v1
 // gpu-terrain-transition-case-side-repair-v1
+// gpu-terrain-frontier-stability-v1
 @group(0) @binding(0) var<uniform> dispatch: GpuTerrainDispatch;
 @group(0) @binding(1) var<storage, read> tables: array<u32>;
 @group(0) @binding(2) var<storage, read> scratch: array<f32>;
 @group(0) @binding(3) var<storage, read_write> vertex_data: array<f32>;
 @group(0) @binding(4) var<storage, read_write> index_data: array<u32>;
 
-var<workgroup> output_count: atomic<u32>;
+var<workgroup> index_count: atomic<u32>;
+var<workgroup> transition_vertex_count: atomic<u32>;
 
 fn regular_lattice_index(index: vec3<i32>) -> u32 {
     return u32(index.x)
@@ -204,12 +207,59 @@ fn interpolate_vertex(
     return SurfaceVertex(p, normal);
 }
 
-fn regular_edge_vertex(cell: vec3<i32>, vd: u32) -> SurfaceVertex {
+
+fn regular_edge_slot(cell: vec3<i32>, vd: u32) -> u32 {
     let edge = vd & 0xFFu;
     let ai = (edge >> 4u) & 0xFu;
     let bi = edge & 0xFu;
     let a = cell + regular_corner(ai);
     let b = cell + regular_corner(bi);
+    let p = vec3<i32>(
+        min(a.x, b.x),
+        min(a.y, b.y),
+        min(a.z, b.z),
+    );
+    let d = abs(b - a);
+
+    // 8*9*9 edges for each of the three lattice axes.
+    if d.x != 0 {
+        return u32(p.x + 8 * p.y + 8 * 9 * p.z);
+    }
+    if d.y != 0 {
+        return 648u + u32(p.y + 8 * p.x + 8 * 9 * p.z);
+    }
+    return 1296u + u32(p.z + 8 * p.x + 8 * 9 * p.y);
+}
+
+fn regular_edge_vertex_from_slot(slot: u32) -> SurfaceVertex {
+    var a = vec3<i32>(0);
+    var b = vec3<i32>(0);
+
+    if slot < 648u {
+        let x = i32(slot % 8u);
+        let q = slot / 8u;
+        let y = i32(q % 9u);
+        let z = i32(q / 9u);
+        a = vec3<i32>(x, y, z);
+        b = a + vec3<i32>(1, 0, 0);
+    } else if slot < 1296u {
+        let local = slot - 648u;
+        let y = i32(local % 8u);
+        let q = local / 8u;
+        let x = i32(q % 9u);
+        let z = i32(q / 9u);
+        a = vec3<i32>(x, y, z);
+        b = a + vec3<i32>(0, 1, 0);
+    } else {
+        let local = slot - 1296u;
+        let z = i32(local % 8u);
+        let q = local / 8u;
+        let x = i32(q % 9u);
+        let y = i32(q / 9u);
+        a = vec3<i32>(x, y, z);
+        b = a + vec3<i32>(0, 0, 1);
+    }
+
     return interpolate_vertex(
         regular_position(a),
         regular_position(b),
@@ -219,6 +269,7 @@ fn regular_edge_vertex(cell: vec3<i32>, vd: u32) -> SurfaceVertex {
         regular_sample(b),
     );
 }
+
 
 fn rotation_base(side: u32) -> vec3<i32> {
     switch side {
@@ -388,7 +439,8 @@ fn transition_edge_vertex(
     return interpolate_vertex(a.position, b.position, -a.normal, -b.normal, da, db);
 }
 
-fn write_vertex(slot: u32, vertex: SurfaceVertex) {
+
+fn write_surface_vertex(slot: u32, vertex: SurfaceVertex) {
     let start = dispatch.ranges.x + slot * 8u;
     vertex_data[start + 0u] = vertex.position.x;
     vertex_data[start + 1u] = vertex.position.y;
@@ -400,22 +452,25 @@ fn write_vertex(slot: u32, vertex: SurfaceVertex) {
         dispatch.descriptor.extent_uv_radius.y + vertex.position.x * 0.5;
     vertex_data[start + 7u] =
         dispatch.descriptor.extent_uv_radius.z + vertex.position.z * 0.5;
-    index_data[dispatch.ranges.z + slot] = slot;
 }
 
-fn emit_triangle(a: SurfaceVertex, b: SurfaceVertex, c: SurfaceVertex) {
-    let capacity = min(
-        (dispatch.ranges.y - dispatch.ranges.x) / 8u,
-        dispatch.ranges.w - dispatch.ranges.z,
-    );
-    let base = atomicAdd(&output_count, 3u);
-    if base + 2u >= capacity {
+
+
+fn write_triangle_indices(
+    index_base: u32,
+    a: u32,
+    b: u32,
+    c: u32,
+) {
+    let capacity = dispatch.ranges.w - dispatch.ranges.z;
+    if index_base + 2u >= capacity {
         return;
     }
-    write_vertex(base + 0u, a);
-    write_vertex(base + 1u, b);
-    write_vertex(base + 2u, c);
+    index_data[dispatch.ranges.z + index_base + 0u] = a;
+    index_data[dispatch.ranges.z + index_base + 1u] = b;
+    index_data[dispatch.ranges.z + index_base + 2u] = c;
 }
+
 
 fn regular_case(cell: vec3<i32>) -> u32 {
     var result = 0u;
@@ -447,6 +502,7 @@ fn transition_case(side: u32, cell_u: i32, cell_v: i32) -> u32 {
     return result;
 }
 
+
 fn emit_regular_cell(cell_id: u32) {
     let x = i32(cell_id % BLOCK);
     let y = i32((cell_id / BLOCK) % BLOCK);
@@ -463,13 +519,18 @@ fn emit_regular_cell(cell_id: u32) {
         let ib = tables[tri_base + 1u];
         let ic = tables[tri_base + 2u];
         let vertices = REG_VERTEX_OFFSET + case_number * 12u;
-        emit_triangle(
-            regular_edge_vertex(cell, tables[vertices + ia]),
-            regular_edge_vertex(cell, tables[vertices + ib]),
-            regular_edge_vertex(cell, tables[vertices + ic]),
+
+        let index_base = atomicAdd(&index_count, 3u);
+        write_triangle_indices(
+            index_base,
+            regular_edge_slot(cell, tables[vertices + ia]),
+            regular_edge_slot(cell, tables[vertices + ib]),
+            regular_edge_slot(cell, tables[vertices + ic]),
         );
     }
 }
+
+
 
 fn emit_transition_cell(side: u32, cell_id: u32) {
     let cell_u = i32(cell_id % BLOCK);
@@ -488,26 +549,70 @@ fn emit_transition_cell(side: u32, cell_id: u32) {
         let ib = tables[tri_base + 1u];
         let ic = tables[tri_base + 2u];
 
-        let a = transition_edge_vertex(side, cell_u, cell_v, tables[vertices + ia]);
-        let b = transition_edge_vertex(side, cell_u, cell_v, tables[vertices + ib]);
-        let c = transition_edge_vertex(side, cell_u, cell_v, tables[vertices + ic]);
+        let a = transition_edge_vertex(
+            side,
+            cell_u,
+            cell_v,
+            tables[vertices + ia],
+        );
+        let b = transition_edge_vertex(
+            side,
+            cell_u,
+            cell_v,
+            tables[vertices + ib],
+        );
+        let c = transition_edge_vertex(
+            side,
+            cell_u,
+            cell_v,
+            tables[vertices + ic],
+        );
 
-        // transvoxel_rs uses LowZ as its base orientation, so the table's
-        // inversion bit is deliberately complemented in its transition path.
-        if !invert {
-            emit_triangle(a, b, c);
-        } else {
-            emit_triangle(c, b, a);
+        let index_base = atomicAdd(&index_count, 3u);
+        let transition_base =
+            atomicAdd(&transition_vertex_count, 3u);
+        let vertex_base =
+            REGULAR_EDGE_VERTEX_COUNT + transition_base;
+
+        let vertex_capacity =
+            (dispatch.ranges.y - dispatch.ranges.x) / 8u;
+        let index_capacity =
+            dispatch.ranges.w - dispatch.ranges.z;
+        if vertex_base + 2u >= vertex_capacity
+            || index_base + 2u >= index_capacity
+        {
+            continue;
         }
+
+        if !invert {
+            write_surface_vertex(vertex_base + 0u, a);
+            write_surface_vertex(vertex_base + 1u, b);
+            write_surface_vertex(vertex_base + 2u, c);
+        } else {
+            write_surface_vertex(vertex_base + 0u, c);
+            write_surface_vertex(vertex_base + 1u, b);
+            write_surface_vertex(vertex_base + 2u, a);
+        }
+
+        write_triangle_indices(
+            index_base,
+            vertex_base + 0u,
+            vertex_base + 1u,
+            vertex_base + 2u,
+        );
     }
 }
 
 
 
+
+@compute @workgroup_size(64)
+
 @compute @workgroup_size(64)
 fn main(@builtin(local_invocation_index) lane: u32) {
     if lane == 0u {
-        atomicStore(&output_count, 0u);
+        atomicStore(&index_count, 0u);
+        atomicStore(&transition_vertex_count, 0u);
     }
 
     let index_capacity = dispatch.ranges.w - dispatch.ranges.z;
@@ -520,7 +625,23 @@ fn main(@builtin(local_invocation_index) lane: u32) {
         clear += 64u;
     }
 
+    // Every regular Transvoxel vertex lies on one of the 1,944 unique edges
+    // of the 9^3 block lattice. Populate each edge slot once, then topology
+    // emits only indices into these shared vertices.
+    var edge_slot = lane;
+    loop {
+        if edge_slot >= REGULAR_EDGE_VERTEX_COUNT {
+            break;
+        }
+        write_surface_vertex(
+            edge_slot,
+            regular_edge_vertex_from_slot(edge_slot),
+        );
+        edge_slot += 64u;
+    }
+
     workgroupBarrier();
+    storageBarrier();
 
     var cell = lane;
     loop {
@@ -550,3 +671,4 @@ fn main(@builtin(local_invocation_index) lane: u32) {
         workgroupBarrier();
     }
 }
+
