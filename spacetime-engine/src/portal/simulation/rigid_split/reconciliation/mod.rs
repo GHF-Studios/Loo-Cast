@@ -6,6 +6,8 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
+use crate::portal::simulation::split::active_portal_pair;
+
 use crate::{
     portal::{
         Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler,
@@ -106,42 +108,32 @@ pub(crate) fn reconcile_rigid_splits(
                 &mut rigid_split,
             );
         } else if let Some(active) = split.active {
-            let pair = match (
-                portals.get(active.source),
-                portals.get(active.destination),
-            ) {
-                (
-                    Ok((_, _, source_active, source)),
-                    Ok((_, _, destination_active, destination)),
-                ) if source_active.0 && destination_active.0 => Some((source, destination)),
-                _ => None,
-            };
-
-            let materialized = pair.is_some_and(|(source, destination)| {
-                materialize_peer(
-                    &mut commands,
-                    AuthorityMotion {
-                        body: &body,
-                        linear: velocity.0,
-                        angular: angular_velocity.0,
-                    },
-                    PeerMaterialization {
-                        entity: peer_entity,
-                        split_box: split_box,
-                        source,
-                        destination,
-                        authority_collider: &mut authority_collider,
-                        peer: PeerComponents {
-                            transform: &mut peer_transform,
-                            linear: &mut peer_velocity,
-                            angular: &mut peer_angular,
-                            collider: &mut peer_collider,
+            let materialized = active_portal_pair(active, &portals)
+                .is_some_and(|(_, source, destination)| {
+                    materialize_peer(
+                        &mut commands,
+                        AuthorityMotion {
+                            body: &body,
+                            linear: velocity.0,
+                            angular: angular_velocity.0,
                         },
-                        rigid_split: &mut rigid_split,
-                        capture_solver_baseline: false,
-                    },
-                )
-            });
+                        PeerMaterialization {
+                            entity: peer_entity,
+                            split_box: split_box,
+                            source,
+                            destination,
+                            authority_collider: &mut authority_collider,
+                            peer: PeerComponents {
+                                transform: &mut peer_transform,
+                                linear: &mut peer_velocity,
+                                angular: &mut peer_angular,
+                                collider: &mut peer_collider,
+                            },
+                            rigid_split: &mut rigid_split,
+                            capture_solver_baseline: false,
+                        },
+                    )
+                });
 
             if !materialized {
                 deactivate_peer(

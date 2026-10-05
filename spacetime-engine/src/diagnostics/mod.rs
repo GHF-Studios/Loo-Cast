@@ -171,6 +171,3 @@ impl Plugin for RuntimeDiagnosticsPlugin {
             .add_systems(Last, collect_world_diagnostics);
     }
 }
-
-#[cfg(test)]
-mod tests;

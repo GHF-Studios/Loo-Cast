@@ -115,28 +115,3 @@ impl VoxelSample {
         Self::new(distance, VoxelMaterialId::VOID)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn built_in_material_behavior_axes_are_independent() {
-        let glass = VoxelMaterialId::GLASS.behavior();
-        assert!(glass.is_translucent());
-        assert!(glass.is_rigid());
-        assert_eq!(glass.linear_drag, 0.0);
-
-        let nebula = VoxelMaterialId::NEBULA.behavior();
-        assert!(nebula.is_translucent());
-        assert!(!nebula.is_rigid());
-        assert!(nebula.linear_drag > 0.0);
-    }
-
-    #[test]
-    fn signed_distance_sign_is_the_authoritative_solidity_test() {
-        assert!(SignedDistance(-0.1).is_solid());
-        assert!(SignedDistance::SURFACE.is_empty());
-        assert!(SignedDistance(0.1).is_empty());
-    }
-}

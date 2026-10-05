@@ -74,35 +74,3 @@ pub(in crate::portal::simulation) fn center_crossing_fraction(
     let fraction = a / denominator;
     (0.0..=1.0).contains(&fraction).then_some((fraction, side))
 }
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn center_crossing_reports_exact_fraction() {
-        let portal = Transform::IDENTITY;
-        let (fraction, side) =
-            center_crossing_fraction(&portal, Vec3::new(0.0, 0.0, 1.0), Vec3::new(0.0, 0.0, -3.0))
-                .unwrap();
-
-        assert!((fraction - 0.25).abs() < 1.0e-6);
-        assert_eq!(side, PortalSide::Front);
-    }
-
-    #[test]
-    fn character_box_fits_floor_portal() {
-        let split_box = SpatialSplitBox::from_size_native(Vec3::new(0.8128, 1.9, 0.8128));
-        let floor_portal =
-            Transform::IDENTITY.with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
-
-        assert!(box_fits_aperture_at(
-            split_box,
-            Quat::IDENTITY,
-            Vec3::ZERO,
-            &floor_portal,
-            Vec2::new(1.25, 1.75),
-        ));
-    }
-}

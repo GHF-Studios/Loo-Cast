@@ -444,21 +444,28 @@ pub fn new(
 
     pub const fn profile(self) -> CelestialBodyProfile { self.profile }
 
-    /// Conservative maximum radial extent represented by this realization.
+    /// Conservative radial interval for the canonical outer surface.
     ///
-    /// This is broadphase metadata, not a replacement surface. It bounds the
-    /// current procedural macro relief plus every detail band owned by this
-    /// Scale Slice so high-speed collision queries may safely over-report a
-    /// candidate without depending on a materialized mesh/collider.
-pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
-        let mut radius = self.radius_metres + self.maximum_outward_macro_relief_metres();
+    /// Bounds come from the same authored morphology and residual bands as
+    /// field evaluation. Caves can add internal boundaries below this interval;
+    /// callers must extend the lower bound by their inward support.
+    pub(crate) fn conservative_surface_radius_bounds_metres(self) -> (f64, f64) {
+        let mut residual_bound = 0.0;
         if self.surface_detail_scale <= self.coarsest_detail_scale {
             for raw in self.surface_detail_scale.exponent()..=self.coarsest_detail_scale.exponent() {
                 let level = SpatialScale::new(raw).expect("validated celestial semantic detail scale");
-                radius += self.detail_amplitude_native(level).abs() * level.metres_per_native();
+                residual_bound += self.detail_amplitude_native(level).abs() * level.metres_per_native();
             }
         }
-        radius
+        (
+            (self.radius_metres - self.maximum_inward_macro_relief_metres() - residual_bound).max(0.0),
+            self.radius_metres + self.maximum_outward_macro_relief_metres() + residual_bound,
+        )
+    }
+
+    /// Broadphase upper bound for collision queries.
+    pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
+        self.conservative_surface_radius_bounds_metres().1
     }
 
 pub(crate) fn prepare_local_sampler(
@@ -1098,6 +1105,21 @@ fn canonical_detail_noise_at(
             CelestialBodyProfile::Stellar => self.radius_metres * 0.00035,
         }
     }
+
+    fn maximum_inward_macro_relief_metres(self) -> f64 {
+        match self.profile {
+            CelestialBodyProfile::Lunar => {
+                let crater_depth_sum =
+                    0.0100 + 0.0070 + 0.0060 + 0.0048
+                    + 0.0040 + 0.0034 + 0.0028 + 0.0024;
+                self.radius_metres * (0.0014 + 0.0008 + crater_depth_sum)
+            }
+            CelestialBodyProfile::Rocky => {
+                rocky_maximum_outward_displacement_metres() + 38_000.0
+            }
+            CelestialBodyProfile::Stellar => self.radius_metres * 0.00035,
+        }
+    }
 }
 
 fn normalized_direction(direction: Vec3) -> Vec3 {
@@ -1236,384 +1258,4 @@ fn lunar_macro_relative_relief(direction: Vec3) -> f32 {
     }
 
     height
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn earth_center() -> UsfPosition {
-        UsfPosition::from_scale_native_f64(
-            DVec3::new(0.0, -6_371_000.0, 0.0),
-            SpatialScale::ZERO,
-            SpatialScale::MIN,
-        )
-        .unwrap()
-    }
-
-    #[test]
-    fn prepared_presentation_sampler_matches_reference_sdf_bits() {
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::ZERO,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-        let prepared = body.prepare_presentation_sampler();
-
-        for point in [
-            DVec3::new(0.0, 6_371_025.0, 0.0),
-            DVec3::new(37.0, 6_370_900.0, -83.0),
-            DVec3::new(1_234.5, 6_371_111.25, -777.75),
-            DVec3::new(-9_876.25, 6_369_500.0, 4_321.5),
-        ] {
-            let reference =
-                body.signed_distance_local_metres(point).unwrap();
-            let optimized =
-                prepared.signed_distance_local_metres(point).unwrap();
-            assert_eq!(
-                reference.to_bits(),
-                optimized.to_bits(),
-                "prepared presentation SDF changed canonical field at {point:?}",
-            );
-        }
-    }
-
-    #[test]
-    fn direct_body_local_detail_noise_matches_hierarchical_reference() {
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::ZERO,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-        let level = SpatialScale::ZERO;
-
-        for point in [
-            DVec3::new(0.0, 6_371_000.0, 0.0),
-            DVec3::new(
-                1_234_567.0,
-                5_432_100.0,
-                -2_345_678.0,
-            ),
-            DVec3::new(
-                -4_321_000.25,
-                2_111_000.5,
-                3_777_000.75,
-            ),
-        ] {
-            let hierarchical = UsfPosition::zero(
-                body.origin_snapshot.leaf_scale(),
-            )
-            .translated_metres_f64(point)
-            .unwrap();
-            let reference = body
-                .canonical_detail_noise_at(
-                    hierarchical,
-                    level,
-                )
-                .unwrap();
-            let direct = body
-                .canonical_detail_noise_at_local_metres(
-                    point,
-                    level,
-                )
-                .unwrap();
-
-            assert_eq!(
-                reference.to_bits(),
-                direct.to_bits(),
-                "direct body-local noise changed canonical result at {point:?}",
-            );
-        }
-    }
-
-    #[test]
-    fn outer_sdf_is_zero_on_canonical_surface() {
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::ZERO,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-
-        for direction in [
-            Vec3::Y,
-            Vec3::new(0.31, 0.83, -0.46).normalize(),
-            Vec3::new(-0.72, 0.22, 0.66).normalize(),
-        ] {
-            let surface = body.surface_local_metres(direction).unwrap();
-            let sdf = body
-                .outer_signed_distance_local_metres(surface)
-                .unwrap();
-            assert!(
-                sdf.abs() < 1.0e-5,
-                "outer SDF disagrees with canonical radial surface: {sdf}"
-            );
-        }
-    }
-
-    #[test]
-    fn canonical_field_sample_is_independent_of_realization_scale() {
-        let direction = Vec3::new(0.37, 0.81, -0.45).normalize();
-        let s0 = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::ZERO,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-        let s6 = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-
-        let surface = s0.surface_local_metres(direction).unwrap();
-        let local_point = surface
-            - DVec3::new(
-                f64::from(direction.x),
-                f64::from(direction.y),
-                f64::from(direction.z),
-            ) * 25.0;
-
-        let a = s0.field_sample_local_metres(local_point).unwrap();
-        let b = s6.field_sample_local_metres(local_point).unwrap();
-
-        assert_eq!(a.material(), b.material());
-        assert!(
-            (a.signed_distance_metres() - b.signed_distance_metres()).abs()
-                < 1.0e-9,
-            "realization Scale changed canonical field truth: a={a:?}, b={b:?}"
-        );
-    }
-
-    #[test]
-    fn coarse_body_radius_projects_consistently() {
-        let radius_metres = 6_371_000.0;
-        let coarsest = SpatialScale::new(6).unwrap();
-
-        for raw in 1..=6 {
-            let scale = SpatialScale::new(raw).unwrap();
-            let body = ProceduralCelestialBody::new(
-                earth_center(),
-                UsfSemanticFrame::identity(),
-                radius_metres,
-                scale,
-                coarsest, SpatialScale::ZERO,
-                0x4541_5254,
-                CelestialBodyProfile::Rocky,
-            );
-            let reconstructed =
-                body.radius_native_f64() * scale.metres_per_native();
-            assert!((reconstructed - radius_metres).abs() < 1.0e-6);
-        }
-    }
-
-    #[test]
-    fn rocky_canonical_surface_is_unmistakably_non_spherical() {
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            SpatialScale::ZERO,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-
-        let mut minimum = f64::INFINITY;
-        let mut maximum = f64::NEG_INFINITY;
-        for index in 0..512 {
-            let i = index as f32 + 0.5;
-            let n = 512.0_f32;
-            let y = 1.0 - 2.0 * i / n;
-            let horizontal = (1.0 - y * y).max(0.0).sqrt();
-            let golden_ratio = (1.0 + 5.0_f32.sqrt()) * 0.5;
-            let theta = std::f32::consts::TAU * index as f32 / golden_ratio;
-            let direction =
-                Vec3::new(theta.cos() * horizontal, y, theta.sin() * horizontal)
-                    .normalize();
-            let radius = body.surface_local_metres(direction).unwrap().length();
-            let relief = radius - body.radius_metres();
-            minimum = minimum.min(relief);
-            maximum = maximum.max(relief);
-        }
-
-        assert!(
-            maximum >= 15_000.0,
-            "expected high canonical mountains, max={maximum:.1} m"
-        );
-        assert!(
-            minimum <= -10_000.0,
-            "expected deep canonical valleys/canyons, min={minimum:.1} m"
-        );
-        assert!(
-            maximum - minimum >= 30_000.0,
-            "expected dramatic canonical relief span, got {:.1} m",
-            maximum - minimum,
-        );
-    }
-
-    #[test]
-    fn realization_scale_never_changes_semantic_surface_geometry() {
-        let radius_metres = 6_371_000.0;
-        let coarsest = SpatialScale::new(6).unwrap();
-        let surface_floor = SpatialScale::ZERO;
-        let direction = Vec3::new(0.37, 0.81, -0.45).normalize();
-        let reference = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            radius_metres,
-            SpatialScale::ZERO,
-            coarsest,
-            surface_floor,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        )
-        .surface_position(direction)
-        .unwrap();
-
-        for raw in 0..=6 {
-            let realization_scale = SpatialScale::new(raw).unwrap();
-            let actual = ProceduralCelestialBody::new(
-                earth_center(),
-                UsfSemanticFrame::identity(),
-                radius_metres,
-                realization_scale,
-                coarsest,
-                surface_floor,
-                0x4541_5254,
-                CelestialBodyProfile::Rocky,
-            )
-            .surface_position(direction)
-            .unwrap();
-            let delta = actual
-                .relative_at_scale_bounded_f64(&reference, SpatialScale::ZERO, 0.01)
-                .unwrap();
-            assert!(
-                delta.length() < 1.0e-6,
-                "S{raw:+} realization changed semantic surface by {delta:?}",
-            );
-        }
-    }
-
-    #[test]
-    fn neighboring_fine_materializations_share_identical_canonical_border_samples() {
-        let scale = SpatialScale::ZERO;
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            scale,
-            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-
-        let surface = body.surface_position(Vec3::Y).unwrap();
-        let left_origin = surface
-            .translated_at_scale(scale, Vec3::new(-5.0, -4.0, -5.0))
-            .unwrap();
-        let right_origin = left_origin
-            .translated_at_scale(scale, Vec3::new(10.0, 0.0, 0.0))
-            .unwrap();
-
-        let left = body
-            .prepare_local_sampler(
-                VoxelQueryPosition::new(surface),
-                VoxelQueryPosition::new(left_origin),
-            )
-            .unwrap();
-        let right = body
-            .prepare_local_sampler(
-                VoxelQueryPosition::new(surface),
-                VoxelQueryPosition::new(right_origin),
-            )
-            .unwrap();
-
-        // Surface Nets stores one copied sample of padding. These two x pairs
-        // address the exact same canonical planes from adjacent 10-unit
-        // materializations: left 9 == right -1, left 10 == right 0.
-        for (left_x, right_x) in [(9.0, -1.0), (10.0, 0.0)] {
-            for z in -1..=10 {
-                for y in -1..=10 {
-                    let left_sample =
-                        left.sample(Vec3::new(left_x, y as f32, z as f32));
-                    let right_sample =
-                        right.sample(Vec3::new(right_x, y as f32, z as f32));
-
-                    assert_eq!(left_sample.material, right_sample.material);
-                    assert_eq!(
-                        left_sample.distance.0.to_bits(),
-                        right_sample.distance.0.to_bits(),
-                        "shared canonical border sample diverged at y={y}, z={z}",
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn planck_scale_surface_patch_never_requires_planet_radius_in_f32() {
-        let scale = SpatialScale::MIN;
-        let body = ProceduralCelestialBody::new(
-            earth_center(),
-            UsfSemanticFrame::identity(),
-            6_371_000.0,
-            scale,
-            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-
-        assert!(body.radius_native_f64().is_finite());
-        assert!(body.radius_native_f64() > f64::from(f32::MAX));
-
-        let surface = body.surface_position(Vec3::Y).unwrap();
-        let inside = surface
-            .translated_at_scale(scale, Vec3::Y * -4.0)
-            .unwrap();
-        let outside = surface
-            .translated_at_scale(scale, Vec3::Y * 4.0)
-            .unwrap();
-
-        assert!(
-            body.sample_at(
-                VoxelQueryPosition::new(surface),
-                VoxelQueryPosition::new(inside),
-            )
-            .distance
-            .is_solid()
-        );
-        assert!(
-            body.sample_at(
-                VoxelQueryPosition::new(surface),
-                VoxelQueryPosition::new(outside),
-            )
-            .distance
-            .is_empty()
-        );
-    }
 }

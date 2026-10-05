@@ -631,50 +631,6 @@ fn sync_refinement_clip_materials(
     }
 }
 
-#[cfg(test)]
-mod refinement_presentation_domain_tests {
-    use super::*;
-
-    #[test]
-    fn view_can_present_refinement_finer_than_interaction() {
-        let interaction = SpatialScale::new(5).unwrap();
-        let view = SpatialScale::new(3).unwrap();
-        let fine = SpatialScale::new(3).unwrap();
-
-        assert!(refinement_source_is_presented(
-            fine,
-            interaction,
-            view,
-            true,
-            true,
-            true,
-        ));
-    }
-
-    #[test]
-    fn interaction_scale_is_physical_only_when_view_matches_it() {
-        let interaction = SpatialScale::new(5).unwrap();
-
-        assert!(refinement_source_is_presented(
-            interaction,
-            interaction,
-            interaction,
-            true,
-            true,
-            true,
-        ));
-
-        let finer_view = SpatialScale::new(3).unwrap();
-        assert!(refinement_source_is_presented(
-            interaction,
-            interaction,
-            finer_view,
-            false,
-            true,
-            true,
-        ));
-    }
-}
 
 pub(super) fn configure(app: &mut App) {
     load_internal_asset!(

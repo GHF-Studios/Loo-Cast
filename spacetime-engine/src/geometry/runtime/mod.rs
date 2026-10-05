@@ -55,6 +55,7 @@ pub(super) struct GeneratedFromMap {
 
 #[derive(Component, Debug, Clone, Copy)]
 pub(super) struct AuthoredMotion {
+    /// Runtime-chart origin for the authored oscillator, shifted on rebases.
     base: Transform,
     travel: Vec3,
     period_seconds: f32,
@@ -67,6 +68,7 @@ mod rebuild;
 mod spawning;
 
 pub(super) use motion::animate_authored_movers;
+pub(super) use motion::rebase_authored_movers;
 pub(super) use rebuild::rebuild_authored_maps;
 
 use motion::{authored_motion, motion_state};

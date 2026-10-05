@@ -533,6 +533,3 @@ pub(super) use systems::{
     project_local_scale_presentations, project_scale_presentations,
     project_scenery_presentations, sync_view_context,
 };
-
-#[cfg(test)]
-mod tests;

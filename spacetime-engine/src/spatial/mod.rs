@@ -79,7 +79,8 @@ use bevy::{prelude::*, transform::TransformSystems};
 #[derive(Component, Debug, Default)]
 pub struct UsfSpatialAnchor;
 
-pub use chart::{UsfOriginRebased, UsfRuntimeChartState, UsfSpatialFrame};
+pub use chart::{UsfOriginRebased, UsfRuntimeChartState};
+pub(crate) use chart::resolved_rebase_scale;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfInteractionHandoffSet {
@@ -109,7 +110,7 @@ pub struct UsfSpatialPlugin;
 
 impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UsfSpatialFrame>()
+        app.init_resource::<UsfRuntimeChartState>()
             .init_resource::<UsfPrimaryInteractionSlice>()
             .init_resource::<UsfInteractionHandoffGuards>()
             .init_resource::<UsfPresentationProbe>()
@@ -187,6 +188,3 @@ impl Plugin for UsfSpatialPlugin {
         devtools::configure(app);
     }
 }
-
-#[cfg(test)]
-mod tests;

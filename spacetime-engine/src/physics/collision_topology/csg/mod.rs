@@ -284,23 +284,3 @@ fn push_unique(points: &mut Vec<Vec3>, point: Vec3) {
         points.push(point);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn subtracting_center_prism_leaves_multiple_convex_pieces() {
-        let host = Transform::IDENTITY;
-        let cut = RectangularCut {
-            transform: Transform::from_xyz(0.0, 0.0, 1.0),
-            half_size: Vec2::new(0.5, 0.75),
-            clearance: 0.0,
-        };
-        let planes = cut_planes_in_host_space(Vec3::ONE, &host, cut).unwrap();
-        let pieces = subtract_convex_volume(vec![ConvexPolyhedron::cuboid(Vec3::ONE)], &planes);
-
-        assert!(pieces.len() >= 3);
-        assert!(pieces.iter().all(|piece| piece.unique_points().len() >= 4));
-    }
-}

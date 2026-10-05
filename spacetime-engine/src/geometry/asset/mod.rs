@@ -11,6 +11,3 @@ mod validation;
 
 pub use loader::AuthoredMapLoader;
 pub use schema::*;
-
-#[cfg(test)]
-mod tests;

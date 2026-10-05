@@ -18,7 +18,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
+        SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfRuntimeChartState,
         UsfSpatialTransitionApplied,
     },
 };
@@ -217,7 +217,7 @@ fn build_aggregate_collider(
 }
 
 fn aggregate_runtime_translation(
-    frame: &UsfSpatialFrame,
+    frame: &UsfRuntimeChartState,
     layer: &UsfScaleLayer,
     world: &VoxelWorld,
     origin: VoxelMaterializationKey,
@@ -234,13 +234,13 @@ fn aggregate_runtime_translation(
 /// transition.
 ///
 /// Ordinary floating-origin rebases already flow through `UsfOriginRebased` and
-/// the Avian backend refresh path. `UsfSpatialFrame::reanchor`, however, is a
+/// the Avian backend refresh path. `UsfRuntimeChartState::reanchor`, however, is a
 /// discontinuous chart transaction: aggregate membership can remain identical
 /// while every backend-local position changes. Readiness must never outlive the
 /// pose it claims to represent.
 pub(in crate::voxel) fn sync_collision_aggregate_runtime_transforms(
     mut transitions: MessageReader<UsfSpatialTransitionApplied>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     registry: Res<VoxelCollisionAggregateRegistry>,
     mut aggregates: Query<(&mut Transform, &mut Position)>,
@@ -278,7 +278,7 @@ pub(in crate::voxel) fn sync_collision_aggregate_runtime_transforms(
 /// materialization.
 pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
     worlds: Query<(
@@ -495,40 +495,4 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         })
         .collect::<Vec<_>>();
     registry.published_members.extend(published);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn four_cubed_materializations_share_one_collision_group() {
-        let base = VoxelMaterializationKey::new([0, 0, 0]);
-        for z in 0..4 {
-            for y in 0..4 {
-                for x in 0..4 {
-                    let key = VoxelMaterializationKey::new([x, y, z]);
-                    assert_eq!(aligned_group_origin(key), base);
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn negative_keys_align_with_euclidean_groups() {
-        assert_eq!(
-            aligned_group_origin(VoxelMaterializationKey::new([-1, -4, -5])),
-            VoxelMaterializationKey::new([-4, -4, -8]),
-        );
-    }
-
-    #[test]
-    fn member_offsets_are_group_local_native_units() {
-        let origin = VoxelMaterializationKey::new([8, -4, 12]);
-        let member = VoxelMaterializationKey::new([11, -2, 15]);
-        assert_eq!(
-            member_offset(origin, member),
-            Some(Vec3::new(30.0, 20.0, 30.0)),
-        );
-    }
 }

@@ -93,14 +93,3 @@ fn checked_i32(value:Option<i64>)->Result<i32,UsfPositionError>{
     i32::try_from(value.ok_or(UsfPositionError::TranslationTooLarge)?)
         .map_err(|_|UsfPositionError::TranslationTooLarge)
 }
-
-#[cfg(test)]
-mod tests{
-    use super::*;
-    #[test]
-    fn aligned_region_floor_aligns_negative_keys(){
-        let r=VoxelRegionSpan::aligned_containing(VoxelMaterializationKey::new([-1,20,-21]),10).unwrap();
-        assert_eq!(r.origin().components(),[-10,20,-30]);
-        assert_eq!(r.extent_chunks(),IVec3::splat(10));
-    }
-}

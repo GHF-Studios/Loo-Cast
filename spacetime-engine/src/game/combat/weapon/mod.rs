@@ -5,11 +5,11 @@ use super::*;
 pub(super) fn fire_weapons(
     mut commands: Commands,
     mut requests: MessageReader<FireWeapon>,
-    weapons: Query<&Weapon>,
+    weapons: Query<(&Weapon, &UsfScaleLayer)>,
     assets: Res<CombatPresentationAssets>,
 ) {
     for request in requests.read() {
-        let Ok(weapon) = weapons.get(request.wielder) else {
+        let Ok((weapon, layer)) = weapons.get(request.wielder) else {
             continue;
         };
 
@@ -19,7 +19,8 @@ pub(super) fn fire_weapons(
             continue;
         }
 
-        let position = request.origin + forward * 0.5;
+        let scale = layer.scale();
+        let position = request.origin + forward * scale.metres_to_native_f32(0.5);
 
         commands.spawn((
             Name::new("Projectile"),
@@ -28,7 +29,8 @@ pub(super) fn fire_weapons(
                 remaining_lifetime: weapon.projectile_lifetime,
                 damage: weapon.damage,
             },
-            PortalVelocity(forward * weapon.projectile_speed),
+            *layer,
+            PortalVelocity(forward * scale.metres_to_native_f32(weapon.projectile_speed)),
             PortalTraveler::new(position),
             Mesh3d(assets.projectile_mesh.clone()),
             MeshMaterial3d(assets.projectile_material.clone()),

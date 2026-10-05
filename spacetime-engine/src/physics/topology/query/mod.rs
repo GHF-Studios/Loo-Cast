@@ -4,6 +4,7 @@ use avian3d::prelude::SpatialQueryFilter;
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf, UsfOwnershipQuery};
+use crate::spatial::{SpatialScale, UsfScaleLayer};
 use super::hooks::SpatialSplitPeer;
 
 /// Extra collider entities that a kinematically controlled manifestation must
@@ -61,6 +62,22 @@ impl UsfRuntimeOwnershipQuery<'_, '_> {
 
     pub fn semantic_of(&self, runtime: Entity) -> Option<Entity> {
         self.ownership.semantic_of(self.authority_realization(runtime))
+    }
+
+    /// Resolve a runtime sample's Scale Slice, including split peers that
+    /// inherit their authoritative realization's chart membership. Unlayered
+    /// samples use the current anchor slice, matching runtime rebase policy.
+    pub fn scale_of(
+        &self,
+        runtime: Entity,
+        layers: &Query<&UsfScaleLayer>,
+        fallback: SpatialScale,
+    ) -> SpatialScale {
+        layers
+            .get(runtime)
+            .or_else(|_| layers.get(self.authority_realization(runtime)))
+            .copied()
+            .map_or(fallback, UsfScaleLayer::scale)
     }
 
     pub fn runtime_entities_of(&self, semantic: Entity) -> Vec<Entity> {

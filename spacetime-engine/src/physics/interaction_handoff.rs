@@ -14,7 +14,7 @@ use bevy::prelude::*;
 use crate::{
     ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
     spatial::{
-        SpatialScale, UsfInteractionHandoffGuards, UsfScaleLayer, UsfSpatialFrame,
+        SpatialScale, UsfInteractionHandoffGuards, UsfScaleLayer, UsfRuntimeChartState,
         UsfSpatialTransitionQueue,
     },
 };
@@ -33,7 +33,7 @@ const DESTINATION_CLEARANCE_PROBE_METRES: f32 = 0.001;
 /// Finer/contact-manifold transfer is intentionally not handled here yet: #49
 /// owns that subsequent persistent-contact authority protocol.
 pub(super) fn guard_coarsening_interaction_handoffs(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     queue: Res<UsfSpatialTransitionQueue>,
     ownership: UsfOwnershipQuery,
     spatial_query: SpatialQuery,

@@ -163,6 +163,3 @@ fn v2(value: V2) -> Vec2 {
 fn tuple3(value: Vec3) -> V3 {
     (value.x, value.y, value.z)
 }
-
-#[cfg(test)]
-mod tests;

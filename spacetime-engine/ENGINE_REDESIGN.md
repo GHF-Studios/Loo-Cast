@@ -1,8 +1,12 @@
 # Spacetime Engine — aggressive redesign / pruning plan
 
-Status: **PLAN / AUDIT CHARTER ACCEPTED. Implementation has not started.**
+Status: **Historical redesign charter.** Current implementation ownership and
+validation are in `ARCHITECTURE.md` and `README.md`; the active consolidation
+handoff is `mega-refactor-handoff.md`.
 
-This document is the durable hand-off point for the next Spacetime Engine cleanup and redesign effort. It **supersedes `DEVTOOLS_REDESIGN.md`** as the active migration/work plan. The completed developer-tools architecture is documented separately in `src/devtools/ARCHITECTURE.md`; it should not be reconstructed from the old migration history.
+This document records earlier redesign intent and is not an active migration
+procedure. The completed developer-tools architecture is documented in
+`src/devtools/ARCHITECTURE.md`.
 
 The purpose of this effort is not another compatibility-preserving cleanup. It is an aggressive code **and design** review driven by current game pressure. Existing abstractions are not presumed valuable merely because they already exist.
 
@@ -348,24 +352,9 @@ Do not delete merely for symmetry:
 
 ## Patch / validation discipline
 
-For implementation stages:
-
-1. User pushes accepted local work first.
-2. Refetch exact pushed files/tree.
-3. Generate one focused patch.
-4. Validate patch structure and exact baseline as far as the environment allows (`git apply --check`, clean reconstruction, `git diff --check`).
-5. User runs:
-
-```bash
-cargo fmt --all
-cargo check -p spacetime-engine
-cargo test -p spacetime-engine
-```
-
-6. User smoke-tests the mechanics touched by that stage.
-7. Only then stack the next behavior-changing patch.
-
-Do not use `--reject`, force application, or fuzzy conflict resolution as the normal workflow. If a patch baseline differs, refetch/regenerate.
+The staged patch procedure below was written for an earlier handoff model and
+is superseded by the current repository workflow. See `README.md` for current
+validation commands.
 
 ## Resume checkpoint
 

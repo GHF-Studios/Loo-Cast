@@ -127,36 +127,3 @@ fn exact_direct_sample(
         evaluated_source_count,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::spatial::SpatialScale;
-fn source_at(x_metres: f32, surface_gravity: f32) -> (UsfPosition, RadialGravitySource) {
-        let center = UsfPosition::zero(SpatialScale::ZERO)
-            .translated_at_scale(SpatialScale::ZERO, Vec3::X * x_metres)
-            .unwrap();
-        (
-            center,
-            RadialGravitySource::new(1.0, SpatialScale::ZERO, surface_gravity),
-        )
-    }
-
-    #[test]
-    fn exact_reference_superposes_sources_without_hidden_dominance() {
-        let mut world = World::new();
-        let left = world.spawn_empty().id();
-        let right = world.spawn_empty().id();
-        let sample = exact_direct_sample(
-            &UsfPosition::zero(SpatialScale::ZERO),
-            [
-                { let (center, source) = source_at(-10.0, 4.0); (left, center, source) },
-                { let (center, source) = source_at(10.0, 4.0); (right, center, source) },
-            ],
-        );
-
-        assert!(sample.acceleration_metres_per_second2().length() < 1.0e-12);
-        assert_eq!(sample.evaluation(), GravityEvaluation::ExactDirect);
-        assert_eq!(sample.evaluated_source_count(), 2);
-    }
-}

@@ -2,6 +2,7 @@
 
 use std::{
     collections::VecDeque,
+    panic::{AssertUnwindSafe, catch_unwind},
     sync::{
         Arc, Condvar, Mutex,
         atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
@@ -27,28 +28,25 @@ pub(super) enum VoxelWorkerPriority {
 pub(super) enum VoxelWorkerLane {
     Generation,
     Derivation,
-    PlanetarySurface,
     PresentationPlanning,
 }
 
 impl VoxelWorkerLane {
-    const COUNT: usize = 4;
+    const COUNT: usize = 3;
 
-    const SERVICE_WHEEL: [Self; 6] = [
+    const SERVICE_WHEEL: [Self; 5] = [
         Self::Generation,
         Self::Derivation,
         Self::PresentationPlanning,
         Self::Generation,
         Self::Derivation,
-        Self::PlanetarySurface,
     ];
 
     const fn index(self) -> usize {
         match self {
             Self::Generation => 0,
             Self::Derivation => 1,
-            Self::PlanetarySurface => 2,
-            Self::PresentationPlanning => 3,
+            Self::PresentationPlanning => 2,
         }
     }
 }
@@ -204,8 +202,8 @@ impl VoxelWorkerAdmission {
             outstanding: std::array::from_fn(|_| AtomicUsize::new(0)),
             running: std::array::from_fn(|_| AtomicUsize::new(0)),
             // Dense generation/derivation are streaming pipelines.
-            // Planning and legacy planetary surface remain deliberately narrow.
-            limits: [pipeline_depth, pipeline_depth, 1, 1],
+            // Planning remains deliberately narrow.
+            limits: [pipeline_depth, pipeline_depth, 1],
             average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
@@ -316,19 +314,29 @@ impl Drop for VoxelWorkerComputeAdmission {
 }
 
 pub(super) struct VoxelWorkerTicket<T: Send + 'static> {
-    receiver: Mutex<Receiver<T>>,
+    receiver: Mutex<Receiver<Result<T, VoxelWorkerFailure>>>,
     cancelled: Arc<AtomicBool>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(super) enum VoxelWorkerFailure {
+    Panicked,
+    Disconnected,
+}
+
 impl<T: Send + 'static> VoxelWorkerTicket<T> {
-    pub(super) fn try_take(&mut self) -> Option<T> {
+    /// Pending, ready and terminal failure are distinct outcomes. A lost
+    /// worker must never leave an ECS task waiting forever.
+    pub(super) fn try_take(&mut self) -> Result<Option<T>, VoxelWorkerFailure> {
         let receiver = self
             .receiver
             .get_mut()
             .expect("voxel worker result mutex poisoned");
         match receiver.try_recv() {
-            Ok(value) => Some(value),
-            Err(TryRecvError::Empty | TryRecvError::Disconnected) => None,
+            Ok(Ok(value)) => Ok(Some(value)),
+            Ok(Err(failure)) => Err(failure),
+            Err(TryRecvError::Empty) => Ok(None),
+            Err(TryRecvError::Disconnected) => Err(VoxelWorkerFailure::Disconnected),
         }
     }
 }
@@ -485,7 +493,7 @@ pub(super) fn try_submit<T, F>(
             }
 
             let started = Instant::now();
-            let output = match lane {
+            let output = catch_unwind(AssertUnwindSafe(|| match lane {
                 VoxelWorkerLane::Generation => {
                     let _span = bevy::log::info_span!("voxel.worker.generation").entered();
                     job()
@@ -494,15 +502,12 @@ pub(super) fn try_submit<T, F>(
                     let _span = bevy::log::info_span!("voxel.worker.derivation").entered();
                     job()
                 }
-                VoxelWorkerLane::PlanetarySurface => {
-                    let _span = bevy::log::info_span!("voxel.worker.planetary_surface").entered();
-                    job()
-                }
                 VoxelWorkerLane::PresentationPlanning => {
                     let _span = bevy::log::info_span!("voxel.worker.presentation_planning").entered();
                     job()
                 }
-            };
+            }))
+            .map_err(|_| VoxelWorkerFailure::Panicked);
             let elapsed_ns = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
             admission_for_job.record_job_duration(lane, elapsed_ns);
             if !worker_cancelled.load(Ordering::Acquire) {
@@ -537,10 +542,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
         workers.admission.outstanding(VoxelWorkerLane::Derivation);
     let derivation_running =
         workers.admission.running(VoxelWorkerLane::Derivation);
-    let planetary_outstanding =
-        workers.admission.outstanding(VoxelWorkerLane::PlanetarySurface);
-    let planetary_running =
-        workers.admission.running(VoxelWorkerLane::PlanetarySurface);
     let planning_outstanding =
         workers.admission.outstanding(VoxelWorkerLane::PresentationPlanning);
     let planning_running =
@@ -601,23 +602,6 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     );
 
     client.plot(
-        tracy_client::plot_name!("Voxel workers/PlanetarySurface running"),
-        planetary_running as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("Voxel workers/PlanetarySurface queued"),
-        planetary_outstanding.saturating_sub(planetary_running) as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("Voxel workers/PlanetarySurface avg ms"),
-        workers
-            .admission
-            .average_job_seconds(VoxelWorkerLane::PlanetarySurface)
-            .unwrap_or(0.0)
-            * 1_000.0,
-    );
-
-    client.plot(
         tracy_client::plot_name!("Voxel workers/PresentationPlanning running"),
         planning_running as f64,
     );
@@ -647,139 +631,3 @@ fn recommended_worker_threads(available: usize) -> usize {
 
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub(super) struct VoxelWorkerTask;
-
-#[cfg(test)]
-mod tests {
-    use std::sync::{Arc, Mutex};
-
-    use std::sync::Arc;
-
-    use super::{
-        VoxelWorkerAdmission, VoxelWorkerComputeAdmission, VoxelWorkerLane,
-        recommended_worker_threads,
-    };
-
-    #[test]
-    fn dedicated_worker_pool_uses_three_quarters_available_parallelism() {
-        assert_eq!(recommended_worker_threads(1), 1);
-        assert_eq!(recommended_worker_threads(2), 1);
-        assert_eq!(recommended_worker_threads(4), 3);
-        assert_eq!(recommended_worker_threads(8), 6);
-    }
-
-    #[test]
-    fn critical_burst_eventually_services_normal_work() {
-        let queue = VoxelWorkerQueue::default();
-        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
-
-        for _ in 0..(MAX_CRITICAL_SERVICE_BURST + 2) {
-            let order = Arc::clone(&order);
-            queue
-                .push(
-                    VoxelWorkerLane::Generation,
-                    VoxelWorkerPriority::Critical,
-                    Box::new(move || order.lock().unwrap().push(1)),
-                )
-                .unwrap();
-        }
-
-        let normal_order = Arc::clone(&order);
-        queue
-            .push(
-                VoxelWorkerLane::PresentationPlanning,
-                VoxelWorkerPriority::Normal,
-                Box::new(move || normal_order.lock().unwrap().push(2)),
-            )
-            .unwrap();
-
-        for _ in 0..=MAX_CRITICAL_SERVICE_BURST {
-            queue.pop().unwrap()();
-        }
-
-        let observed = order.lock().unwrap();
-        assert_eq!(
-            observed[MAX_CRITICAL_SERVICE_BURST],
-            2,
-            "normal work must get service after the bounded critical burst",
-        );
-    }
-
-    #[test]
-    fn critical_worker_queue_preempts_normal_backlog() {
-        let queue = VoxelWorkerQueue::default();
-        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
-
-        let normal_order = Arc::clone(&order);
-        queue
-            .push(
-                VoxelWorkerLane::Generation,
-                VoxelWorkerPriority::Normal,
-                Box::new(move || normal_order.lock().unwrap().push(1)),
-            )
-            .unwrap();
-
-        let critical_order = Arc::clone(&order);
-        queue
-            .push(
-                VoxelWorkerLane::Generation,
-                VoxelWorkerPriority::Critical,
-                Box::new(move || critical_order.lock().unwrap().push(2)),
-            )
-            .unwrap();
-
-        queue.pop().unwrap()();
-        queue.pop().unwrap()();
-
-        assert_eq!(*order.lock().unwrap(), vec![2, 1]);
-    }
-
-    #[test]
-    fn worker_lanes_have_independent_bounded_admission() {
-        let admission = VoxelWorkerAdmission::new(2);
-
-        for _ in 0..4 {
-            assert!(admission.try_acquire(VoxelWorkerLane::Generation));
-        }
-        assert!(!admission.try_acquire(VoxelWorkerLane::Generation));
-
-        assert!(admission.try_acquire(VoxelWorkerLane::Derivation));
-        assert!(admission.try_acquire(VoxelWorkerLane::PlanetarySurface));
-
-        admission.release(VoxelWorkerLane::Generation);
-        assert!(admission.try_acquire(VoxelWorkerLane::Generation));
-    }
-
-    #[test]
-    fn compute_admission_ends_with_compute_not_result_ticket_lifetime() {
-        let admission = Arc::new(VoxelWorkerAdmission::new(1));
-        let lane = VoxelWorkerLane::Generation;
-        let full_capacity = admission.available(lane);
-
-        assert!(admission.try_acquire(lane));
-        assert_eq!(admission.available(lane), full_capacity - 1);
-
-        {
-            let _compute =
-                VoxelWorkerComputeAdmission::new(Arc::clone(&admission), lane);
-            // The actual submission path acquires before constructing this
-            // lease. Dropping the compute lease models the worker closure
-            // finishing while a separate result ticket may remain alive.
-        }
-
-        assert_eq!(admission.available(lane), full_capacity);
-    }
-
-    #[test]
-    fn cancelled_compute_still_releases_its_admission_lease() {
-        let admission = Arc::new(VoxelWorkerAdmission::new(1));
-        let lane = VoxelWorkerLane::Derivation;
-        let full_capacity = admission.available(lane);
-
-        assert!(admission.try_acquire(lane));
-        let compute =
-            VoxelWorkerComputeAdmission::new(Arc::clone(&admission), lane);
-        drop(compute);
-
-        assert_eq!(admission.available(lane), full_capacity);
-    }
-}

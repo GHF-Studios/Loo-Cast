@@ -14,19 +14,7 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-use crate::spatial::{SpatialScale, UsfOriginRebased, UsfScaleLayer};
-
-fn resolved_scale(
-    direct: Option<&UsfScaleLayer>,
-    attached: Option<&ColliderOf>,
-    body_layers: &Query<&UsfScaleLayer, With<RigidBody>>,
-    fallback: SpatialScale,
-) -> SpatialScale {
-    direct
-        .copied()
-        .or_else(|| attached.and_then(|a| body_layers.get(a.body).ok().copied()))
-        .map_or(fallback, UsfScaleLayer::scale)
-}
+use crate::spatial::{UsfOriginRebased, UsfScaleLayer, resolved_rebase_scale};
 
 const fn tree_index(tree_type: ColliderTreeType) -> usize {
     match tree_type {
@@ -69,7 +57,7 @@ pub(super) fn apply_usf_rebases_to_avian(
         {
             let _span = bevy::log::info_span!("usf_rebase.avian_positions").entered();
             for (mut position, direct_layer, attached) in &mut positions {
-                let scale = resolved_scale(direct_layer, attached, &body_layers, fallback);
+                let scale = resolved_rebase_scale(direct_layer, attached, &body_layers, fallback);
                 let local_shift = delta
                     .at_scale(scale)
                     .expect("USF rebase scale conversion was preflighted");
@@ -92,7 +80,7 @@ pub(super) fn apply_usf_rebases_to_avian(
                 attached,
             ) in &mut colliders
             {
-                let scale = resolved_scale(direct_layer, attached, &body_layers, fallback);
+                let scale = resolved_rebase_scale(direct_layer, attached, &body_layers, fallback);
                 let local_shift = delta
                     .at_scale(scale)
                     .expect("USF rebase scale conversion was preflighted");

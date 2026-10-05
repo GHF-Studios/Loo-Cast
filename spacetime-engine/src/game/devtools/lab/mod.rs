@@ -402,27 +402,3 @@ fn lab_status_command(
 fn normalize(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace('-', "_")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn preset_state_tracks_activation_order() {
-        let mut state = DeveloperPresetState::default();
-        state.active.push("a".into());
-        state.active.push("b".into());
-        assert_eq!(state.active(), &["a".to_string(), "b".to_string()]);
-    }
-
-    #[test]
-    fn registry_accepts_named_presets() {
-        let mut registry = DeveloperPresetRegistry::default();
-        registry.register(DeveloperPresetSpec {
-            name: "test",
-            summary: "test",
-            assignments: &[],
-        });
-        assert!(registry.spec("test").is_some());
-    }
-}

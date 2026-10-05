@@ -107,7 +107,7 @@
 - Modify: `spacetime-engine/src/spatial/navigation.rs`
 - Modify: `spacetime-engine/src/voxel/authority.rs`
 - Modify: `spacetime-engine/src/game/world/fixture/scenery/celestial.rs`
-- Test: colocated `#[cfg(test)]` modules in the changed spatial/gravity/voxel files
+- Validation: production builds and direct spatial/gravity/voxel runtime inspection
 
 **Interfaces:**
 - Produces:

@@ -4,7 +4,7 @@ use super::*;
 use crate::ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery};
 
 pub(super) fn sync_semantic_positions(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
     anchors: Query<
         (

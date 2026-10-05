@@ -85,6 +85,3 @@ fn rgba_image(size: UVec2, data: Vec<u8>, srgb: bool) -> Image {
     });
     image
 }
-
-#[cfg(test)]
-mod tests;

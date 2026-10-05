@@ -5,8 +5,10 @@ use bevy::prelude::*;
 use super::{SpatialScale, UsfChart, UsfChartDelta, UsfPosition, UsfPositionError};
 
 mod rebase;
+mod membership;
 
 pub(in crate::spatial) use rebase::rebase_local_frame;
+pub(crate) use membership::resolved_rebase_scale;
 
 /// Runtime-maintained canonical origin shared by the current local chart stack.
 ///
@@ -18,9 +20,6 @@ pub struct UsfRuntimeChartState {
     rebase_count: u64,
     last_delta: Option<UsfChartDelta>,
 }
-
-/// Compatibility name retained while existing engine consumers migrate.
-pub type UsfSpatialFrame = UsfRuntimeChartState;
 
 impl Default for UsfRuntimeChartState {
     fn default() -> Self {

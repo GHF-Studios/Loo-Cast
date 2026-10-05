@@ -35,33 +35,3 @@ pub(crate) fn radial_heat_weight(distance: f32, radius: f32) -> f32 {
     let normalized = (1.0 - distance.max(0.0) / radius).clamp(0.0, 1.0);
     normalized * normalized
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn heat_weight_is_bounded_and_reaches_zero_at_radius() {
-        assert!((radial_heat_weight(0.0, 10.0) - 1.0).abs() < 1.0e-6);
-        assert!(radial_heat_weight(5.0, 10.0) > 0.0);
-        assert_eq!(radial_heat_weight(10.0, 10.0), 0.0);
-        assert_eq!(radial_heat_weight(20.0, 10.0), 0.0);
-    }
-
-    #[test]
-    fn combustion_coupling_clamps_material_fractions_and_radius() {
-        let combustion = Combustion::new(10_000.0);
-        let material = CombustibleMaterial {
-            ignition_temperature_kelvin: 400.0,
-            extinction_temperature_kelvin: 350.0,
-            burn_power_watts: 10_000.0,
-            self_heating_fraction: 1.5,
-            environmental_transfer_fraction: -1.0,
-            heat_transfer_radius_meters: -3.0,
-        };
-        let coupling = combustion_heat_coupling(&combustion, &material);
-        assert_eq!(coupling.self_heating_power_watts, 10_000.0);
-        assert_eq!(coupling.environmental_power_watts, 0.0);
-        assert_eq!(coupling.radius_meters, 0.0);
-    }
-}

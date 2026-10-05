@@ -23,7 +23,10 @@ pub(super) fn move_projectiles(
 pub(super) fn detect_projectile_hits(
     mut commands: Commands,
     mut hits: MessageWriter<Hit>,
-    projectiles: Query<(Entity, &Projectile, &Transform)>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    layers: Query<&UsfScaleLayer>,
+    anchor: Single<&UsfScaleLayer, With<UsfSpatialAnchor>>,
+    projectiles: Query<(Entity, &Projectile, &Transform, &UsfScaleLayer)>,
     damageables: Query<
         (Entity, &DamageableBounds, &Collider, &Transform),
         (
@@ -32,7 +35,7 @@ pub(super) fn detect_projectile_hits(
         ),
     >,
 ) {
-    for (entity, projectile, transform) in &projectiles {
+    for (entity, projectile, transform, projectile_layer) in &projectiles {
         if projectile.remaining_lifetime <= 0.0 {
             continue;
         }
@@ -41,6 +44,11 @@ pub(super) fn detect_projectile_hits(
             .iter()
             .filter(|(target, _, _, _)| *target != projectile.instigator)
             .filter_map(|(target, _bounds, collider, target_transform)| {
+                if runtime_ownership.scale_of(target, &layers, anchor.scale())
+                    != projectile_layer.scale()
+                {
+                    return None;
+                }
                 collider
                     .contains_point(
                         target_transform.translation,

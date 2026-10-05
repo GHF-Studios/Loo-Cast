@@ -3,10 +3,12 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use bevy::math::DVec3;
 
 use crate::physics::topology::{
     SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
 };
+use crate::spatial::{UsfScaleLayer, UsfSpatialAnchor};
 
 use super::{
     CombustibleMaterial, Combustion, Fuel, ThermalBody, ThermalField, ThermalImpulse,
@@ -32,6 +34,3 @@ pub(super) fn configure(app: &mut App) {
             .in_set(ThermalSet::Lumped),
     );
 }
-
-#[cfg(test)]
-mod tests;

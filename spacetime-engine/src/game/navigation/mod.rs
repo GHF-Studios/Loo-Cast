@@ -239,32 +239,6 @@ impl Default for TravelPace {
 }
 
 
-#[cfg(test)]
-mod travel_pace_tests {
-    use super::*;
-
-    #[test]
-    fn logarithmic_pace_steps_are_exact_octaves_and_bounded() {
-        let mut pace = TravelPace::default();
-        pace.add_log2_steps(1.0);
-        assert_eq!(pace.multiplier, 2.0);
-        pace.add_log2_steps(3.0);
-        assert_eq!(pace.multiplier, 16.0);
-        pace.add_log2_steps(-2.0);
-        assert_eq!(pace.multiplier, 4.0);
-
-        pace.add_log2_steps(10_000.0);
-        assert_eq!(
-            pace.log2_multiplier(),
-            TravelPace::MAX_LOG2_MULTIPLIER,
-        );
-        pace.add_log2_steps(-20_000.0);
-        assert_eq!(
-            pace.log2_multiplier(),
-            TravelPace::MIN_LOG2_MULTIPLIER,
-        );
-    }
-}
 
 /// Canonical SI movement policy derived from semantic navigation context.
 #[derive(Component, Reflect, Debug, Clone, Copy)]

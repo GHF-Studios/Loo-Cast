@@ -11,7 +11,7 @@ use crate::{
     game::{GameSet, GameWorld, player::Player},
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
     portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
-    spatial::{UsfScaleLayer, UsfSpatialFrame},
+    spatial::{UsfScaleLayer, UsfRuntimeChartState},
     voxel::{
         VoxelBase, VoxelChunkCoord, VoxelMaterialId, VoxelPresentationMaterial, VoxelQueryPosition,
         VoxelWorld,
@@ -54,7 +54,7 @@ fn load_campus(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn spawn_voxel_test_rock(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
 ) {
     let center = Vec3::new(0.0, 4.0, -8.0);
     let world_origin = *frame.origin();

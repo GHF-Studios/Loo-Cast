@@ -52,7 +52,7 @@ pub(super) fn spawn_debug_panel(mut commands: Commands, theme: Res<UiTheme>) {
 
 pub(super) fn update_debug_panel(
     tools: Res<DeveloperTools>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
     anchors: Query<
         (Entity, &Transform, Option<&LinearVelocity>, &UsfScaleLayer),

@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    SpatialDemandSnapshot, UsfPosition, UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
+    SpatialDemandSnapshot, UsfPosition, UsfScaleLayer, UsfSpatialAnchor, UsfRuntimeChartState,
     UsfSpatialSet,
 };
 

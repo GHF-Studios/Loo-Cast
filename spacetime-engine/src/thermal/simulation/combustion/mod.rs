@@ -48,7 +48,7 @@ pub(super) fn update_combustion(
 
 #[derive(Default)]
 pub(super) struct HeatScratch {
-    positions_by_semantic: HashMap<Entity, Vec<Vec3>>,
+    positions_by_semantic: HashMap<Entity, Vec<DVec3>>,
     weights: Vec<(Entity, f32)>,
     energy_by_target: HashMap<Entity, f32>,
 }
@@ -62,6 +62,8 @@ pub(super) struct HeatScratch {
 pub(super) fn propagate_combustion_heat(
     time: Res<Time>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
+    layers: Query<&UsfScaleLayer>,
+    anchor: Single<&UsfScaleLayer, With<UsfSpatialAnchor>>,
     samples: Query<
         (Entity, &Transform),
         (
@@ -91,10 +93,16 @@ pub(super) fn propagate_combustion_heat(
         let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
             continue;
         };
+        let scale = runtime_ownership.scale_of(runtime, &layers, anchor.scale());
+        let position_metres = transform.translation.as_dvec3()
+            * scale.metres_per_native();
+        if !position_metres.is_finite() {
+            continue;
+        }
         positions_by_semantic
             .entry(semantic)
             .or_default()
-            .push(transform.translation);
+            .push(position_metres);
     }
     positions_by_semantic.retain(|_, positions| !positions.is_empty());
     energy_by_target.clear();
@@ -112,7 +120,7 @@ pub(super) fn propagate_combustion_heat(
 
         weights.clear();
         let mut total_weight = 0.0;
-        let radius_squared = coupling.radius_meters * coupling.radius_meters;
+        let radius_squared = f64::from(coupling.radius_meters).powi(2);
 
         for (&target, target_positions) in positions_by_semantic.iter() {
             if target == source {
@@ -126,14 +134,14 @@ pub(super) fn propagate_combustion_heat(
                         source_position.distance_squared(*target_position)
                     })
                 })
-                .fold(f32::INFINITY, f32::min);
+                .fold(f64::INFINITY, f64::min);
 
             if minimum_distance_squared >= radius_squared {
                 continue;
             }
 
             let weight = super::super::coupling::radial_heat_weight(
-                minimum_distance_squared.sqrt(),
+                minimum_distance_squared.sqrt() as f32,
                 coupling.radius_meters,
             );
             if weight > 0.0 {

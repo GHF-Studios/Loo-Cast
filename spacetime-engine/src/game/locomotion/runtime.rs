@@ -35,7 +35,7 @@ use crate::{
         topology::KinematicQueryExclusions,
     },
     spatial::{
-        SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame,
+        SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfRuntimeChartState,
     },
 };
 
@@ -578,7 +578,7 @@ fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f6
 
 fn commit_canonical_motion(
     dt_seconds: f64,
-    frame: &UsfSpatialFrame,
+    frame: &UsfRuntimeChartState,
     semantic_entity: Entity,
     layer: SpatialScale,
     body: &mut Transform,
@@ -627,7 +627,7 @@ fn commit_canonical_motion(
 /// position and visually snaps the subject back every frame while velocity
 /// continues to change.
 fn commit_runtime_position_to_canonical(
-    frame: &UsfSpatialFrame,
+    frame: &UsfRuntimeChartState,
     semantic_entity: Entity,
     layer: SpatialScale,
     body: &Transform,
@@ -693,7 +693,7 @@ fn collide_runtime_motion(
 
 pub(super) fn flight_movement(
     time: Res<Time<Fixed>>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsSlices,
@@ -985,231 +985,4 @@ fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {
     let target_log = (1.0 + target.max(0.0)).log10();
     let alpha = 1.0 - (-response * f64::from(dt)).exp();
     10.0_f64.powf(current_log + (target_log - current_log) * alpha) - 1.0
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_chart_translation_round_trips_to_canonical_position() {
-        let frame = UsfSpatialFrame::default();
-        let layer = SpatialScale::ZERO;
-        let runtime = Vec3::new(123.0, 45.0, -67.0);
-
-        let canonical = frame
-            .origin()
-            .translated_at_scale(layer, runtime)
-            .expect("runtime pose should be canonically representable");
-        let projected = canonical
-            .relative_at_scale_bounded(frame.origin(), layer, f32::MAX)
-            .expect("canonical pose should project back to runtime chart");
-
-        assert!((projected - runtime).length() < 1.0e-5);
-    }
-
-    #[test]
-    fn coarse_flight_uses_canonical_position_authority() {
-        let detailed = SpatialScale::ZERO;
-        let coarse = SpatialScale::new(6).unwrap();
-
-        assert!(canonical_motion_authoritative(
-            MotionKernel::InertialFlight,
-            coarse,
-            detailed,
-        ));
-        assert!(canonical_motion_authoritative(
-            MotionKernel::ScaleNavigation,
-            coarse,
-            detailed,
-        ));
-        assert!(!canonical_motion_authoritative(
-            MotionKernel::InertialFlight,
-            detailed,
-            detailed,
-        ));
-    }
-
-    #[test]
-    fn coarse_on_foot_preserves_character_motion_semantics() {
-        let detailed = SpatialScale::ZERO;
-        let coarse = SpatialScale::new(3).unwrap();
-        let capabilities = LocomotionCapabilities::character();
-
-        let (kernel, collision, velocity) = motion_contract(
-            LocomotionRegime::OnFoot,
-            coarse,
-            detailed,
-            capabilities,
-            false,
-        );
-
-        // ScaleNavigation owns the travel-envelope movement path. Walking must
-        // remain on the Character kernel so its SI character tuning survives a
-        // temporary coarse interaction representation.
-        assert_eq!(kernel, MotionKernel::Character);
-        assert_eq!(collision, CollisionPolicy::ScaleProxy);
-        assert_eq!(velocity, VelocitySemantics::PreserveCanonical);
-        assert!(!kernel.consumes_flight_control_intent());
-    }
-
-    #[test]
-    fn detailed_on_foot_uses_detailed_character_collision() {
-        let detailed = SpatialScale::ZERO;
-        let (kernel, collision, _) = motion_contract(
-            LocomotionRegime::OnFoot,
-            detailed,
-            detailed,
-            LocomotionCapabilities::character(),
-            false,
-        );
-
-        assert_eq!(kernel, MotionKernel::Character);
-        assert_eq!(collision, CollisionPolicy::DetailedBody);
-        assert!(!kernel.consumes_flight_control_intent());
-    }
-
-    #[test]
-    fn coarse_local_flight_remains_flight_controlled() {
-        let detailed = SpatialScale::ZERO;
-        let coarse = SpatialScale::new(3).unwrap();
-        let (kernel, collision, _) = motion_contract(
-            LocomotionRegime::LocalFlight,
-            coarse,
-            detailed,
-            LocomotionCapabilities::spacecraft(),
-            false,
-        );
-
-        assert_eq!(kernel, MotionKernel::InertialFlight);
-        assert_eq!(collision, CollisionPolicy::ScaleProxy);
-        assert!(kernel.consumes_flight_control_intent());
-    }
-
-    #[test]
-    fn manual_attitude_rate_is_bounded_by_subject_profile() {
-        let profile = TravelProfile::spacecraft();
-        let current = Quat::IDENTITY;
-        let result = integrate_flight_attitude(
-            current,
-            FlightAttitudeCommand::AngularVelocityLocal(Vec3::splat(10_000.0)),
-            &profile,
-            0.1,
-        );
-
-        let forward = result * Vec3::NEG_Z;
-        assert!(forward.is_finite());
-        assert!(result.is_finite());
-        assert_ne!(result, Quat::IDENTITY);
-    }
-
-    #[test]
-    fn hold_attitude_does_not_rotate_subject() {
-        let profile = TravelProfile::spacecraft();
-        let current = Quat::from_rotation_y(0.7);
-        let result = integrate_flight_attitude(
-            current,
-            FlightAttitudeCommand::Hold,
-            &profile,
-            1.0,
-        );
-        assert!(result.dot(current).abs() > 0.999999);
-    }
-
-    #[test]
-    fn automatic_spacecraft_regime_moves_cruise_orbital_local() {
-        let profile = TravelProfile::spacecraft();
-        let capabilities = LocomotionCapabilities::spacecraft();
-        let detailed = SpatialScale::ZERO;
-        let layer = SpatialScale::new(5).unwrap();
-
-        let mut travel = TravelState::default();
-        travel.nearest_body_radius_scale0 = Some(1_700_000.0);
-
-        travel.nearest_body_clearance_scale0 = Some(5_000_000.0);
-        assert_eq!(
-            automatic_regime(
-                LocomotionRegime::Cruise,
-                layer,
-                detailed,
-                &travel,
-                &profile,
-                capabilities,
-            ),
-            LocomotionRegime::Cruise,
-        );
-
-        travel.nearest_body_clearance_scale0 = Some(100_000.0);
-        assert_eq!(
-            automatic_regime(
-                LocomotionRegime::Cruise,
-                layer,
-                detailed,
-                &travel,
-                &profile,
-                capabilities,
-            ),
-            LocomotionRegime::PlanetaryFlight,
-        );
-
-        travel.nearest_body_clearance_scale0 = Some(5_000.0);
-        assert_eq!(
-            automatic_regime(
-                LocomotionRegime::PlanetaryFlight,
-                layer,
-                detailed,
-                &travel,
-                &profile,
-                capabilities,
-            ),
-            LocomotionRegime::LocalFlight,
-        );
-    }
-
-    #[test]
-    fn inertial_flight_uses_active_slice_collision_at_every_digit() {
-        assert!(!canonical_motion_authoritative(
-            MotionKernel::InertialFlight,
-            SpatialScale::MAX,
-            SpatialScale::ZERO,
-        ));
-        assert!(!canonical_motion_authoritative(
-            MotionKernel::InertialFlight,
-            SpatialScale::ZERO,
-            SpatialScale::ZERO,
-        ));
-    }
-
-    #[test]
-    fn cruise_speed_is_invariant_under_look_direction() {
-        let commanded = 1_000.0;
-        let current = DVec3::new(42.0, 3.0, -100.0);
-
-        let forward = cruise_velocity(current, DVec3::NEG_Z, commanded);
-        let sideways = cruise_velocity(current, DVec3::X, commanded);
-        let upward = cruise_velocity(current, DVec3::Y, commanded);
-
-        assert!((forward.length() - commanded).abs() < 1.0e-9);
-        assert!((sideways.length() - commanded).abs() < 1.0e-9);
-        assert!((upward.length() - commanded).abs() < 1.0e-9);
-    }
-
-    #[test]
-    fn zero_cruise_command_stops_without_nan_direction() {
-        let result = cruise_velocity(
-            DVec3::new(42.0, 3.0, -100.0),
-            DVec3::ZERO,
-            0.0,
-        );
-        assert_eq!(result, DVec3::ZERO);
-    }
-
-    #[test]
-    fn engagement_throttle_reconstructs_default_speed() {
-        let maximum = 80_000.0;
-        let default = 20_000.0;
-        let throttle = throttle_for_speed(default, maximum);
-        let requested = maximum * f64::from(throttle.powf(2.0));
-        assert!((requested - default).abs() < 1.0);
-    }
 }

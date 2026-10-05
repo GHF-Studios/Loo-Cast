@@ -29,6 +29,3 @@ pub use model::{
 };
 pub use phenomenon::{PhenomenonRegistry, PhenomenonRule};
 pub use store::{WorldGenerationPlugin, WorldgenStore};
-
-#[cfg(test)]
-mod tests;

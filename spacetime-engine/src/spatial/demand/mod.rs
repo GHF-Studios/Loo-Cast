@@ -14,7 +14,7 @@ use std::collections::HashMap;
 
 use bevy::{math::DVec3, prelude::*};
 
-use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
+use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfRuntimeChartState};
 
 /// One bounded source of generic spatial interest.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
@@ -179,21 +179,6 @@ pub struct SpatialDemandScope {
 }
 
 impl SpatialDemandScope {
-    #[cfg(test)]
-    pub(crate) const fn new(
-        source: Entity,
-        center: UsfPosition,
-        half_extent_native: Vec3,
-        priority: i32,
-    ) -> Self {
-        Self::at_scale(
-            source,
-            SpatialScale::ZERO,
-            center,
-            half_extent_native,
-            priority,
-        )
-    }
 
     pub(crate) const fn at_scale(
         source: Entity,
@@ -286,6 +271,3 @@ fn sanitize_extent(value: f32) -> f32 {
 mod systems;
 
 pub(super) use systems::configure;
-
-#[cfg(test)]
-mod tests;

@@ -3,6 +3,8 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
+use crate::portal::simulation::split::active_portal_pair;
+
 use crate::{
     portal::{
         Portal, PortalActive, PortalSplitTraveler,
@@ -26,19 +28,7 @@ pub(super) fn resolve_authority_crossing(
         return;
     };
 
-    let pair = match (
-        portals.get(active.source),
-        portals.get(active.destination),
-    ) {
-        (
-            Ok((_, source_portal, source_active, source)),
-            Ok((_, _, destination_active, destination)),
-        ) if source_active.0 && destination_active.0 => {
-            Some((source_portal, source, destination))
-        }
-        _ => None,
-    };
-    let Some((source_portal, source, destination)) = pair else {
+    let Some((source_portal, source, destination)) = active_portal_pair(active, portals) else {
         return;
     };
 

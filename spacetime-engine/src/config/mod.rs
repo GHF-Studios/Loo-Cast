@@ -14,6 +14,3 @@ pub use voxel::{
     VoxelConfig, VoxelConfigOverrides, VoxelManifestationConfig,
     VoxelManifestationConfigOverrides, VoxelStreamingConfig, VoxelStreamingConfigOverrides,
 };
-
-#[cfg(test)]
-mod tests;

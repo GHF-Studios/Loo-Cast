@@ -2,9 +2,12 @@
 name = "loo-cast-game"
 version.workspace = true
 edition.workspace = true
+autotests = false
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+test = false
+doctest = false
 
 [dependencies]
 spacetime-engine = { path = "../spacetime-engine" }

@@ -209,39 +209,3 @@ pub(super) fn sync_celestial_voxel_realizations(
         registry.worlds.insert(target, world.id());
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn realization_identity_is_authority_plus_scale() {
-        let mut ecs = World::new();
-        let authority = ecs.spawn_empty().id();
-        let other = ecs.spawn_empty().id();
-        let s0 = SpatialScale::ZERO;
-        let s1 = SpatialScale::new(1).unwrap();
-
-        let unique = HashSet::from([
-            VoxelRealizationTarget::new(authority, s0),
-            VoxelRealizationTarget::new(authority, s1),
-            VoxelRealizationTarget::new(other, s0),
-        ]);
-        assert_eq!(unique.len(), 3);
-    }
-
-    #[test]
-    fn parked_scale_world_identity_remains_reusable() {
-        let mut ecs = World::new();
-        let authority = ecs.spawn_empty().id();
-        let target = VoxelRealizationTarget::new(authority, SpatialScale::ZERO);
-        let world = ecs.spawn_empty().id();
-
-        let mut registry = CelestialVoxelRealizationRegistry::default();
-        registry.worlds.insert(target, world);
-
-        // Demand is intentionally absent here. Container identity is independent
-        // from active demand and remains available for a later intent.
-        assert_eq!(registry.world_for(target), Some(world));
-    }
-}

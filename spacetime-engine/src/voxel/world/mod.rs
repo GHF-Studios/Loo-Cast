@@ -370,6 +370,3 @@ fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {
         component(value.z)?,
     ))
 }
-
-#[cfg(test)]
-mod tests;

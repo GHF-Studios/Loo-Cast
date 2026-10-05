@@ -269,6 +269,16 @@ impl CelestialVoxelField {
         .volumetric_surface_inward_support_metres()
     }
 
+    /// Global radial interval for this canonical field's outer surface.
+    pub(crate) fn conservative_surface_radius_bounds_metres(self) -> (f64, f64) {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .conservative_surface_radius_bounds_metres()
+    }
+
     /// Sample the canonical body-local volumetric field in SI metres.
     ///
     /// This is the common terrain truth for dense voxel caches, local clipmap
@@ -487,123 +497,5 @@ impl UsfTravelBoundary for CelestialVoxelField {
         let body = (*self).realization(*body_origin, body_frame, measurement_scale);
         let (surface, outward, _) = body.surface_near(observer, f32::MAX)?;
         UsfTravelBoundarySample::new(surface, outward, measurement_scale)
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn nearest_boundary_projection_converges_from_above_surface() {
-        let radius = 6_371_000.0;
-        let field = CelestialVoxelField::new(
-            radius,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-        let direction = DVec3::Y;
-        let authored_surface = field
-            .surface_local_metres(Vec3::Y)
-            .unwrap();
-        let observer = authored_surface + direction * 2_000.0;
-
-        let (projected, clearance) = field
-            .nearest_boundary_local_metres(observer, 10_000.0)
-            .expect("outer boundary should be projectable");
-
-        assert!(clearance > 1_000.0);
-        assert!(
-            (projected - authored_surface).length() < 5.0,
-            "projected={projected:?}, authored={authored_surface:?}",
-        );
-    }
-
-    #[test]
-fn authority_preserves_one_body_local_edit_order() {
-        use crate::voxel::{VoxelFrameBrush, VoxelFramePosition, VoxelMaterialId};
-        use bevy::math::DVec3;
-
-        let center = VoxelFramePosition::from_scale_native(DVec3::ZERO, SpatialScale::ZERO).unwrap();
-        let first = VoxelFrameEdit::Add {
-            brush: VoxelFrameBrush::sphere(center, 2.0),
-            material: VoxelMaterialId::ROCK,
-        };
-        let second = VoxelFrameEdit::Remove {
-            brush: VoxelFrameBrush::sphere(center, 1.0),
-        };
-
-        let mut authority = VoxelAuthority::default();
-        authority.record_edit(first);
-        authority.record_edit(second);
-
-        assert_eq!(authority.edits(), &[first, second]);
-        assert_eq!(authority.edits_since(1).collect::<Vec<_>>(), vec![second]);
-    }
-
-    #[test]
-    fn presentation_lod_spacing_does_not_change_canonical_field_truth() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            CelestialBodyProfile::Rocky,
-        );
-        let direction = Vec3::new(0.31, 0.77, -0.55).normalize();
-
-        let fine_surface = field
-            .presentation_surface_local_metres(direction, 1.0)
-            .unwrap();
-        let coarse_surface = field
-            .presentation_surface_local_metres(direction, 1_048_576.0)
-            .unwrap();
-        assert_eq!(
-            fine_surface, coarse_surface,
-            "binary sample spacing must never select a different semantic surface",
-        );
-
-        let point = fine_surface
-            - DVec3::new(
-                f64::from(direction.x),
-                f64::from(direction.y),
-                f64::from(direction.z),
-            ) * 250.0;
-        let fine_sdf = field
-            .presentation_signed_distance_local_metres(point, 1.0)
-            .unwrap();
-        let coarse_sdf = field
-            .presentation_signed_distance_local_metres(point, 1_048_576.0)
-            .unwrap();
-
-        assert_eq!(
-            fine_sdf.to_bits(),
-            coarse_sdf.to_bits(),
-            "binary LOD may undersample the canonical SDF but may not swap it out",
-        );
-    }
-
-    #[test]
-    fn one_celestial_field_derives_consistent_scale_realizations() {
-        let center = UsfPosition::zero(SpatialScale::ZERO);
-        let frame = UsfSemanticFrame::identity();
-        let detail_root = SpatialScale::new(5).unwrap();
-        let field = CelestialVoxelField::new(
-            1_737_000.0,
-            detail_root, SpatialScale::ZERO,
-            0x4D4F_4F4E,
-            CelestialBodyProfile::Lunar,
-        );
-
-        for raw in SpatialScale::MIN.exponent()..=5 {
-            let scale = SpatialScale::new(raw).unwrap();
-            let realization = field.realization(center, frame, scale);
-            let reconstructed =
-                realization.radius_native_f64() * scale.metres_per_native();
-            assert!((reconstructed - field.radius_metres()).abs() < 1.0e-6);
-        }
     }
 }

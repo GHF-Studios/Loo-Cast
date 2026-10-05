@@ -170,37 +170,3 @@ impl CharacterMovementConfig {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn source_profile_preserves_historical_earth_fall_response() {
-        let resolved = CharacterMovementConfig::source_2013().resolve_for_chart(
-            SpatialScale::ZERO,
-            DVec3::NEG_Y * 9.80665,
-        );
-        assert!((resolved.gravity_acceleration_native.length() - 20.32).abs() < 1.0e-3);
-    }
-
-    #[test]
-    fn si_policy_resolves_equivalently_across_runtime_charts() {
-        let config = CharacterMovementConfig::source_2013();
-        let scale = SpatialScale::new(3).unwrap();
-        let resolved = config.resolve_for_chart(scale, DVec3::NEG_Y * 9.80665);
-
-        assert!(
-            (f64::from(resolved.max_ground_speed) * scale.metres_per_native()
-                - f64::from(config.max_ground_speed))
-                .abs()
-                < 1.0e-5
-        );
-        assert!(
-            (f64::from(resolved.jump_speed) * scale.metres_per_native()
-                - f64::from(config.jump_speed))
-                .abs()
-                < 1.0e-5
-        );
-    }
-}

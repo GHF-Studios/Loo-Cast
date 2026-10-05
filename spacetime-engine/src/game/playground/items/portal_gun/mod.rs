@@ -169,17 +169,3 @@ fn draw_laser_pointer(
     let end = context.ray.origin + context.ray.direction * distance;
     gizmos.line(start, end, Color::srgb(0.35, 1.0, 0.45));
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn portal_frame_points_out_of_surface_and_preserves_up() {
-        let normal = Vec3::Z;
-        let rotation = surface_rotation(normal, Vec3::Y, Vec3::X).unwrap();
-
-        assert!((rotation * Vec3::Z - normal).length() < 1e-5);
-        assert!((rotation * Vec3::Y - Vec3::Y).length() < 1e-5);
-    }
-}

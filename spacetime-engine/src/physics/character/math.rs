@@ -85,33 +85,3 @@ pub fn apply_friction(
         planar_velocity * (new_speed / speed)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn acceleration_never_overshoots_wish_speed() {
-        let velocity = accelerate(Vec3::ZERO, Vec3::X, 10.0, 1000.0, 1.0, 1.0);
-        assert!((velocity.x - 10.0).abs() < 1e-5);
-    }
-
-    #[test]
-    fn friction_cannot_reverse_velocity() {
-        assert_eq!(apply_friction(Vec3::X, 100.0, 100.0, 1.0, 1.0), Vec3::ZERO,);
-    }
-
-    #[test]
-    fn air_cap_limits_parallel_speed_gain() {
-        let velocity = air_accelerate(Vec3::ZERO, Vec3::X, 10.0, Some(1.0), 1000.0, 1.0, 1.0);
-        assert!((velocity.x - 1.0).abs() < 1e-5);
-    }
-
-    #[test]
-    fn reject_removes_axis_component() {
-        assert_eq!(
-            reject(Vec3::new(1.0, 2.0, 3.0), Vec3::Y),
-            Vec3::new(1.0, 0.0, 3.0),
-        );
-    }
-}

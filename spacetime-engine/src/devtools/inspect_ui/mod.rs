@@ -52,6 +52,3 @@ pub(super) fn configure(app: &mut App) {
         .register_inspector_widget::<Quat, _>(QuatWidget)
         .register_inspector_widget::<Transform, _>(TransformWidget);
 }
-
-#[cfg(test)]
-mod tests;

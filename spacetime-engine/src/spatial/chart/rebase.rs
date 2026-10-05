@@ -1,13 +1,13 @@
 //! Floating-origin rebasing of the bounded local runtime chart.
 
-use avian3d::prelude::Position;
+use avian3d::prelude::{ColliderAabb, ColliderOf, Position, RigidBody};
 use bevy::prelude::*;
 
 use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
         UsfChartDelta, UsfOriginRebased, UsfRuntimeChartState, UsfScaleLayer,
-        UsfSpatialAnchor,
+        UsfSpatialAnchor, resolved_rebase_scale,
     },
 };
 use crate::usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
@@ -25,7 +25,15 @@ pub(in crate::spatial) fn rebase_local_frame(
         >,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
-    physics_positions: Query<Option<&UsfScaleLayer>, With<Position>>,
+    physics_positions: Query<
+        (Option<&UsfScaleLayer>, Option<&ColliderOf>),
+        With<Position>,
+    >,
+    collider_leaves: Query<
+        (Option<&UsfScaleLayer>, Option<&ColliderOf>),
+        With<ColliderAabb>,
+    >,
+    body_layers: Query<&UsfScaleLayer, With<RigidBody>>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
     let (anchor_translation, anchor_scale) = {
@@ -67,8 +75,9 @@ pub(in crate::spatial) fn rebase_local_frame(
             }
         }
     }
-    for layer in &physics_positions {
-        let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
+    for (layer, attached) in &physics_positions {
+        let target_scale =
+            resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
         if let Err(error) = delta.at_scale(target_scale) {
             error!(
                 ?error,
@@ -76,6 +85,20 @@ pub(in crate::spatial) fn rebase_local_frame(
                 target_scale = %target_scale,
                 ?shift,
                 "USF rebase cannot be represented in one resident physics chart"
+            );
+            return;
+        }
+    }
+    for (layer, attached) in &collider_leaves {
+        let target_scale =
+            resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
+        if let Err(error) = delta.at_scale(target_scale) {
+            error!(
+                ?error,
+                source_scale = %anchor_scale,
+                target_scale = %target_scale,
+                ?shift,
+                "USF rebase cannot be represented in one resident collider chart"
             );
             return;
         }

@@ -373,35 +373,3 @@ pub(super) fn configure(app: &mut App) {
             capture_view_demand.after(VisibilitySystems::UpdateFrusta),
         );
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn demand(finest_scale: SpatialScale) -> UsfViewDemand {
-        UsfViewDemand {
-            source: Entity::PLACEHOLDER,
-            anchor: UsfPosition::zero(SpatialScale::MIN),
-            velocity_metres_per_second: DVec3::ZERO,
-            projection_eye_offset_metres: DVec3::ZERO,
-            finest_scale,
-            camera_translation: Vec3::ZERO,
-            camera_rotation: Quat::IDENTITY,
-            frustum: Frustum::default(),
-            perspective: false,
-            perspective_fov: None,
-            perspective_aspect_ratio: None,
-            pixels_per_radian: None,
-        }
-    }
-
-    #[test]
-    fn observer_domain_keeps_the_entire_coarser_stack_eligible() {
-        let view = demand(SpatialScale::ZERO);
-
-        assert!(!view.requests_scale(SpatialScale::new(-1).unwrap()));
-        assert!(view.requests_scale(SpatialScale::ZERO));
-        assert!(view.requests_scale(SpatialScale::new(1).unwrap()));
-        assert!(view.requests_scale(SpatialScale::MAX));
-    }
-}

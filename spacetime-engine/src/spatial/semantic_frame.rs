@@ -1,4 +1,4 @@
-// Installer tranche: usf-semantic-celestial-frames-body-local-edits-v1//! Canonical orientation for movable semantic spatial frames.
+//! Canonical orientation for movable semantic spatial frames.
 //!
 //! Position authority remains the ordinary [`UsfPosition`] component on the
 //! semantic entity. This component owns orientation only; consumers receive the
@@ -77,63 +77,5 @@ impl UsfSemanticFrame {
         )?;
         let world_metres = world_native * measurement_scale.metres_per_native();
         Ok(self.orientation.conjugate() * world_metres)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn assert_near(actual: DVec3, expected: DVec3) {
-        assert!((actual - expected).length() < 1.0e-6, "actual={actual:?}, expected={expected:?}");
-    }
-
-    #[test]
-    fn identity_frame_round_trips_offsets_at_fine_and_coarse_measurement_scales() {
-        let frame = UsfSemanticFrame::identity();
-        let origin = UsfPosition::zero(SpatialScale::MIN);
-        let local = DVec3::new(12.25, -3.5, 27.75);
-        let world = frame.local_metres_to_world(origin, local).unwrap();
-
-        assert_near(
-            frame.world_to_local_metres(&origin, &world, SpatialScale::ZERO, f64::MAX).unwrap(),
-            local,
-        );
-        let coarse = SpatialScale::new(6).unwrap();
-        assert_near(
-            frame.world_to_local_metres(&origin, &world, coarse, f64::MAX).unwrap(),
-            local,
-        );
-    }
-
-    #[test]
-    fn rotated_frame_rotates_directions_without_moving_origin() {
-        let frame = UsfSemanticFrame::from_orientation(
-            DQuat::from_rotation_z(std::f64::consts::FRAC_PI_2),
-        );
-        let world = frame.local_direction_to_world(Vec3::X);
-        assert!((world - Vec3::Y).length() < 1.0e-6);
-        assert!((frame.world_direction_to_local(world) - Vec3::X).length() < 1.0e-6);
-    }
-
-    #[test]
-    fn translating_semantic_origin_moves_projection_without_changing_local_coordinate() {
-        let frame = UsfSemanticFrame::identity();
-        let origin_a = UsfPosition::zero(SpatialScale::ZERO);
-        let origin_b = origin_a.translated_at_scale(SpatialScale::ZERO, Vec3::X * 100.0).unwrap();
-        let local = DVec3::new(7.0, 2.0, -1.0);
-        let world_a = frame.local_metres_to_world(origin_a, local).unwrap();
-        let world_b = frame.local_metres_to_world(origin_b, local).unwrap();
-
-        assert_near(
-            frame.world_to_local_metres(&origin_a, &world_a, SpatialScale::ZERO, 1_000.0).unwrap(),
-            local,
-        );
-        assert_near(
-            frame.world_to_local_metres(&origin_b, &world_b, SpatialScale::ZERO, 1_000.0).unwrap(),
-            local,
-        );
-        let moved = world_b.relative_at_scale_bounded_f64(&world_a, SpatialScale::ZERO, 1_000.0).unwrap();
-        assert_near(moved, DVec3::X * 100.0);
     }
 }

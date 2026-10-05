@@ -69,7 +69,9 @@ fn aperture_crossing(
 
     let denominator = previous.z - current.z;
 
-    if denominator.abs() <= f32::EPSILON {
+    // The side check above already requires a real sign change. An absolute
+    // machine-epsilon cutoff would erase metre-scale crossings in coarse charts.
+    if denominator == 0.0 {
         return None;
     }
 

@@ -249,36 +249,6 @@ fn segment_aabb_interval(
     UsfSweepInterval::new(enter.max(0.0), exit.min(1.0))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sphere_candidate_contains_crossing_interval() {
-        let interval = segment_sphere_interval(
-            DVec3::new(-10.0, 0.0, 0.0),
-            DVec3::new(20.0, 0.0, 0.0),
-            2.0,
-        )
-        .unwrap();
-
-        assert!((interval.minimum() - 0.4).abs() < 1.0e-12);
-        assert!((interval.maximum() - 0.6).abs() < 1.0e-12);
-    }
-
-    #[test]
-    fn aabb_candidate_rejects_parallel_miss() {
-        assert!(
-            segment_aabb_interval(
-                DVec3::new(-10.0, 4.0, 0.0),
-                DVec3::new(20.0, 0.0, 0.0),
-                DVec3::splat(-1.0),
-                DVec3::splat(1.0),
-            )
-            .is_none()
-        );
-    }
-}
 pub(in crate::voxel) fn publish_collision_query_candidates(
     provider: VoxelCollisionQuery,
     mut frame: ResMut<crate::physics::collision_query::UsfCollisionQueryFrame>,

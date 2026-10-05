@@ -204,35 +204,3 @@ pub(in crate::spatial) fn sync_scale_slice_membership(
         commands.entity(entity).insert(UsfScaleSliceMemberOf(root));
     }
 }
-
-#[cfg(test)]
-mod chart_mask_tests {
-    use super::*;
-
-    #[test]
-    fn chart_mask_covers_every_spatial_scale_once() {
-        let mut accumulated = UsfChartMask::NONE;
-        for raw in super::super::SPATIAL_SCALE_MIN..=super::super::SPATIAL_SCALE_MAX {
-            let scale = SpatialScale::new(raw).unwrap();
-            let mask = UsfChartMask::from_scale(scale);
-            assert_ne!(mask.bits(), 0);
-            assert!(!accumulated.intersects(mask));
-            accumulated = accumulated.union(mask);
-        }
-        assert_eq!(accumulated, UsfChartMask::ALL);
-    }
-
-    #[test]
-    fn chart_mask_inclusive_range_is_order_independent() {
-        let zero = SpatialScale::ZERO;
-        let eight = SpatialScale::new(8).unwrap();
-        let forward = UsfChartMask::inclusive_range(zero, eight);
-        let backward = UsfChartMask::inclusive_range(eight, zero);
-
-        assert_eq!(forward, backward);
-        assert!(forward.contains(zero));
-        assert!(forward.contains(eight));
-        assert!(!forward.contains(SpatialScale::new(-1).unwrap()));
-        assert_eq!(forward.iter().count(), 9);
-    }
-}

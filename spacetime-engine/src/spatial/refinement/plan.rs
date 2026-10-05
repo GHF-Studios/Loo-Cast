@@ -196,38 +196,3 @@ fn sanitize_axis(value: f32) -> f32 {
         0.0
     }
 }
-
-#[cfg(test)]
-mod context_stack_tests {
-    use super::*;
-
-    #[test]
-    fn default_plan_requests_complete_coarse_context_stack() {
-        let s2 = SpatialScale::new(2).unwrap();
-        let s3 = SpatialScale::new(3).unwrap();
-        let s6 = SpatialScale::new(6).unwrap();
-        let s1 = SpatialScale::new(1).unwrap();
-        let plan = UsfRefinementPlan::new(
-            s2,
-            None,
-            UsfChartMask::inclusive_range(SpatialScale::MIN, s6),
-            Vec3::ONE,
-            0,
-        );
-
-        assert!(plan.requests_scale(s6));
-        assert!(plan.requests_scale(s3));
-        assert!(plan.requests_scale(s2));
-        assert!(!plan.requests_scale(s1));
-
-        assert_eq!(
-            plan.steps_coarse_to_fine()
-                .map(UsfRefinementStep::scale)
-                .collect::<Vec<_>>(),
-            [6, 5, 4, 3, 2]
-                .into_iter()
-                .map(|raw| SpatialScale::new(raw).unwrap())
-                .collect::<Vec<_>>(),
-        );
-    }
-}

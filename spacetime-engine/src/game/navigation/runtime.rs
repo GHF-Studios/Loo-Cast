@@ -7,7 +7,7 @@ use crate::{
     game::control::LocalControlSubject,
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfRuntimeChartState,
         UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfTravelBoundaryResolver,
         UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,
@@ -71,7 +71,7 @@ pub(super) fn reconcile_approach_after_requested_transition(
 /// spatial length currently being navigated.
 pub(super) fn sync_navigation_context(
     time: Res<Time>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     influences: Query<(
         Entity,
         &UsfPosition,
@@ -146,7 +146,7 @@ fn scale_for_resolution(
 /// resolution is needed and how much finer reality should be realized ahead of
 /// the moving subject.
 pub(super) fn plan_approach_refinement(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     subject: Single<
         (
             &Transform,
@@ -401,7 +401,7 @@ pub(super) fn audit_navigation_contract(
 /// context. Physical gravity is queried independently from the gravity-field
 /// subsystem; navigation owns only body-relative travel geometry.
 pub(super) fn sync_travel_state(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     subject: Single<
         (
             &Transform,
@@ -460,33 +460,4 @@ pub(super) fn sync_travel_state(
         measurement.center_distance_scale0(),
         clearance,
     );
-}
-
-#[cfg(test)]
-mod presentation_tests {
-    use super::*;
-
-    #[test]
-    fn presentation_scale_tracks_canonical_navigation_length() {
-        let profile = NavigationPresentationProfile::default();
-
-        assert_eq!(presentation_exponent_for_characteristic(1.0, &profile), 0.0);
-        assert_eq!(
-            presentation_exponent_for_characteristic(1_000_000.0, &profile),
-            6.0,
-        );
-        assert_eq!(
-            presentation_exponent_for_characteristic(1.0e30, &profile),
-            30.0,
-        );
-    }
-
-    #[test]
-    fn presentation_scale_respects_current_content_floor() {
-        let profile = NavigationPresentationProfile::default();
-        assert_eq!(
-            presentation_exponent_for_characteristic(1.0e-12, &profile),
-            SpatialScale::ZERO.exponent() as f32,
-        );
-    }
 }

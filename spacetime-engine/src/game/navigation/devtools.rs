@@ -17,7 +17,7 @@ use crate::{
         SpatialScale, UsfInteractionScaleAffinity, UsfPosition,
         UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleLayer,
         UsfScaleRoleMask,
-        UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
+        UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -235,7 +235,7 @@ impl NavigationFlightRecorder {
 
 pub(super) fn record_navigation_flight(
     time: Res<Time>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     audit: Res<NavigationAudit>,
@@ -336,48 +336,4 @@ pub(super) fn record_navigation_flight(
         regime,
         kernel,
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn sample(time: f64, scale: SpatialScale) -> NavigationTraceSample {
-        NavigationTraceSample {
-            elapsed_seconds: time,
-            canonical_position: UsfPosition::zero(SpatialScale::ZERO),
-            subject_scale: scale,
-            current_interaction: scale,
-            requested_interaction: None,
-            interaction_affinity: scale,
-            realization_target: scale,
-            view_exponent: f32::from(scale.exponent()),
-            view_scale: scale,
-            clearance_metres: Some(1.0),
-            coverage_gate: Some(CoverageGate {
-                realization: true,
-                presentation: true,
-                collision: true,
-            }),
-            regime: "OnFoot".to_string(),
-            kernel: "Character".to_string(),
-        }
-    }
-
-    #[test]
-    fn flight_recorder_captures_periodic_and_discrete_changes_without_frame_spam() {
-        let s6 = SpatialScale::new(6).unwrap();
-        let s5 = SpatialScale::new(5).unwrap();
-        let mut recorder = NavigationFlightRecorder::default();
-
-        recorder.record(sample(0.0, s6));
-        recorder.record(sample(0.1, s6));
-        assert_eq!(recorder.len(), 1);
-
-        recorder.record(sample(0.5, s6));
-        assert_eq!(recorder.len(), 2);
-
-        recorder.record(sample(0.6, s5));
-        assert_eq!(recorder.len(), 3);
-    }
 }

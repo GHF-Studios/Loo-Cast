@@ -35,3 +35,8 @@ They can be overridden together with:
 - `LOO_CAST_SCRIPT_LIVE_ROOT`
 
 The Rhai runtime itself still receives no arbitrary filesystem access.
+
+The shipped `debug/freecam_speed.rhai` document is the only live host policy.
+Other `.rhai` documents in the workspace are compile-only until a domain
+registers a supported runtime adapter. Older local LIVE celestial-height
+scripts are left in place as user data; they no longer trigger terrain rebuilds.

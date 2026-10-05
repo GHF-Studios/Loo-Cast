@@ -35,6 +35,9 @@ Spatial heat transfer uses only manifestations explicitly marked
 `ThermalSpatialSample`; presentation may inspect every manifestation. A split or
 multi-manifestation entity therefore keeps one thermal state while being able to
 interact or appear in more than one spatial location.
+Runtime sample positions are converted through their Scale Slice to SI metres
+before comparing them with the physical heat radius. Split peers inherit their
+authority's slice, while unlayered samples follow the current runtime anchor.
 
 The current propagation pass is O(n^2) over thermal semantic entities and uses
 the closest manifestation pair. That is intentionally replaceable. World chunks,

@@ -24,7 +24,7 @@ use crate::{
     voxel::CelestialVoxelField,
     spatial::{
         SpatialRefinementDemand, UsfCanonicalMotion, UsfInteractionScaleAffinity,
-        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfRuntimeChartState,
         UsfSpatialTransition,
         UsfSpatialTransitionQueue, UsfTransitionVelocity,
     },
@@ -37,7 +37,7 @@ const FIXTURE_SPACECRAFT_AIR_GAP_METRES: f32 = 25.0;
 
 pub(super) fn prepare_controlled_subject(
     arrival_site: Res<FixtureArrivalSite>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
     mut positions: ParamSet<(

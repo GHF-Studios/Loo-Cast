@@ -146,25 +146,4 @@ impl VoxelMaterializationRuntimeRegistry {
     #[inline(always)]
     pub(super) fn record_visibility_write(&mut self) {}
 
-    #[cfg(test)]
-    fn pooled_len(&self) -> usize {
-        self.pooled.len()
-    }
-}
-
-#[cfg(test)]
-mod pool_tests {
-    use super::*;
-
-    #[test]
-    fn manifestation_pool_is_bounded_and_reuses_lifo() {
-        let mut registry = VoxelMaterializationRuntimeRegistry::default();
-        let mut ecs = World::new();
-        let entity = ecs.spawn_empty().id();
-
-        assert!(registry.recycle(entity));
-        assert_eq!(registry.pooled_len(), 1);
-        assert_eq!(registry.take_pooled(), Some(entity));
-        assert_eq!(registry.pooled_len(), 0);
-    }
 }

@@ -288,6 +288,6 @@ Exit condition: no obsolete observability source/naming remains in the live deve
 
 **Current checkpoint:** Stages 0–6 are user-validated and pushed. Stage 7 is implemented on top of that tree and is the final migration patch.
 
-**Required gate now:** apply `devtools-redesign-stage-7.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, and smoke-test focus/Inspector/F3/F4 plus the retained Thermal, USF, Portal and Character visualizations.
+**Historical gate (superseded):** apply `devtools-redesign-stage-7.patch`, check formatting and the production build, then inspect focus/Inspector/F3/F4 and the retained Thermal, USF, Portal and Character visualizations at runtime.
 
 **If that gate passes:** the staged redesign is complete. Future work should use `src/devtools/ARCHITECTURE.md` as the current architecture reference; this document remains only the migration record. The separate project-owned Unicode font asset remains an ordinary follow-up, not another redesign stage.

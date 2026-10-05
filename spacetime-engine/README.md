@@ -41,5 +41,5 @@ cargo check -p spacetime-engine
 git diff --check
 ```
 
-Tests are added where they protect an important invariant or regression. Test
-count is not treated as a quality metric by itself.
+Automated test targets and executable doctests are disabled. For behavior
+changes, inspect the relevant scene and record the observed runtime result.

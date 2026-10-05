@@ -15,7 +15,8 @@ pub use runtime::{AuthoredMapMarker, AuthoredMapObject, AuthoredMapScene};
 use bevy::prelude::*;
 
 use asset::AuthoredMapLoader;
-use runtime::{animate_authored_movers, rebuild_authored_maps};
+use runtime::{animate_authored_movers, rebase_authored_movers, rebuild_authored_maps};
+use crate::spatial::UsfSpatialSet;
 
 pub struct AuthoredGeometryPlugin;
 
@@ -24,6 +25,7 @@ impl Plugin for AuthoredGeometryPlugin {
         app.init_asset::<AuthoredMap>()
             .init_asset_loader::<AuthoredMapLoader>()
             .add_systems(Update, rebuild_authored_maps)
+            .add_systems(PostUpdate, rebase_authored_movers.in_set(UsfSpatialSet::RuntimeProjection))
             .add_systems(FixedUpdate, animate_authored_movers);
     }
 }

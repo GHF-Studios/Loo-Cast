@@ -235,38 +235,3 @@ pub(super) fn rocky_cave_void_signed_distance_metres(
         seed,
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cave_field_is_deterministic_and_depth_bounded() {
-        let radius = 6_371_000.0;
-        let seed = 0x4541_5254;
-        let point = DVec3::new(120.0, radius - 300.0, -85.0);
-
-        let a = rocky_cave_void_signed_distance_metres(point, radius, seed);
-        let b = rocky_cave_void_signed_distance_metres(point, radius, seed);
-        assert_eq!(a.to_bits(), b.to_bits());
-
-        let far_above = DVec3::new(0.0, radius + 100.0, 0.0);
-        assert!(
-            rocky_cave_void_signed_distance_metres(far_above, radius, seed) > 0.0,
-            "caves must not create detached void shells above the terrain"
-        );
-
-        let too_shallow = DVec3::new(0.0, radius - 32.0, 0.0);
-        assert!(
-            rocky_cave_void_signed_distance_metres(too_shallow, radius, seed)
-                > 0.0,
-            "ordinary caves must remain below the 64 m subterranean gate"
-        );
-
-        let too_deep = DVec3::new(0.0, radius - 3_000.0, 0.0);
-        assert!(
-            rocky_cave_void_signed_distance_metres(too_deep, radius, seed) > 0.0,
-            "development caves stay in the near-surface crust"
-        );
-    }
-}

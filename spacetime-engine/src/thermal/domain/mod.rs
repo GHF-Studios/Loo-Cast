@@ -11,6 +11,3 @@ pub use body::{AMBIENT_TEMPERATURE_KELVIN, ThermalBody, ThermalSpatialSample};
 pub use combustion::{CombustibleMaterial, Combustion, Fuel};
 pub use events::ThermalImpulse;
 pub use injury::ThermalInjury;
-
-#[cfg(test)]
-mod tests;

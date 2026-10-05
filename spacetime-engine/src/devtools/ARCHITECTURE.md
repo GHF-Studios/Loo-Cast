@@ -99,9 +99,9 @@ Domain-specific tooling remains beside the domain. Existing examples include:
 
 - `ecs::devtools` — USF manifestation topology visualization;
 - `physics::character::devtools` — character-controller vectors;
-- `game::portal::devtools` — portal/split topology visualization;
-- `game::thermal::devtools` — structured thermal inspection;
-- `game::thermal::world_draw` — thermal bodies/cells and coupling fields;
+- `portal::devtools` — portal/split topology visualization;
+- `thermal::devtools` — structured thermal inspection;
+- `thermal::world_draw` — thermal bodies/cells and coupling fields;
 - `game::devtools` — test-game focus resolution and identity inspection.
 
 Thermal is now the deliberately different second proof case: one `Thermal`

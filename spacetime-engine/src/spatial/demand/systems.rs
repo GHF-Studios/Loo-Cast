@@ -16,7 +16,7 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 }
 
 fn collect_spatial_demand(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     transitions: Res<UsfSpatialTransitionQueue>,
     sources: Query<(
         Entity,

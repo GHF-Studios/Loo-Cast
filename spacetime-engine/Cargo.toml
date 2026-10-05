@@ -2,6 +2,16 @@
 name = "spacetime-engine"
 version.workspace = true
 edition.workspace = true
+autotests = false
+
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "spacetime-engine"
+path = "src/main.rs"
+test = false
 
 [features]
 default = []
@@ -27,9 +37,6 @@ bevy = {
 }
 avian3d = { version = "0.7.0", features = ["simd"] }
 fast-surface-nets = "0.2.1"
-# Shadow proof for the voxel-local presentation-resolution domain.
-# USF Scale Slices are numerical charts, not Transvoxel LOD levels.
-transvoxel = "2.0.0"
 # GPU binary presentation consumes the canonical Eric Lengyel tables directly.
 transvoxel-data = "0.2.1"
 # Keep the editor stack on one egui generation. bevy-inspector-egui 0.37 is

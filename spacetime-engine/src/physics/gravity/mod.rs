@@ -18,7 +18,7 @@ pub use source::RadialGravitySource;
 
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
-use crate::spatial::{UsfScaleLayer, UsfSpatialFrame};
+use crate::spatial::{UsfScaleLayer, UsfRuntimeChartState};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GravitySet {
@@ -26,7 +26,7 @@ pub enum GravitySet {
 }
 
 fn sample_gravity_receivers(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     gravity: GravityFieldQuery,
     mut receivers: Query<(&Transform, &UsfScaleLayer, &mut GravitySample)>,
 ) {

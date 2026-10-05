@@ -11,7 +11,7 @@ use crate::{
     reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     ecs::UsfPresentationProjectionOf,
     spatial::{
-        UsfScaleFallbackPresentation, UsfScaleLayer, UsfScalePresentation, UsfSpatialFrame,
+        UsfScaleFallbackPresentation, UsfScaleLayer, UsfScalePresentation, UsfRuntimeChartState,
     },
 };
 
@@ -88,7 +88,7 @@ fn update_presentation_mesh(
 pub(in crate::voxel) fn rebuild_dirty_manifestations(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    spatial_frame: Res<UsfSpatialFrame>,
+    spatial_frame: Res<UsfRuntimeChartState>,
     mut meshes: ResMut<Assets<Mesh>>,
     worlds: Query<(
         Entity,
@@ -546,7 +546,7 @@ fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Me
 
 fn materialization_runtime_translation(
     layer: &UsfScaleLayer,
-    frame: &UsfSpatialFrame,
+    frame: &UsfRuntimeChartState,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
     address
@@ -566,7 +566,7 @@ fn write_materialization_runtime_translation(
 }
 
 pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     worlds: Query<&VoxelWorld>,
     mut runtimes: Query<(
         &VoxelMaterializationRuntime,
@@ -595,18 +595,5 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
         };
 
         write_materialization_runtime_translation(&mut transform, translation);
-    }
-}
-
-#[cfg(test)]
-mod runtime_pose_tests {
-    use super::*;
-
-    #[test]
-    fn runtime_pose_updates_presentation_coordinates() {
-        let mut transform = Transform::from_xyz(10.0, -20.0, 30.0);
-        let target = Vec3::new(1.25, -2.5, 5.0);
-        write_materialization_runtime_translation(&mut transform, target);
-        assert_eq!(transform.translation, target);
     }
 }

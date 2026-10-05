@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use crate::{
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery},
     portal::{PortalTraveler, PortalVelocity},
+    spatial::{UsfScaleLayer, UsfSpatialAnchor},
 };
 
 use super::{
@@ -17,6 +18,7 @@ use super::{
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Weapon {
+    /// Physical muzzle speed in metres per second; converted at fire time.
     pub projectile_speed: f32,
     pub projectile_lifetime: f32,
     pub damage: f32,

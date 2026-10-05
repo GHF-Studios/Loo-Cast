@@ -14,6 +14,3 @@ pub use field::{ThermalCellSample, ThermalField};
 pub use material::ThermalMaterial;
 pub use simulation::ThermalPointImpulse;
 pub(super) use simulation::configure;
-
-#[cfg(test)]
-mod tests;

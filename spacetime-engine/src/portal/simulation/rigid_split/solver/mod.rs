@@ -7,6 +7,8 @@
 use avian3d::dynamics::solver::solver_body::SolverBody;
 use bevy::prelude::*;
 
+use crate::portal::simulation::split::active_portal_pair;
+
 use crate::{
     portal::{
         Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler,
@@ -45,17 +47,7 @@ pub(crate) fn sync_rigid_split_solver_peers(
         let Some(active) = split.active else {
             continue;
         };
-        let pair = match (
-            portals.get(active.source),
-            portals.get(active.destination),
-        ) {
-            (
-                Ok((_, _, source_active, source)),
-                Ok((_, _, destination_active, destination)),
-            ) if source_active.0 && destination_active.0 => Some((source, destination)),
-            _ => None,
-        };
-        let Some((source, destination)) = pair else {
+        let Some((_, source, destination)) = active_portal_pair(active, &portals) else {
             continue;
         };
 
@@ -99,17 +91,7 @@ pub(crate) fn couple_rigid_split_solver_peers(
         let Some(active) = split.active else {
             continue;
         };
-        let pair = match (
-            portals.get(active.source),
-            portals.get(active.destination),
-        ) {
-            (
-                Ok((_, _, source_active, source)),
-                Ok((_, _, destination_active, destination)),
-            ) if source_active.0 && destination_active.0 => Some((source, destination)),
-            _ => None,
-        };
-        let Some((source, destination)) = pair else {
+        let Some((_, source, destination)) = active_portal_pair(active, &portals) else {
             continue;
         };
 

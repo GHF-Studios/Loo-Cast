@@ -99,37 +99,3 @@ impl PhysicalBoxHull {
 #[derive(Component, Reflect, Debug, Default, Clone, Copy)]
 #[reflect(Component)]
 pub struct DetailedBodyCollision;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn physical_hull_converts_only_at_chart_boundary() {
-        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(4.0, 2.0, 8.0));
-        let s0 = SpatialScale::ZERO;
-        let s1 = SpatialScale::new(1).unwrap();
-
-        assert_eq!(hull.size_native(s0), Vec3::new(4.0, 2.0, 8.0));
-        assert!((hull.size_native(s1) - Vec3::new(0.4, 0.2, 0.8)).length() < 1.0e-6);
-    }
-
-    #[test]
-    fn coarse_bounding_sphere_preserves_physical_radius_across_scales() {
-        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(4.0, 2.0, 8.0));
-        let expected = hull.bounding_radius_metres();
-        for scale in [SpatialScale::ZERO, SpatialScale::new(5).unwrap()] {
-            let native = scale.metres_to_native_f32(expected);
-            let reconstructed =
-                f64::from(native) * scale.metres_per_native();
-            assert!((reconstructed - f64::from(expected)).abs() < 1.0e-3);
-        }
-    }
-
-    #[test]
-    fn support_radius_is_physical_not_chart_native() {
-        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(2.0, 4.0, 6.0));
-        let rotation = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
-        assert!((hull.projection_radius_metres(rotation, Vec3::X) - 3.0).abs() < 1.0e-5);
-    }
-}

@@ -35,6 +35,7 @@ impl VoxelSurfaceCache {
 #[derive(Debug)]
 enum VoxelMaterializationState {
     Pending { token: u64 },
+    Failed,
     Dense(VoxelChunk),
 }
 
@@ -45,20 +46,23 @@ struct VoxelMaterializationEntry {
     derived_revision: Option<u64>,
     surface: Option<VoxelSurfaceCache>,
     derived_in_flight: Option<u64>,
+    derived_failed_revision: Option<u64>,
 }
 
 impl VoxelMaterializationEntry {
     fn dense(&self) -> Option<&VoxelChunk> {
         match &self.state {
             VoxelMaterializationState::Dense(chunk) => Some(chunk),
-            VoxelMaterializationState::Pending { .. } => None,
+            VoxelMaterializationState::Pending { .. }
+            | VoxelMaterializationState::Failed => None,
         }
     }
 
     fn dense_mut(&mut self) -> Option<&mut VoxelChunk> {
         match &mut self.state {
             VoxelMaterializationState::Dense(chunk) => Some(chunk),
-            VoxelMaterializationState::Pending { .. } => None,
+            VoxelMaterializationState::Pending { .. }
+            | VoxelMaterializationState::Failed => None,
         }
     }
 }

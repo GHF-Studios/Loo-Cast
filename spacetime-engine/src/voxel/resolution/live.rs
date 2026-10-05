@@ -6,7 +6,6 @@
 
 use std::{
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-    sync::atomic::{AtomicU64, Ordering},
 };
 
 use bevy::{
@@ -25,24 +24,27 @@ use crate::procedural_assets::{
 };
 use crate::view::USF_PRESENTATION_LAYER;
 use crate::voxel::{
-    developer_policy::{
-        presentation_surface_radius_bounds_metres,
-    },
     MATERIALIZATION_CHUNK_SIZE, VoxelStreaming, VoxelWorld,
 };
 
 use crate::{
-    devtools::{
-        DeveloperScalarPolicySnapshot, DeveloperScriptWorkbench,
-    },
     ecs::UsfPresentationProjectionOf,
     spatial::{
          SpatialRealizationGranularityRequest, SpatialScale, UsfCapabilitySet,
         UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
         UsfScaleRoleMask, UsfSemanticFrame, UsfSpatialSet,
-        UsfViewContext, UsfViewDemand, UsfViewDemandSnapshot,
+        UsfViewContext, UsfViewDemandSnapshot,
         UsfViewRenderAnchor,
     },
+};
+
+use super::classification::{CelestialClipmapSurfaceCache, ClipmapBoundaryClassifier};
+use super::visibility::ClipmapVisibilityDemand;
+use super::topology::{
+    BLOCK_SUBDIVISIONS, CLIPMAP_FACE_DIRECTIONS, CelestialClipmapBlockKey,
+    block_contains_local_point, block_distance_squared_to_point, block_distance_to_point,
+    leaf_containing_point, same_or_coarser_face_neighbor,
+    transition_faces_for_frontier,
 };
 
 use super::{
@@ -50,10 +52,11 @@ use super::{
         allocation_mesh, descriptor_for_block, GpuTerrainBlock,
         GpuTerrainRuntime,
     },
-    VoxelPresentationResolution, VoxelTransitionFace, VoxelTransitionFaces,
+    VoxelPresentationResolution, VoxelTransitionFaces,
 };
 use super::super::{
-    CelestialPresentationFieldSampler, CelestialVoxelField,
+    presentation_palette::{DEBUG_BAND_COUNT, debug_band_rgb},
+    CelestialVoxelField,
     CelestialVoxelRealization, CelestialVoxelRealizationPolicy, VoxelAuthority,
     manifestation::{
         create_voxel_render_material, VoxelMaterializationPresentation,
@@ -63,7 +66,6 @@ use super::super::{
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTicket},
 };
 
-const BLOCK_SUBDIVISIONS: usize = 8;
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
@@ -107,78 +109,6 @@ const CLIPMAP_LATENCY_MULTIPLIER: f64 = 4.0;
 // Bevy's entity/asset lifecycle. Keep a bounded hot pool and mutate stable
 // Mesh handles in place, matching the dense manifestation runtime.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct CelestialClipmapBlockKey {
-    resolution: VoxelPresentationResolution,
-    coord: IVec3,
-}
-
-impl CelestialClipmapBlockKey {
-    fn spacing_metres(self) -> f64 {
-        self.resolution.sample_spacing_metres()
-    }
-
-    fn extent_metres(self) -> f64 {
-        self.spacing_metres() * BLOCK_SUBDIVISIONS as f64
-    }
-
-    fn origin_local_metres(self) -> DVec3 {
-        let extent = self.extent_metres();
-        DVec3::new(
-            f64::from(self.coord.x) * extent,
-            f64::from(self.coord.y) * extent,
-            f64::from(self.coord.z) * extent,
-        )
-    }
-
-    fn half_extent_metres(self) -> DVec3 {
-        DVec3::splat(self.extent_metres() * 0.5)
-    }
-
-    fn center_local_metres(self) -> DVec3 {
-        self.origin_local_metres() + self.half_extent_metres()
-    }
-
-    fn children(self) -> Option<[Self; 8]> {
-        let resolution = self.resolution.finer()?;
-        let base = IVec3::new(
-            self.coord.x.checked_mul(2)?,
-            self.coord.y.checked_mul(2)?,
-            self.coord.z.checked_mul(2)?,
-        );
-        Some([
-            Self { resolution, coord: base + IVec3::new(0, 0, 0) },
-            Self { resolution, coord: base + IVec3::new(1, 0, 0) },
-            Self { resolution, coord: base + IVec3::new(0, 1, 0) },
-            Self { resolution, coord: base + IVec3::new(1, 1, 0) },
-            Self { resolution, coord: base + IVec3::new(0, 0, 1) },
-            Self { resolution, coord: base + IVec3::new(1, 0, 1) },
-            Self { resolution, coord: base + IVec3::new(0, 1, 1) },
-            Self { resolution, coord: base + IVec3::new(1, 1, 1) },
-        ])
-    }
-
-    fn ancestor_at(
-        self,
-        target: VoxelPresentationResolution,
-    ) -> Option<Self> {
-        if target < self.resolution {
-            return None;
-        }
-
-        let mut key = self;
-        while key.resolution < target {
-            key.resolution = key.resolution.coarser()?;
-            key.coord = IVec3::new(
-                key.coord.x.div_euclid(2),
-                key.coord.y.div_euclid(2),
-                key.coord.z.div_euclid(2),
-            );
-        }
-        Some(key)
-    }
-}
-
 #[derive(Resource, Default)]
 struct CelestialClipmapBandDebugMaterials {
     by_base_and_relative_level:
@@ -203,25 +133,6 @@ struct CelestialClipmapMaterialParams<'w> {
 // palette deliberately advances slowly enough that neighboring resolution
 // shells remain easy to distinguish while broad LOD structure reads as one
 // continuous sweep rather than a seven-color repeating traffic light.
-const CLIPMAP_DEBUG_HUE_BANDS: i16 = 16;
-const CLIPMAP_DEBUG_HUES: [[f32; 3]; CLIPMAP_DEBUG_HUE_BANDS as usize] = [
-    [0.670, 0.369, 0.820],
-    [0.820, 0.369, 0.801],
-    [0.820, 0.369, 0.632],
-    [0.820, 0.369, 0.463],
-    [0.820, 0.444, 0.369],
-    [0.820, 0.613, 0.369],
-    [0.820, 0.782, 0.369],
-    [0.688, 0.820, 0.369],
-    [0.519, 0.820, 0.369],
-    [0.369, 0.820, 0.388],
-    [0.369, 0.820, 0.557],
-    [0.369, 0.820, 0.726],
-    [0.369, 0.745, 0.820],
-    [0.369, 0.576, 0.820],
-    [0.369, 0.407, 0.820],
-    [0.501, 0.369, 0.820],
-];
 
 impl CelestialClipmapBandDebugMaterials {
     fn material_for(
@@ -233,7 +144,7 @@ impl CelestialClipmapBandDebugMaterials {
         base: &Handle<StandardMaterial>,
         relative_level: i16,
     ) -> Option<Handle<VoxelRenderMaterial>> {
-        let diagnostic_band = relative_level.rem_euclid(CLIPMAP_DEBUG_HUE_BANDS);
+        let diagnostic_band = relative_level.rem_euclid(DEBUG_BAND_COUNT);
         let key = (base.clone(), diagnostic_band);
         if let Some(existing) = self.by_base_and_relative_level.get(&key) {
             return Some(existing.clone());
@@ -258,8 +169,7 @@ impl CelestialClipmapBandDebugMaterials {
 }
 
 fn clipmap_band_debug_color(relative_level: i16) -> Color {
-    let index = relative_level.rem_euclid(CLIPMAP_DEBUG_HUE_BANDS) as usize;
-    let [r, g, b] = CLIPMAP_DEBUG_HUES[index];
+    let [r, g, b] = debug_band_rgb(relative_level);
     Color::srgb(r, g, b)
 }
 
@@ -276,14 +186,12 @@ struct CelestialClipmapPlanKey {
     // not identity of the body-local presentation hierarchy.
     finest_exponent: i16,
     coarsest_exponent: i16,
-    policy_revision: u64,
 }
 
 #[derive(Debug)]
 struct CelestialClipmapPlan {
     key: CelestialClipmapPlanKey,
     field: CelestialVoxelField,
-    policy: Option<DeveloperScalarPolicySnapshot>,
     /// Predicted actual observer position in body-local SI metres.
     ///
     /// This is the 3D LOD/error/motion anchor. Never project it onto terrain:
@@ -304,10 +212,6 @@ struct CelestialClipmapPlan {
     desired_set: HashSet<CelestialClipmapBlockSpec>,
     completed: HashSet<CelestialClipmapBlockSpec>,
     meshful: HashSet<CelestialClipmapBlockSpec>,
-    /// Specs already proven to contain no presentation triangles. Unlike mesh
-    /// entities these have no ECS artifact, so remember the result explicitly
-    /// across stages and warm replans.
-    known_empty: HashSet<CelestialClipmapBlockSpec>,
     committed_specs: HashSet<CelestialClipmapBlockSpec>,
     committed_generation: Option<u64>,
 }
@@ -317,7 +221,7 @@ fn seed_clipmap_stage_completion(
     authority: Entity,
     plan: &mut CelestialClipmapPlan,
     active_entities: &HashMap<
-        (Entity, u64, CelestialClipmapBlockSpec),
+        (Entity, CelestialClipmapBlockSpec),
         Entity,
     >,
 ) {
@@ -325,231 +229,13 @@ fn seed_clipmap_stage_completion(
     plan.meshful.clear();
 
     for &spec in &plan.desired {
-        let key = (authority, plan.key.policy_revision, spec);
+        let key = (authority, spec);
         if active_entities.contains_key(&key) {
             plan.completed.insert(spec);
             plan.meshful.insert(spec);
-        } else if plan.known_empty.contains(&spec) {
-            plan.completed.insert(spec);
         }
     }
 }
-
-//
-// Planner state is deliberately reusable. Observer motion changes *which*
-// presentation blocks are wanted; it does not change the semantic answer to
-// "can this dyadic block intersect this body surface?" for a stable
-// (field, script revision). Keep two generations of those classifications so
-// ordinary movement pays mostly for the changed frontier without an unbounded
-// spatial cache.
-const MAX_PLANNER_CLASSIFICATIONS: usize = 131_072;
-const PLANNER_CLASSIFICATION_RETENTION_GENERATIONS: u64 = 3;
-
-#[derive(Debug, Default, Clone, Copy)]
-struct ClipmapSurfaceClassification {
-    broad: Option<bool>,
-    refinement: Option<bool>,
-    touched_generation: u64,
-}
-
-#[derive(Default)]
-struct CelestialClipmapSurfaceCache {
-    field: Option<CelestialVoxelField>,
-    policy_revision: u64,
-    generation: u64,
-    classifications: HashMap<CelestialClipmapBlockKey, ClipmapSurfaceClassification>,
-    hits: usize,
-    misses: usize,
-    cheap_rejects: usize,
-}
-
-const MIN_EXACT_PLANNER_BLOCK_EXTENT_METRES: f64 = 262_144.0;
-const EXACT_PLANNER_SHELL_MULTIPLIER: f64 = 2.0;
-
-// presentation-planner-classifier-owner-repair-v1
-struct ClipmapBoundaryClassifier<'a> {
-    field: CelestialVoxelField,
-    planning_anchor_local: DVec3,
-    sampler: &'a CelestialPresentationFieldSampler,
-    visibility: ClipmapVisibilityDemand,
-    exact_extent_metres: f64,
-}
-
-impl<'a> ClipmapBoundaryClassifier<'a> {
-    fn new(
-        field: CelestialVoxelField,
-        planning_anchor_local: DVec3,
-        sampler: &'a CelestialPresentationFieldSampler,
-        visibility: ClipmapVisibilityDemand,
-    ) -> Self {
-        let (surface_minimum, surface_maximum) =
-            presentation_surface_radius_bounds_metres(field);
-        let radial_uncertainty = (
-            surface_maximum - surface_minimum
-                + field.volumetric_surface_inward_support_metres()
-        )
-            .max(0.0);
-        let exact_extent_metres = (
-            radial_uncertainty * EXACT_PLANNER_SHELL_MULTIPLIER
-        )
-            .max(MIN_EXACT_PLANNER_BLOCK_EXTENT_METRES);
-
-        assert!(
-            exact_extent_metres.is_finite() && exact_extent_metres > 0.0,
-            "planner exact-classification extent must be finite and positive"
-        );
-        assert!(
-            planning_anchor_local.is_finite(),
-            "planner boundary anchor must be finite"
-        );
-
-        Self {
-            field,
-            planning_anchor_local,
-            sampler,
-            visibility,
-            exact_extent_metres,
-        }
-    }
-
-    fn needs_exact_boundary(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> bool {
-        key.extent_metres() <= self.exact_extent_metres
-    }
-
-    fn root_intersects(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> bool {
-        if !block_may_intersect_presentation_shell(self.field, key) {
-            return false;
-        }
-        if !self.needs_exact_boundary(key) {
-            return true;
-        }
-        block_intersects_semantic_surface_with_sampler(
-            self.field,
-            key,
-            self.sampler,
-        )
-    }
-
-
-
-    fn refinement_intersects(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> bool {
-        if block_contains_local_point(key, self.planning_anchor_local) {
-            return true;
-        }
-        if !block_may_intersect_presentation_shell(self.field, key) {
-            return false;
-        }
-        if !self.needs_exact_boundary(key) {
-            return true;
-        }
-
-        block_intersects_refinement_boundary_with_sampler(
-            self.field,
-            key,
-            self.sampler,
-        )
-    }
-}
-
-impl CelestialClipmapSurfaceCache {
-    fn begin_plan(
-        &mut self,
-        field: CelestialVoxelField,
-        policy_revision: u64,
-    ) {
-        self.generation = self.generation.wrapping_add(1).max(1);
-        if self.field != Some(field) || self.policy_revision != policy_revision {
-            self.field = Some(field);
-            self.policy_revision = policy_revision;
-            self.classifications.clear();
-        }
-        self.hits = 0;
-        self.misses = 0;
-        self.cheap_rejects = 0;
-    }
-
-
-    fn intersects(
-        &mut self,
-        key: CelestialClipmapBlockKey,
-        classifier: &ClipmapBoundaryClassifier<'_>,
-    ) -> bool {
-        if let Some(entry) = self.classifications.get_mut(&key)
-            && let Some(value) = entry.broad
-        {
-            entry.touched_generation = self.generation;
-            self.hits = self.hits.saturating_add(1);
-            return value;
-        }
-
-        self.misses = self.misses.saturating_add(1);
-        let value = classifier.root_intersects(key);
-        if !value
-            && !block_may_intersect_presentation_shell(classifier.field, key)
-        {
-            self.cheap_rejects = self.cheap_rejects.saturating_add(1);
-        }
-
-        let entry = self.classifications.entry(key).or_default();
-        entry.broad = Some(value);
-        entry.touched_generation = self.generation;
-        value
-    }
-
-
-    fn refinement_intersects(
-        &mut self,
-        key: CelestialClipmapBlockKey,
-        classifier: &ClipmapBoundaryClassifier<'_>,
-    ) -> bool {
-        if block_contains_local_point(key, classifier.planning_anchor_local) {
-            return true;
-        }
-
-        if let Some(entry) = self.classifications.get_mut(&key)
-            && let Some(value) = entry.refinement
-        {
-            entry.touched_generation = self.generation;
-            self.hits = self.hits.saturating_add(1);
-            return value;
-        }
-
-        self.misses = self.misses.saturating_add(1);
-        let value = classifier.refinement_intersects(key);
-        if !value
-            && !block_may_intersect_presentation_shell(classifier.field, key)
-        {
-            self.cheap_rejects = self.cheap_rejects.saturating_add(1);
-        }
-
-        let entry = self.classifications.entry(key).or_default();
-        entry.refinement = Some(value);
-        entry.touched_generation = self.generation;
-        value
-    }
-
-    fn finish_plan(&mut self) {
-        if self.classifications.len() <= MAX_PLANNER_CLASSIFICATIONS {
-            return;
-        }
-        let minimum_generation = self
-            .generation
-            .saturating_sub(PLANNER_CLASSIFICATION_RETENTION_GENERATIONS);
-        self.classifications.retain(|_, entry| {
-            entry.touched_generation >= minimum_generation
-        });
-    }
-}
-
 
 #[derive(Debug, Clone, Copy)]
 struct ClipmapRefinementCandidate {
@@ -651,64 +337,16 @@ fn refinement_candidate(
 }
 
 
-const CLIPMAP_FACE_DIRECTIONS: [(VoxelTransitionFace, IVec3); 6] = [
-    (VoxelTransitionFace::LowX, IVec3::new(-1, 0, 0)),
-    (VoxelTransitionFace::HighX, IVec3::new(1, 0, 0)),
-    (VoxelTransitionFace::LowY, IVec3::new(0, -1, 0)),
-    (VoxelTransitionFace::HighY, IVec3::new(0, 1, 0)),
-    (VoxelTransitionFace::LowZ, IVec3::new(0, 0, -1)),
-    (VoxelTransitionFace::HighZ, IVec3::new(0, 0, 1)),
-];
-
-#[inline]
-fn clipmap_face_delta(face: VoxelTransitionFace) -> IVec3 {
-    match face {
-        VoxelTransitionFace::LowX => IVec3::new(-1, 0, 0),
-        VoxelTransitionFace::HighX => IVec3::new(1, 0, 0),
-        VoxelTransitionFace::LowY => IVec3::new(0, -1, 0),
-        VoxelTransitionFace::HighY => IVec3::new(0, 1, 0),
-        VoxelTransitionFace::LowZ => IVec3::new(0, 0, -1),
-        VoxelTransitionFace::HighZ => IVec3::new(0, 0, 1),
-    }
-}
-
-#[inline]
-fn opposite_clipmap_face(face: VoxelTransitionFace) -> VoxelTransitionFace {
-    match face {
-        VoxelTransitionFace::LowX => VoxelTransitionFace::HighX,
-        VoxelTransitionFace::HighX => VoxelTransitionFace::LowX,
-        VoxelTransitionFace::LowY => VoxelTransitionFace::HighY,
-        VoxelTransitionFace::HighY => VoxelTransitionFace::LowY,
-        VoxelTransitionFace::LowZ => VoxelTransitionFace::HighZ,
-        VoxelTransitionFace::HighZ => VoxelTransitionFace::LowZ,
-    }
-}
-
-fn checked_coord_add(lhs: IVec3, rhs: IVec3) -> Option<IVec3> {
-    Some(IVec3::new(
-        lhs.x.checked_add(rhs.x)?,
-        lhs.y.checked_add(rhs.y)?,
-        lhs.z.checked_add(rhs.z)?,
-    ))
-}
-
-fn parent_coord(coord: IVec3) -> IVec3 {
-    IVec3::new(
-        coord.x.div_euclid(2),
-        coord.y.div_euclid(2),
-        coord.z.div_euclid(2),
-    )
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum LeafRefinementOutcome {
     Refined,
-    RemovedAsEmpty,
+    Retained,
     Unavailable,
 }
 
 
 fn refine_leaf_indexed(
+    input: CelestialClipmapPlanInput,
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     parent: CelestialClipmapBlockKey,
     surface_cache: &mut CelestialClipmapSurfaceCache,
@@ -726,17 +364,19 @@ fn refine_leaf_indexed(
     };
 
     for child in children {
-        if !classifier.visibility.demands_block(child) {
+        if !input.visibility.demands_block(child) {
             continue;
         }
-        if surface_cache.refinement_intersects(child, classifier) {
+        if block_contains_local_point(child, input.planning_anchor_local)
+            || surface_cache.refinement_intersects(child, classifier) {
             leaves.insert(child);
             inserted.push(child);
         }
     }
 
     if inserted.is_empty() {
-        LeafRefinementOutcome::RemovedAsEmpty
+        leaves.insert(parent);
+        LeafRefinementOutcome::Retained
     } else {
         LeafRefinementOutcome::Refined
     }
@@ -752,6 +392,7 @@ struct LeafRefinementMutation {
 
 
 fn refine_leaf_transactional(
+    input: CelestialClipmapPlanInput,
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     parent: CelestialClipmapBlockKey,
     surface_cache: &mut CelestialClipmapSurfaceCache,
@@ -760,6 +401,7 @@ fn refine_leaf_transactional(
     journal: &mut Vec<LeafRefinementMutation>,
 ) -> LeafRefinementOutcome {
     let outcome = refine_leaf_indexed(
+        input,
         leaves,
         parent,
         surface_cache,
@@ -767,7 +409,7 @@ fn refine_leaf_transactional(
         inserted,
     );
 
-    if outcome != LeafRefinementOutcome::Unavailable {
+    if outcome == LeafRefinementOutcome::Refined {
         let mut children = [None; 8];
         for (slot, child) in children.iter_mut().zip(inserted.iter().copied()) {
             *slot = Some(child);
@@ -790,38 +432,10 @@ fn rollback_leaf_refinements(
     }
 }
 
-/// Find the unique leaf on the other side of one face when that leaf is at the
-/// same or a coarser binary level. Starting from the same-level adjacent cell,
-/// parent ascent is exact for dyadic octree coordinates (including negatives).
-fn same_or_coarser_face_neighbor(
-    leaves: &HashSet<CelestialClipmapBlockKey>,
-    key: CelestialClipmapBlockKey,
-    face: VoxelTransitionFace,
-    maximum_exponent: i16,
-) -> Option<CelestialClipmapBlockKey> {
-    let mut coord = checked_coord_add(
-        key.coord,
-        clipmap_face_delta(face),
-    )?;
-    let mut resolution = key.resolution;
-
-    loop {
-        let candidate = CelestialClipmapBlockKey { resolution, coord };
-        if leaves.contains(&candidate) {
-            return Some(candidate);
-        }
-
-        if resolution.binary_exponent() >= maximum_exponent {
-            return None;
-        }
-        resolution = resolution.coarser()?;
-        coord = parent_coord(coord);
-    }
-}
-
 /// Restore the 2:1 invariant only around leaves changed by this wave.
 
 fn balance_leaves_2_to_1_from_seeds(
+    input: CelestialClipmapPlanInput,
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     surface_cache: &mut CelestialClipmapSurfaceCache,
     classifier: &ClipmapBoundaryClassifier<'_>,
@@ -873,6 +487,7 @@ fn balance_leaves_2_to_1_from_seeds(
             }
 
             match refine_leaf_transactional(
+                input,
                 leaves,
                 neighbor,
                 surface_cache,
@@ -888,7 +503,7 @@ fn balance_leaves_2_to_1_from_seeds(
                     }
                     balanced_inserted.extend(inserted.iter().copied());
                 }
-                LeafRefinementOutcome::RemovedAsEmpty => {}
+                LeafRefinementOutcome::Retained => return false,
                 LeafRefinementOutcome::Unavailable => return false,
             }
 
@@ -903,128 +518,16 @@ fn balance_leaves_2_to_1_from_seeds(
 }
 
 
-fn finer_face_neighbors(
-    key: CelestialClipmapBlockKey,
-    face: VoxelTransitionFace,
-) -> Option<[CelestialClipmapBlockKey; 4]> {
-    let resolution = key.resolution.finer()?;
-    let bx = key.coord.x.checked_mul(2)?;
-    let by = key.coord.y.checked_mul(2)?;
-    let bz = key.coord.z.checked_mul(2)?;
-
-    let make = |x: i32, y: i32, z: i32| CelestialClipmapBlockKey {
-        resolution,
-        coord: IVec3::new(x, y, z),
-    };
-
-    match face {
-        VoxelTransitionFace::LowX => {
-            let x = bx.checked_sub(1)?;
-            Some([
-                make(x, by, bz),
-                make(x, by.checked_add(1)?, bz),
-                make(x, by, bz.checked_add(1)?),
-                make(x, by.checked_add(1)?, bz.checked_add(1)?),
-            ])
-        }
-        VoxelTransitionFace::HighX => {
-            let x = bx.checked_add(2)?;
-            Some([
-                make(x, by, bz),
-                make(x, by.checked_add(1)?, bz),
-                make(x, by, bz.checked_add(1)?),
-                make(x, by.checked_add(1)?, bz.checked_add(1)?),
-            ])
-        }
-        VoxelTransitionFace::LowY => {
-            let y = by.checked_sub(1)?;
-            Some([
-                make(bx, y, bz),
-                make(bx.checked_add(1)?, y, bz),
-                make(bx, y, bz.checked_add(1)?),
-                make(bx.checked_add(1)?, y, bz.checked_add(1)?),
-            ])
-        }
-        VoxelTransitionFace::HighY => {
-            let y = by.checked_add(2)?;
-            Some([
-                make(bx, y, bz),
-                make(bx.checked_add(1)?, y, bz),
-                make(bx, y, bz.checked_add(1)?),
-                make(bx.checked_add(1)?, y, bz.checked_add(1)?),
-            ])
-        }
-        VoxelTransitionFace::LowZ => {
-            let z = bz.checked_sub(1)?;
-            Some([
-                make(bx, by, z),
-                make(bx.checked_add(1)?, by, z),
-                make(bx, by.checked_add(1)?, z),
-                make(bx.checked_add(1)?, by.checked_add(1)?, z),
-            ])
-        }
-        VoxelTransitionFace::HighZ => {
-            let z = bz.checked_add(2)?;
-            Some([
-                make(bx, by, z),
-                make(bx.checked_add(1)?, by, z),
-                make(bx, by.checked_add(1)?, z),
-                make(bx.checked_add(1)?, by.checked_add(1)?, z),
-            ])
-        }
-    }
-}
-
-fn transition_faces_for_frontier(
-    leaves: &HashSet<CelestialClipmapBlockKey>,
-) -> HashMap<CelestialClipmapBlockKey, VoxelTransitionFaces> {
-    let Some(maximum_exponent) = leaves
-        .iter()
-        .map(|key| key.resolution.binary_exponent())
-        .max()
-    else {
-        return HashMap::new();
-    };
-
-    let mut transitions = HashMap::<
-        CelestialClipmapBlockKey,
-        VoxelTransitionFaces,
-    >::with_capacity(leaves.len() / 4 + 8);
-
-    // 2:1 balance means every coarse/fine boundary can be discovered from the
-    // fine side with one same-or-parent ascent. That is <=6 lookups per leaf,
-    // instead of asking every coarse leaf about 4 finer candidates on 6 faces.
-    for &fine in leaves {
-        for (face, _) in CLIPMAP_FACE_DIRECTIONS {
-            let Some(neighbor) = same_or_coarser_face_neighbor(
-                leaves,
-                fine,
-                face,
-                maximum_exponent,
-            ) else {
-                continue;
-            };
-            if neighbor.resolution > fine.resolution {
-                transitions
-                    .entry(neighbor)
-                    .or_default()
-                    .insert(opposite_clipmap_face(face));
-            }
-        }
-    }
-
-    transitions
-}
-
 #[derive(Resource, Default)]
 struct CelestialClipmapRegistry {
     next_generation: u64,
+    gpu_admission_cursor: Option<Entity>,
     plans: HashMap<Entity, CelestialClipmapPlan>,
     planner_caches: HashMap<Entity, CelestialClipmapSurfaceCache>,
     // Stable presentation shells + async tickets live in this reconstructible
     // registry. They are runtime bookkeeping, not semantic ECS entities.
     active_entities:
-        HashMap<(Entity, u64, CelestialClipmapBlockSpec), Entity>,
+        HashMap<(Entity, CelestialClipmapBlockSpec), Entity>,
     plan_tasks: Vec<CelestialClipmapPlanBuildTask>,
     build_tasks: Vec<CelestialClipmapBuildTask>,
 
@@ -1198,7 +701,6 @@ impl CelestialClipmapTelemetry {
 #[derive(Component, Debug, Clone, Copy)]
 struct CelestialClipmapBlock {
     authority: Entity,
-    policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
     active: bool,
     committed: bool,
@@ -1209,7 +711,6 @@ struct CelestialClipmapBlock {
 struct CelestialClipmapBuildTask {
     authority: Entity,
     generation: u64,
-    policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
     field: CelestialVoxelField,
     entity: Entity,
@@ -1220,7 +721,6 @@ struct CelestialClipmapBuildTask {
 struct PendingGpuAdmission {
     authority: Entity,
     generation: u64,
-    policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
     field: CelestialVoxelField,
     relative_level: i16,
@@ -1231,7 +731,6 @@ struct CelestialClipmapPlanBuildTask {
     authority: Entity,
     input: CelestialClipmapPlanInput,
     field: CelestialVoxelField,
-    policy: Option<DeveloperScalarPolicySnapshot>,
     task: VoxelWorkerTicket<CelestialClipmapPlanBuildOutput>,
 }
 
@@ -1413,266 +912,6 @@ impl CelestialClipmapCoverageSnapshot {
     }
 }
 
-fn checked_floor_coord(point: DVec3, extent: f64) -> Option<IVec3> {
-    if !point.is_finite() || !extent.is_finite() || extent <= 0.0 {
-        return None;
-    }
-
-    let scaled = point / extent;
-    let x = scaled.x.floor();
-    let y = scaled.y.floor();
-    let z = scaled.z.floor();
-    let valid = |value: f64| {
-        value >= f64::from(i32::MIN) && value <= f64::from(i32::MAX)
-    };
-    if !valid(x) || !valid(y) || !valid(z) {
-        return None;
-    }
-
-    Some(IVec3::new(x as i32, y as i32, z as i32))
-}
-
-
-fn leaf_containing_point(
-    leaves: &HashSet<CelestialClipmapBlockKey>,
-    point: DVec3,
-    finest: VoxelPresentationResolution,
-    coarsest: VoxelPresentationResolution,
-) -> Option<CelestialClipmapBlockKey> {
-    let mut resolution = finest;
-    loop {
-        let extent =
-            resolution.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-        let coord = checked_floor_coord(point, extent)?;
-        let key = CelestialClipmapBlockKey { resolution, coord };
-        if leaves.contains(&key) {
-            return Some(key);
-        }
-
-        if resolution >= coarsest {
-            return None;
-        }
-        resolution = resolution.coarser()?;
-    }
-}
-
-#[inline]
-fn block_distance_squared_to_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> f64 {
-    let min = key.origin_local_metres();
-    let max = min + DVec3::splat(key.extent_metres());
-    let nearest = point.clamp(min, max);
-    (point - nearest).length_squared()
-}
-
-#[inline]
-fn block_distance_to_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> f64 {
-    block_distance_squared_to_point(key, point).sqrt()
-}
-
-fn center_surface_radial_delta(
-    key: CelestialClipmapBlockKey,
-    sampler: &CelestialPresentationFieldSampler,
-) -> Option<f64> {
-    let center = key.center_local_metres();
-    let radial = center.length();
-    if !radial.is_finite() || radial <= f64::EPSILON {
-        return None;
-    }
-
-    let direction = Vec3::new(
-        (center.x / radial) as f32,
-        (center.y / radial) as f32,
-        (center.z / radial) as f32,
-    )
-    .normalize_or_zero();
-    if direction == Vec3::ZERO {
-        return None;
-    }
-
-    let surface_radius = sampler.surface_local_metres(direction).ok()?.length();
-    if !surface_radius.is_finite() {
-        return None;
-    }
-
-    debug_assert!(key.extent_metres() > 0.0);
-    debug_assert!(center.is_finite());
-    Some(radial - surface_radius)
-}
-
-
-fn block_intersects_semantic_surface_with_sampler(
-    field: CelestialVoxelField,
-    key: CelestialClipmapBlockKey,
-    sampler: &CelestialPresentationFieldSampler,
-) -> bool {
-    if !block_may_intersect_presentation_shell(field, key) {
-        return false;
-    }
-
-    let half_diagonal = key.half_extent_metres().length();
-    let conservative_extra =
-        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-    let threshold = half_diagonal + conservative_extra;
-    let inward_support = field.volumetric_surface_inward_support_metres();
-
-    if center_surface_radial_delta(key, sampler).is_some_and(|delta| {
-        delta <= threshold
-            && delta >= -(inward_support + threshold)
-    }) {
-        return true;
-    }
-
-    sampler
-        .signed_distance_local_metres(key.center_local_metres())
-        .is_some_and(|distance| distance.abs() <= threshold)
-}
-
-
-fn block_contains_local_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> bool {
-    let min = key.origin_local_metres();
-    let max = min + DVec3::splat(key.extent_metres());
-    point.x >= min.x
-        && point.x <= max.x
-        && point.y >= min.y
-        && point.y <= max.y
-        && point.z >= min.z
-        && point.z <= max.z
-}
-
-/// Fine-refinement occupancy.
-///
-/// Whole-body roots intentionally keep the broad conservative shell test.
-/// Children, however, need evidence of an actual boundary. Treating the whole
-/// declared cave inward-support band as occupied at every fine level creates a
-/// 3-D volume refinement explosion and starves the visible surface branch.
-
-fn block_intersects_refinement_boundary_with_sampler(
-    field: CelestialVoxelField,
-    key: CelestialClipmapBlockKey,
-    sampler: &CelestialPresentationFieldSampler,
-) -> bool {
-    if !block_may_intersect_presentation_shell(field, key) {
-        return false;
-    }
-
-    let radial_threshold =
-        key.half_extent_metres().length()
-            + key.extent_metres() * 0.20
-            + key.spacing_metres() * 2.0;
-    if center_surface_radial_delta(key, sampler)
-        .is_some_and(|delta| delta.abs() <= radial_threshold)
-    {
-        return true;
-    }
-
-    let origin = key.origin_local_metres();
-    let extent = key.extent_metres();
-    let center = key.center_local_metres();
-    let mut minimum = f64::INFINITY;
-    let mut maximum = f64::NEG_INFINITY;
-    let mut minimum_abs = f64::INFINITY;
-    let mut samples = 0usize;
-
-    let mut observe = |point: DVec3| {
-        if let Some(distance) = sampler.signed_distance_local_metres(point)
-            && distance.is_finite()
-        {
-            minimum = minimum.min(distance);
-            maximum = maximum.max(distance);
-            minimum_abs = minimum_abs.min(distance.abs());
-            samples += 1;
-        }
-    };
-
-    observe(center);
-    for z in [0.0_f64, 1.0] {
-        for y in [0.0_f64, 1.0] {
-            for x in [0.0_f64, 1.0] {
-                observe(origin + DVec3::new(
-                    x * extent,
-                    y * extent,
-                    z * extent,
-                ));
-            }
-        }
-    }
-
-    if samples == 0 {
-        return false;
-    }
-    if minimum <= 0.0 && maximum >= 0.0 {
-        return true;
-    }
-
-    let evidence_margin =
-        (key.spacing_metres() * 2.0)
-            .max(key.half_extent_metres().length() * 0.30);
-    minimum_abs <= evidence_margin
-}
-
-
-fn block_intersects_refinement_boundary(
-    field: CelestialVoxelField,
-    key: CelestialClipmapBlockKey,
-) -> bool {
-    let Some(sampler) = field.presentation_sampler(key.spacing_metres()) else {
-        return false;
-    };
-    block_intersects_refinement_boundary_with_sampler(field, key, &sampler)
-}
-
-fn block_may_intersect_presentation_shell(
-    field: CelestialVoxelField,
-    key: CelestialClipmapBlockKey,
-) -> bool {
-    let minimum = key.origin_local_metres();
-    let maximum = minimum + DVec3::splat(key.extent_metres());
-
-    let nearest_axis = |low: f64, high: f64| {
-        if low <= 0.0 && high >= 0.0 {
-            0.0
-        } else {
-            low.abs().min(high.abs())
-        }
-    };
-    let farthest_axis =
-        |low: f64, high: f64| low.abs().max(high.abs());
-
-    let nearest = DVec3::new(
-        nearest_axis(minimum.x, maximum.x),
-        nearest_axis(minimum.y, maximum.y),
-        nearest_axis(minimum.z, maximum.z),
-    )
-    .length();
-    let farthest = DVec3::new(
-        farthest_axis(minimum.x, maximum.x),
-        farthest_axis(minimum.y, maximum.y),
-        farthest_axis(minimum.z, maximum.z),
-    )
-    .length();
-
-    let (surface_minimum, surface_maximum) =
-        presentation_surface_radius_bounds_metres(field);
-    let conservative_extra =
-        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-    let volumetric_minimum = (
-        surface_minimum - field.volumetric_surface_inward_support_metres()
-    )
-    .max(0.0);
-
-    nearest <= surface_maximum + conservative_extra
-        && farthest >= (volumetric_minimum - conservative_extra).max(0.0)
-}
-
 fn visual_target_spacing_metres(
     clearance_metres: f64,
     pixels_per_radian: Option<f32>,
@@ -1714,234 +953,6 @@ fn target_resolution_at_distance(
     requested.max(finest)
 }
 
-const CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS: f64 =
-    0.261_799_387_799_149_4;
-const CLIPMAP_FRUSTUM_REPLAN_RADIANS: f64 =
-    0.130_899_693_899_574_7;
-const CLIPMAP_HORIZON_MARGIN_RADIANS: f64 =
-    0.008_726_646_259_971_648;
-const CLIPMAP_OCCLUDER_SAFETY_METRES: f64 = 128.0;
-
-#[derive(Debug, Clone, Copy)]
-struct ClipmapBodyFrustum {
-    forward_local: DVec3,
-    side_normals_local: [DVec3; 4],
-    horizontal_half_angle: f64,
-    vertical_half_angle: f64,
-}
-
-impl ClipmapBodyFrustum {
-    fn new(
-        forward_local: DVec3,
-        right_local: DVec3,
-        up_local: DVec3,
-        horizontal_half_angle: f64,
-        vertical_half_angle: f64,
-    ) -> Option<Self> {
-        let forward = forward_local.try_normalize()?;
-        let right = right_local.try_normalize()?;
-        let up = up_local.try_normalize()?;
-        let horizontal = (
-            horizontal_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
-        )
-            .min(std::f64::consts::PI - 1.0e-4);
-        let vertical = (
-            vertical_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
-        )
-            .min(std::f64::consts::PI - 1.0e-4);
-
-        let (sh, ch) = horizontal.sin_cos();
-        let (sv, cv) = vertical.sin_cos();
-        let side_normals_local = [
-            (forward * sh + right * ch).normalize(),
-            (forward * sh - right * ch).normalize(),
-            (forward * sv + up * cv).normalize(),
-            (forward * sv - up * cv).normalize(),
-        ];
-
-        debug_assert!(forward.is_finite());
-        debug_assert!(side_normals_local.iter().all(|n| n.is_finite()));
-
-        Some(Self {
-            forward_local: forward,
-            side_normals_local,
-            horizontal_half_angle: horizontal,
-            vertical_half_angle: vertical,
-        })
-    }
-
-    fn intersects_sphere(&self, relative_center: DVec3, radius: f64) -> bool {
-        if !relative_center.is_finite()
-            || !radius.is_finite()
-            || radius < 0.0
-        {
-            return true;
-        }
-
-        self.side_normals_local
-            .iter()
-            .all(|normal| normal.dot(relative_center) >= -radius)
-    }
-
-    fn requires_refresh(&self, next: &Self) -> bool {
-        let direction_changed = self
-            .forward_local
-            .dot(next.forward_local)
-            .clamp(-1.0, 1.0)
-            < CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos();
-        let shape_changed =
-            (self.horizontal_half_angle - next.horizontal_half_angle).abs()
-                > 0.02
-            || (self.vertical_half_angle - next.vertical_half_angle).abs()
-                > 0.02;
-
-        direction_changed || shape_changed
-    }
-
-    fn result_still_covers(&self, next: &Self) -> bool {
-        let forward_ok = self
-            .forward_local
-            .dot(next.forward_local)
-            .clamp(-1.0, 1.0)
-            >= CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS.cos();
-
-        forward_ok
-            && next.horizontal_half_angle
-                <= self.horizontal_half_angle + 0.02
-            && next.vertical_half_angle
-                <= self.vertical_half_angle + 0.02
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct ClipmapVisibilityDemand {
-    eye_local: DVec3,
-    frustum: Option<ClipmapBodyFrustum>,
-    solid_occluder_radius_metres: f64,
-}
-
-impl ClipmapVisibilityDemand {
-    fn new(
-        field: CelestialVoxelField,
-        observer_local: DVec3,
-        body_frame: &UsfSemanticFrame,
-        view: &UsfViewDemand,
-    ) -> Self {
-        let local_from_world = body_frame.orientation().conjugate();
-        let eye_local = observer_local
-            + local_from_world * view.projection_eye_offset_metres();
-
-        let frustum = view
-            .perspective_basis_and_half_angles()
-            .and_then(|(forward, right, up, horizontal, vertical)| {
-                ClipmapBodyFrustum::new(
-                    local_from_world * forward,
-                    local_from_world * right,
-                    local_from_world * up,
-                    horizontal,
-                    vertical,
-                )
-            });
-
-        let (surface_minimum, _) =
-            presentation_surface_radius_bounds_metres(field);
-        let solid_occluder_radius_metres = (
-            surface_minimum
-                - field.volumetric_surface_inward_support_metres()
-                - CLIPMAP_OCCLUDER_SAFETY_METRES
-        )
-            .max(0.0);
-
-        debug_assert!(eye_local.is_finite());
-        debug_assert!(solid_occluder_radius_metres.is_finite());
-
-        Self {
-            eye_local,
-            frustum,
-            solid_occluder_radius_metres,
-        }
-    }
-
-    fn demands_block(&self, key: CelestialClipmapBlockKey) -> bool {
-        let center = key.center_local_metres();
-        let radius = key.half_extent_metres().length();
-        let relative = center - self.eye_local;
-
-        if let Some(frustum) = &self.frustum
-            && !frustum.intersects_sphere(relative, radius)
-        {
-            return false;
-        }
-
-        !self.fully_occluded_by_planet(center, radius)
-    }
-
-    fn fully_occluded_by_planet(
-        &self,
-        target_center: DVec3,
-        target_radius: f64,
-    ) -> bool {
-        let occluder = self.solid_occluder_radius_metres;
-        let observer_radius = self.eye_local.length();
-        if occluder <= 0.0
-            || observer_radius <= occluder + target_radius
-        {
-            return false;
-        }
-
-        let relative = target_center - self.eye_local;
-        let target_distance = relative.length();
-        if target_distance <= target_radius.max(f64::EPSILON) {
-            return false;
-        }
-
-        let body_direction = -self.eye_local / observer_radius;
-        let target_direction = relative / target_distance;
-        let occluder_angle =
-            (occluder / observer_radius).clamp(0.0, 1.0).asin();
-        let target_angle =
-            (target_radius / target_distance).clamp(0.0, 1.0).asin();
-        let containment = occluder_angle
-            - target_angle
-            - CLIPMAP_HORIZON_MARGIN_RADIANS;
-        if containment <= 0.0 {
-            return false;
-        }
-
-        let angularly_hidden =
-            body_direction.dot(target_direction) >= containment.cos();
-        let tangent_distance = (
-            observer_radius * observer_radius - occluder * occluder
-        )
-            .max(0.0)
-            .sqrt();
-        let behind_tangent =
-            target_distance - target_radius > tangent_distance;
-
-        angularly_hidden && behind_tangent
-    }
-
-    fn requires_refresh(&self, next: &Self, fine_extent: f64) -> bool {
-        let eye_moved =
-            (self.eye_local - next.eye_local).length() > fine_extent.max(1.0);
-        let frustum_changed = match (&self.frustum, &next.frustum) {
-            (Some(current), Some(next)) => current.requires_refresh(next),
-            (None, None) => false,
-            _ => true,
-        };
-
-        eye_moved || frustum_changed
-    }
-
-    fn result_still_relevant_to(&self, next: &Self) -> bool {
-        match (&self.frustum, &next.frustum) {
-            (Some(current), Some(next)) => current.result_still_covers(next),
-            (None, None) => true,
-            _ => false,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 struct CelestialClipmapPlanInput {
     key: CelestialClipmapPlanKey,
@@ -1964,7 +975,6 @@ fn derive_plan_input(
     pixels_per_radian: Option<f32>,
     observer_speed_metres_per_second: f64,
     expected_build_seconds: f64,
-    policy_revision: u64,
     visibility: ClipmapVisibilityDemand,
 ) -> Option<CelestialClipmapPlanInput> {
     if !observer_local.is_finite() {
@@ -2043,7 +1053,6 @@ fn derive_plan_input(
         key: CelestialClipmapPlanKey {
             finest_exponent: finest.binary_exponent(),
             coarsest_exponent: coarsest.binary_exponent(),
-            policy_revision,
         },
         observer_anchor_local: observer_local,
         planning_anchor_local,
@@ -2112,9 +1121,8 @@ fn clipmap_plan_keys_structurally_compatible(
 ) -> bool {
     // Finest exponent is observer quality state, not semantic hierarchy
     // identity. A behind/finer/coarser result may still be useful intermediate
-    // progress. Body-root topology + policy must remain identical.
+    // progress. Body-root topology must remain identical.
     built.coarsest_exponent == current.coarsest_exponent
-        && built.policy_revision == current.policy_revision
 }
 
 fn plan_task_relevance(
@@ -2465,7 +1473,7 @@ fn build_plan(
         "clipmap planner anchors must be finite"
     );
 
-    surface_cache.begin_plan(field, input.key.policy_revision);
+    surface_cache.begin_plan(field);
     let result = build_plan_inner(
         field,
         input,
@@ -2483,12 +1491,7 @@ fn build_plan_inner(
     warm_replan: bool,
 ) -> Option<Vec<Vec<CelestialClipmapBlockSpec>>> {
     let sampler = field.presentation_sampler(1.0)?;
-    let classifier = ClipmapBoundaryClassifier::new(
-        field,
-        input.planning_anchor_local,
-        &sampler,
-        input.visibility,
-    );
+    let classifier = ClipmapBoundaryClassifier::new(field, &sampler);
     let maximum_leaves = sparse_frontier_leaf_budget(input);
     let mut leaves = planner_root_leaves(
         field,
@@ -2496,6 +1499,7 @@ fn build_plan_inner(
         maximum_leaves,
         surface_cache,
         &classifier,
+        input.visibility,
     )?;
     let bootstrap = (!warm_replan).then(|| {
         specs_for_frontier(&leaves, input.observer_anchor_local)
@@ -2529,6 +1533,7 @@ fn planner_root_leaves(
     maximum_leaves: usize,
     surface_cache: &mut CelestialClipmapSurfaceCache,
     classifier: &ClipmapBoundaryClassifier<'_>,
+    visibility: ClipmapVisibilityDemand,
 ) -> Option<HashSet<CelestialClipmapBlockKey>> {
     let _span =
         bevy::log::info_span!("voxel.worker.presentation_planning.roots")
@@ -2547,7 +1552,7 @@ fn planner_root_leaves(
                     resolution: coarsest,
                     coord: IVec3::new(x, y, z),
                 };
-                if !classifier.visibility.demands_block(key) {
+                if !visibility.demands_block(key) {
                     continue;
                 }
                 if surface_cache.intersects(key, classifier) {
@@ -2666,6 +1671,7 @@ fn refine_plan_wave(
             return false;
         }
         let outcome = refine_leaf_transactional(
+            input,
             leaves,
             focus_key,
             surface_cache,
@@ -2673,11 +1679,9 @@ fn refine_plan_wave(
             inserted,
             journal,
         );
-        if outcome != LeafRefinementOutcome::Unavailable {
+        if outcome == LeafRefinementOutcome::Refined {
             primary = 1;
-            if outcome == LeafRefinementOutcome::Refined {
-                balance_seeds.extend(inserted.iter().copied());
-            }
+            balance_seeds.extend(inserted.iter().copied());
         }
     }
 
@@ -2693,6 +1697,7 @@ fn refine_plan_wave(
         }
 
         let outcome = refine_leaf_transactional(
+            input,
             leaves,
             candidate.key,
             surface_cache,
@@ -2700,19 +1705,18 @@ fn refine_plan_wave(
             inserted,
             journal,
         );
-        if outcome == LeafRefinementOutcome::Unavailable {
+        if outcome != LeafRefinementOutcome::Refined {
             continue;
         }
         primary += 1;
-        if outcome == LeafRefinementOutcome::Refined {
-            balance_seeds.extend(inserted.iter().copied());
-        }
+        balance_seeds.extend(inserted.iter().copied());
     }
 
     if primary == 0 {
         return false;
     }
     if !balance_leaves_2_to_1_from_seeds(
+        input,
         leaves,
         surface_cache,
         classifier,
@@ -2786,11 +1790,7 @@ fn park_clipmap_entity(
     }
 
     let affected_visible_frontier = block.committed;
-    registry.active_entities.remove(&(
-        block.authority,
-        block.policy_revision,
-        block.spec,
-    ));
+    registry.active_entities.remove(&(block.authority, block.spec));
     block.active = false;
     block.committed = false;
     block.projection_ready = false;
@@ -2842,7 +1842,6 @@ fn spawn_gpu_clipmap_entity(
             Name::new("Celestial Binary Clipmap"),
             CelestialClipmapBlock {
                 authority: admission.authority,
-                policy_revision: admission.policy_revision,
                 spec: admission.spec,
                 active: true,
                 committed: false,
@@ -2873,7 +1872,6 @@ fn sync_celestial_clipmap_realizations(
     mut meshes: ResMut<Assets<Mesh>>,
     mut material_params: CelestialClipmapMaterialParams,
     views: Res<UsfViewDemandSnapshot>,
-    script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
@@ -2898,9 +1896,6 @@ fn sync_celestial_clipmap_realizations(
         return;
     };
 
-    let presentation_policy = script_workbench.celestial_height_snapshot();
-    let policy_revision =
-        presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
     let observer_speed = view.velocity_metres_per_second().length();
     let expected_build_seconds =
         workers.estimated_latency_seconds(VoxelWorkerLane::PresentationPlanning);
@@ -2950,6 +1945,7 @@ fn sync_celestial_clipmap_realizations(
 
             let visibility = ClipmapVisibilityDemand::new(
                 *field,
+                observer_local,
                 predicted_observer_local,
                 body_frame,
                 view,
@@ -2960,7 +1956,6 @@ fn sync_celestial_clipmap_realizations(
                 view.pixels_per_radian_for_presentation_resolution(),
                 observer_speed,
                 expected_build_seconds,
-                policy_revision,
                 visibility,
             ) else {
                 continue;
@@ -2984,9 +1979,17 @@ fn sync_celestial_clipmap_realizations(
         };
         planning_authorities.insert(build.authority);
 
-        let Some(output) = build.task.try_take() else {
-            pending_plan_tasks.push(build);
-            continue;
+        let output = match build.task.try_take() {
+            Ok(None) => {
+                pending_plan_tasks.push(build);
+                continue;
+            }
+            Ok(Some(output)) => output,
+            Err(failure) => {
+                planning_authorities.remove(&build.authority);
+                warn!(?failure, authority = ?build.authority, "celestial clipmap plan worker failed");
+                continue;
+            }
         };
         planning_authorities.remove(&build.authority);
         registry
@@ -3013,7 +2016,7 @@ fn sync_celestial_clipmap_realizations(
             continue;
         };
 
-        let (committed_generation, committed_specs, known_empty) =
+        let (committed_generation, committed_specs) =
             registry
                 .plans
                 .get(&build.authority)
@@ -3021,18 +2024,10 @@ fn sync_celestial_clipmap_realizations(
                     (
                         plan.committed_generation,
                         plan.committed_specs.clone(),
-                        if plan.key.policy_revision
-                            == build.input.key.policy_revision
-                        {
-                            plan.known_empty.clone()
-                        } else {
-                            HashSet::new()
-                        },
                     )
                 })
                 .unwrap_or((
                     None,
-                    HashSet::new(),
                     HashSet::new(),
                 ));
 
@@ -3088,7 +2083,6 @@ fn sync_celestial_clipmap_realizations(
             CelestialClipmapPlan {
                 key: build.input.key,
                 field: build.field,
-                policy: build.policy.clone(),
                 observer_anchor_local: build.input.observer_anchor_local,
                 planning_anchor_local: build.input.planning_anchor_local,
                 validity_radius_metres: build.input.validity_radius_metres,
@@ -3100,7 +2094,6 @@ fn sync_celestial_clipmap_realizations(
                 desired,
                 completed: HashSet::new(),
                 meshful: HashSet::new(),
-                known_empty,
                 committed_specs,
                 committed_generation,
             },
@@ -3172,7 +2165,6 @@ fn sync_celestial_clipmap_realizations(
             .planner_caches
             .remove(&authority)
             .unwrap_or_default();
-        let policy = presentation_policy.clone();
 
         let Some(task) = workers.try_submit(
             VoxelWorkerLane::PresentationPlanning,
@@ -3198,7 +2190,6 @@ fn sync_celestial_clipmap_realizations(
             authority,
             input,
             field,
-            policy,
             task,
         });
         planning_authorities.insert(authority);
@@ -3219,7 +2210,7 @@ fn sync_celestial_clipmap_realizations(
         let dead_entities = registry
             .active_entities
             .iter()
-            .filter_map(|((authority, _, _), &entity)| {
+            .filter_map(|((authority, _), &entity)| {
                 (!live_authorities.contains(authority)).then_some(entity)
             })
             .collect::<Vec<_>>();
@@ -3269,7 +2260,7 @@ fn sync_celestial_clipmap_realizations(
         .into_iter()
         .collect::<HashSet<_>>();
     let mut inflight =
-        HashSet::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
+        HashSet::<(Entity, CelestialClipmapBlockSpec)>::new();
 
     {
         let _span =
@@ -3278,18 +2269,13 @@ fn sync_celestial_clipmap_realizations(
             Vec::with_capacity(registry.build_tasks.len());
 
         for build in std::mem::take(&mut registry.build_tasks) {
-            let key = (
-                build.authority,
-                build.policy_revision,
-                build.spec,
-            );
+            let key = (build.authority, build.spec);
 
             let valid = registry
                 .plans
                 .get(&build.authority)
                 .is_some_and(|plan| {
                     build.generation == plan.generation
-                        && build.policy_revision == plan.key.policy_revision
                         && plan.desired_set.contains(&build.spec)
                         && build.field == plan.field
                 });
@@ -3338,8 +2324,6 @@ fn sync_celestial_clipmap_realizations(
     }
 
     let mut admissions = Vec::<PendingGpuAdmission>::new();
-    let mut planner_empty =
-        Vec::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
 
     {
         let _span =
@@ -3350,14 +2334,26 @@ fn sync_celestial_clipmap_realizations(
         const MAX_GPU_BUILDS_IN_FLIGHT: usize = 32;
         const MAX_GPU_ADMISSIONS_PER_FRAME: usize = 8;
         let mut admitted = 0usize;
+        let mut next_admission_cursor = registry.gpu_admission_cursor;
 
-        'authorities: for (&authority, plan) in &registry.plans {
+        // Limited admission must not depend on HashMap iteration order. Resume
+        // after the last successful authority even if plans changed meanwhile.
+        let mut authorities = registry.plans.keys().copied().collect::<Vec<_>>();
+        authorities.sort_unstable_by_key(|authority| authority.to_bits());
+        if let Some(cursor) = registry.gpu_admission_cursor {
+            let start = authorities.partition_point(|authority| {
+                authority.to_bits() <= cursor.to_bits()
+            });
+            let count = authorities.len();
+            if count != 0 {
+                authorities.rotate_left(start % count);
+            }
+        }
+
+        'authorities: for authority in authorities {
+            let plan = &registry.plans[&authority];
             for &spec in &plan.desired {
-                let key = (
-                    authority,
-                    plan.key.policy_revision,
-                    spec,
-                );
+                let key = (authority, spec);
                 if plan.completed.contains(&spec)
                     || registry.active_entities.contains_key(&key)
                     || inflight.contains(&key)
@@ -3378,25 +2374,6 @@ fn sync_celestial_clipmap_realizations(
                     break 'authorities;
                 };
 
-                let boundary_proven =
-                    spec.key.resolution.binary_exponent()
-                        < plan.key.coarsest_exponent;
-
-                if !boundary_proven
-                    && !block_intersects_refinement_boundary(
-                        plan.field,
-                        spec.key,
-                    )
-                {
-                    planner_empty.push((
-                        authority,
-                        plan.key.policy_revision,
-                        spec,
-                    ));
-                    frame_budget.finish(work_token);
-                    continue;
-                }
-
                 let Some(descriptor) = descriptor_for_block(
                     plan.field,
                     spec.key.origin_local_metres(),
@@ -3411,7 +2388,6 @@ fn sync_celestial_clipmap_realizations(
                 admissions.push(PendingGpuAdmission {
                     authority,
                     generation: plan.generation,
-                    policy_revision: plan.key.policy_revision,
                     spec,
                     field: plan.field,
                     relative_level: spec
@@ -3422,19 +2398,11 @@ fn sync_celestial_clipmap_realizations(
                     descriptor,
                 });
                 admitted += 1;
+                next_admission_cursor = Some(authority);
                 frame_budget.finish(work_token);
             }
         }
-    }
-
-    for (authority, policy_revision, spec) in planner_empty {
-        if let Some(plan) = registry.plans.get_mut(&authority)
-            && plan.key.policy_revision == policy_revision
-            && plan.desired_set.contains(&spec)
-        {
-            plan.known_empty.insert(spec);
-            plan.completed.insert(spec);
-        }
+        registry.gpu_admission_cursor = next_admission_cursor;
     }
 
     let mut scheduled_builds = Vec::<CelestialClipmapBuildTask>::new();
@@ -3445,7 +2413,6 @@ fn sync_celestial_clipmap_realizations(
             .get(&admission.authority)
             .is_some_and(|plan| {
                 admission.generation == plan.generation
-                    && admission.policy_revision == plan.key.policy_revision
                     && plan.desired_set.contains(&admission.spec)
                     && admission.field == plan.field
             });
@@ -3485,16 +2452,11 @@ fn sync_celestial_clipmap_realizations(
             build_id,
         );
 
-        let key = (
-            admission.authority,
-            admission.policy_revision,
-            admission.spec,
-        );
+        let key = (admission.authority, admission.spec);
         inflight.insert(key);
         scheduled_builds.push(CelestialClipmapBuildTask {
             authority: admission.authority,
             generation: admission.generation,
-            policy_revision: admission.policy_revision,
             spec: admission.spec,
             field: admission.field,
             entity,
@@ -3534,7 +2496,7 @@ fn sync_celestial_clipmap_realizations(
                 .filter(|spec| !plan.committed_specs.contains(*spec))
                 .all(|spec| {
                     active_entities
-                        .get(&(authority, plan.key.policy_revision, *spec))
+                        .get(&(authority, *spec))
                         .and_then(|entity| blocks.get(*entity).ok())
                         .is_some_and(|(_, block, _)| {
                             block.active && block.projection_ready
@@ -3553,7 +2515,7 @@ fn sync_celestial_clipmap_realizations(
                 .difference(&plan.desired_set)
                 .count();
 
-            for ((block_authority, _, _), &entity) in active_entities.iter() {
+            for ((block_authority, _), &entity) in active_entities.iter() {
                 if *block_authority != authority {
                     continue;
                 }
@@ -3564,8 +2526,7 @@ fn sync_celestial_clipmap_realizations(
                 if !block.active {
                     continue;
                 }
-                if block.policy_revision == plan.key.policy_revision
-                    && plan.desired_set.contains(&block.spec)
+                if plan.desired_set.contains(&block.spec)
                 {
                     block.committed = true;
                 } else {
@@ -4369,610 +3330,4 @@ pub(super) fn configure(app: &mut App) {
             enforce_dense_interaction_presentation
                 .after(UsfSpatialSet::ViewProjection),
         );
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-
-    #[test]
-    fn binary_lod_debug_palette_uses_sixteen_band_hue_revolution() {
-        assert_eq!(CLIPMAP_DEBUG_HUE_BANDS, 16);
-        assert_eq!(
-            clipmap_band_debug_color(0),
-            Color::srgb(0.670, 0.369, 0.820),
-        );
-        assert_ne!(clipmap_band_debug_color(7), clipmap_band_debug_color(8));
-        assert_ne!(clipmap_band_debug_color(0), clipmap_band_debug_color(7));
-        assert_eq!(clipmap_band_debug_color(0), clipmap_band_debug_color(16));
-    }
-
-    #[test]
-    fn frontier_checkpoint_stride_avoids_snapshotting_every_binary_level() {
-        let finest = VoxelPresentationResolution::new(0);
-        let recorded = VoxelPresentationResolution::new(9);
-        assert!(!should_record_frontier_checkpoint(
-            recorded,
-            VoxelPresentationResolution::new(8),
-            finest,
-        ));
-        assert!(should_record_frontier_checkpoint(
-            recorded,
-            VoxelPresentationResolution::new(7),
-            finest,
-        ));
-        assert!(should_record_frontier_checkpoint(
-            recorded,
-            VoxelPresentationResolution::new(6),
-            finest,
-        ));
-        assert!(should_record_frontier_checkpoint(
-            VoxelPresentationResolution::new(2),
-            finest,
-            finest,
-        ));
-    }
-
-    #[test]
-    fn focus_leaf_lookup_finds_mixed_resolution_leaf_without_frontier_scan() {
-        let coarse = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(3),
-            coord: IVec3::ZERO,
-        };
-        let fine = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(1),
-            coord: IVec3::new(4, 0, 0),
-        };
-        let leaves = HashSet::from([coarse, fine]);
-        let point = DVec3::new(
-            fine.origin_local_metres().x + 1.0,
-            1.0,
-            1.0,
-        );
-
-        assert_eq!(
-            leaf_containing_point(
-                &leaves,
-                point,
-                VoxelPresentationResolution::new(0),
-                VoxelPresentationResolution::new(3),
-            ),
-            Some(fine),
-        );
-    }
-
-    #[test]
-    fn binary_presentation_authority_requires_complete_frontier_projection() {
-        assert!(!binary_frontier_projection_complete(0, 0));
-        assert!(!binary_frontier_projection_complete(4, 3));
-        assert!(binary_frontier_projection_complete(4, 4));
-    }
-
-    #[test]
-    fn binary_visual_target_is_independent_from_interaction_scale() {
-        let clearance = 1_000.0;
-        let target = visual_target_spacing_metres(
-            clearance,
-            Some(1_000.0),
-        );
-        assert!((target - 4.0).abs() < 1.0e-9);
-
-        let resolution =
-            VoxelPresentationResolution::at_most_metres(target).unwrap();
-        assert_eq!(resolution.sample_spacing_metres(), 4.0);
-    }
-
-    #[test]
-    fn binary_quantization_never_exceeds_visual_quality_target() {
-        for target in [1.0, 3.0, 7.0, 40.0, 900.0] {
-            let resolution =
-                VoxelPresentationResolution::at_most_metres(target).unwrap();
-            assert!(
-                resolution.sample_spacing_metres() <= target,
-                "target={target}, actual={}",
-                resolution.sample_spacing_metres(),
-            );
-        }
-    }
-
-    #[test]
-    fn clipmap_keeps_3d_observer_separate_from_surface_refinement_focus() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let surface = field.surface_local_metres(Vec3::Y).unwrap();
-        let observer = surface + DVec3::Y * 4_000.0;
-
-        let input = derive_plan_input(
-            field,
-            observer,
-            Some(1_000.0),
-            0.0,
-            0.05,
-            0,
-        )
-        .unwrap();
-
-        assert_eq!(
-            input.observer_anchor_local, observer,
-            "binary LOD anchor must preserve all three observer coordinates",
-        );
-        assert!(
-            (input.planning_anchor_local - surface).length() < 5.0,
-            "surface refinement focus must still resolve the nearest semantic boundary",
-        );
-        assert!(
-            (input.observer_anchor_local - input.planning_anchor_local).length()
-                > 3_000.0,
-            "observer altitude must not be collapsed into the boundary focus",
-        );
-        assert!(input.clearance_metres > 3_000.0);
-    }
-
-    #[test]
-    fn observer_centered_lod_shell_coarsens_surface_with_altitude() {
-        let finest = VoxelPresentationResolution::new(0);
-        let surface_block = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(6),
-            coord: IVec3::ZERO,
-        };
-
-        // exp 6 => 64 m samples, 512 m block extent.
-        let near_observer = DVec3::new(256.0, 256.0, 520.0);
-        let high_observer = DVec3::new(256.0, 256.0, 1_536.0);
-
-        let near = refinement_candidate(
-            surface_block,
-            finest,
-            near_observer,
-            0.0,
-        )
-        .expect("nearby coarse surface block should need refinement");
-        let high_debt = refinement_candidate(
-            surface_block,
-            finest,
-            high_observer,
-            0.0,
-        )
-        .map_or(0, |candidate| candidate.refinement_debt);
-
-        assert!(
-            near.refinement_debt > high_debt,
-            "the same surface block must become less refined as true 3D observer distance grows",
-        );
-
-        // Predictive validity may enlarge the shell, but altitude/clearance may
-        // not be treated as a free distance cancellation.
-        assert_eq!(
-            effective_observer_lod_distance_metres(1_000.0, 100.0),
-            900.0,
-        );
-    }
-
-    #[test]
-    fn sparse_frontier_budget_grows_with_requested_depth() {
-        let shallow = CelestialClipmapPlanInput {
-            key: CelestialClipmapPlanKey {
-                finest_exponent: 10,
-                coarsest_exponent: 14,
-                policy_revision: 0,
-            },
-            observer_anchor_local: DVec3::ZERO,
-            planning_anchor_local: DVec3::ZERO,
-            validity_radius_metres: 1_000.0,
-            clearance_metres: 100.0,
-            finest: VoxelPresentationResolution::new(10),
-            coarsest: VoxelPresentationResolution::new(14),
-        };
-        let deep = CelestialClipmapPlanInput {
-            key: CelestialClipmapPlanKey {
-                finest_exponent: 0,
-                coarsest_exponent: 20,
-                policy_revision: 0,
-            },
-            finest: VoxelPresentationResolution::new(0),
-            coarsest: VoxelPresentationResolution::new(20),
-            ..shallow
-        };
-
-        assert!(
-            sparse_frontier_leaf_budget(deep)
-                > sparse_frontier_leaf_budget(shallow)
-        );
-        assert!(
-            sparse_frontier_leaf_budget(deep)
-                <= MAX_SPARSE_FRONTIER_LEAVES
-        );
-    }
-
-    #[test]
-    fn warm_stage_selection_preserves_existing_local_quality() {
-        let coarse = CelestialClipmapBlockSpec {
-            key: CelestialClipmapBlockKey {
-                resolution: VoxelPresentationResolution::new(6),
-                coord: IVec3::ZERO,
-            },
-            transition_faces: VoxelTransitionFaces::default(),
-        };
-        let medium = CelestialClipmapBlockSpec {
-            key: CelestialClipmapBlockKey {
-                resolution: VoxelPresentationResolution::new(4),
-                coord: IVec3::ZERO,
-            },
-            transition_faces: VoxelTransitionFaces::default(),
-        };
-        let fine = CelestialClipmapBlockSpec {
-            key: CelestialClipmapBlockKey {
-                resolution: VoxelPresentationResolution::new(2),
-                coord: IVec3::ZERO,
-            },
-            transition_faces: VoxelTransitionFaces::default(),
-        };
-
-        let stages = vec![
-            vec![coarse],
-            vec![medium],
-            vec![fine],
-        ];
-        let committed = HashSet::from([medium]);
-        let input = CelestialClipmapPlanInput {
-            key: CelestialClipmapPlanKey {
-                finest_exponent: 2,
-                coarsest_exponent: 6,
-                policy_revision: 0,
-            },
-            observer_anchor_local: DVec3::ZERO,
-            planning_anchor_local: DVec3::ZERO,
-            validity_radius_metres: 1_000.0,
-            clearance_metres: 100.0,
-            finest: VoxelPresentationResolution::new(2),
-            coarsest: VoxelPresentationResolution::new(6),
-        };
-
-        assert_eq!(
-            initial_stage_for_plan(&stages, &committed, input),
-            Some(1),
-            "warm plan should start at equal local quality, not root or final",
-        );
-    }
-
-    #[test]
-    fn local_refinement_candidate_beats_far_coarse_candidate() {
-        let finest = VoxelPresentationResolution::new(0);
-        let near = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(5),
-            coord: IVec3::ZERO,
-        };
-        let far = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(6),
-            coord: IVec3::new(1_000, 0, 0),
-        };
-        let near_candidate =
-            refinement_candidate(
-                near,
-                finest,
-                DVec3::ZERO,
-                0.0,
-                1_000.0,
-            )
-            .unwrap();
-        let far_candidate =
-            refinement_candidate(
-                far,
-                finest,
-                DVec3::ZERO,
-                0.0,
-                1_000.0,
-            )
-            .unwrap();
-        assert!(
-            near_candidate > far_candidate,
-            "after root context exists, local under-resolution should outrank far global breadth",
-        );
-    }
-
-    #[test]
-    fn ten_to_one_decimal_gap_requires_binary_bridge_levels() {
-        let fine =
-            VoxelPresentationResolution::at_most_metres(10_000.0).unwrap();
-        let coarse =
-            VoxelPresentationResolution::at_most_metres(100_000.0).unwrap();
-
-        let binary_steps = i32::from(coarse.binary_exponent())
-            - i32::from(fine.binary_exponent());
-
-        assert!(
-            binary_steps >= 3,
-            "10x must not be treated as one Transvoxel adjacency",
-        );
-    }
-
-    #[test]
-    fn frontier_specs_keep_parent_and_children_in_separate_frontiers() {
-        let parent = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(4),
-            coord: IVec3::ZERO,
-        };
-        let children = parent.children().unwrap();
-
-        let coarse = HashSet::from([parent]);
-        let fine = children.into_iter().collect::<HashSet<_>>();
-
-        let coarse_specs = specs_for_frontier(&coarse, DVec3::ZERO);
-        let fine_specs = specs_for_frontier(&fine, DVec3::ZERO);
-
-        assert_eq!(coarse_specs.len(), 1);
-        assert_eq!(coarse_specs[0].key, parent);
-        assert_eq!(fine_specs.len(), 8);
-        assert!(fine_specs.iter().all(|spec| {
-            spec.key.resolution == VoxelPresentationResolution::new(3)
-        }));
-    }
-
-    #[test]
-    fn coarse_context_is_scheduled_before_fine_detail() {
-        let coarse = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(12),
-            coord: IVec3::ZERO,
-        };
-        let fine = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(2),
-            coord: IVec3::ZERO,
-        };
-        let mut ordered = vec![fine, coarse];
-        ordered.sort_unstable_by(|a, b| {
-            b.resolution
-                .cmp(&a.resolution)
-                .then_with(|| a.coord.x.cmp(&b.coord.x))
-                .then_with(|| a.coord.y.cmp(&b.coord.y))
-                .then_with(|| a.coord.z.cmp(&b.coord.z))
-        });
-
-        assert_eq!(ordered, vec![coarse, fine]);
-    }
-
-    #[test]
-    fn whole_body_root_resolution_is_altitude_independent() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-
-        let derive = |observer_local: DVec3| {
-            derive_plan_input(
-                field,
-                observer_local,
-                Some(1_000.0),
-                0.0,
-                0.05,
-                0,
-            )
-            .unwrap()
-        };
-
-        let surface = derive(DVec3::Y * 6_371_025.0);
-        let high = derive(DVec3::Y * 60_000_000.0);
-
-        assert_eq!(
-            surface.coarsest.binary_exponent(),
-            high.coarsest.binary_exponent(),
-            "whole-body root resolution must not change merely because observer altitude changes",
-        );
-    }
-
-    #[test]
-    fn body_root_coordinates_are_observer_independent() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let resolution = VoxelPresentationResolution::new(21);
-        let a = body_root_coordinate_bounds(field, resolution).unwrap();
-        let b = body_root_coordinate_bounds(field, resolution).unwrap();
-        assert_eq!(a, b);
-        assert!(a.0 <= -1);
-        assert!(a.1 >= 0);
-    }
-
-    #[test]
-    fn sticky_anchor_does_not_replan_for_small_motion() {
-        let scale = SpatialScale::ZERO;
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            scale,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let input = derive_plan_input(
-            field,
-            DVec3::Y * 6_371_025.0,
-            Some(1_000.0),
-            0.0,
-            0.05,
-            0,
-        )
-        .unwrap();
-
-        let plan = CelestialClipmapPlan {
-            key: input.key,
-            field,
-            policy: None,
-            observer_anchor_local: input.observer_anchor_local,
-            planning_anchor_local: input.planning_anchor_local,
-            validity_radius_metres: input.validity_radius_metres,
-            generation: 1,
-            stages: vec![],
-            stage_index: 0,
-            desired: vec![],
-            completed: HashSet::new(),
-            meshful: HashSet::new(),
-            known_empty: HashSet::new(),
-            committed_specs: HashSet::new(),
-            committed_generation: None,
-        };
-
-        let mut moved = input;
-        moved.observer_anchor_local += DVec3::X * 1.0;
-        moved.planning_anchor_local += DVec3::X * 1.0;
-        assert!(!plan_requires_refresh(&plan, moved, field));
-
-        let large_move =
-            DVec3::X * input.validity_radius_metres.max(100.0) * 2.0;
-        moved.observer_anchor_local += large_move;
-        moved.planning_anchor_local += large_move;
-        assert!(plan_requires_refresh(&plan, moved, field));
-    }
-
-    #[test]
-    fn rolling_plan_accepts_spatial_progress_beyond_fresh_radius() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let make = |anchor_x: f64| CelestialClipmapPlanInput {
-            key: CelestialClipmapPlanKey {
-                finest_exponent: 0,
-                coarsest_exponent: 20,
-                policy_revision: 7,
-            },
-            observer_anchor_local: DVec3::new(anchor_x, 50.0, 0.0),
-            planning_anchor_local: DVec3::new(anchor_x, 0.0, 0.0),
-            validity_radius_metres: 10.0,
-            clearance_metres: 1.0,
-            finest: VoxelPresentationResolution::new(0),
-            coarsest: VoxelPresentationResolution::new(20),
-        };
-
-        let built = make(60.0);
-        let current = make(100.0);
-        let relevance = plan_task_relevance(
-            built,
-            current,
-            field,
-            field,
-            Some(DVec3::ZERO),
-        );
-
-        assert_eq!(
-            relevance,
-            ClipmapPlanTaskRelevance::RollingProgress,
-            "a behind result that moves committed focus 100m -> 40m lag is useful progress",
-        );
-    }
-
-    #[test]
-    fn rolling_plan_rejects_policy_or_root_topology_change() {
-        let field = CelestialVoxelField::new(
-            6_371_000.0,
-            SpatialScale::new(6).unwrap(),
-            SpatialScale::ZERO,
-            0x4541_5254,
-            crate::voxel::CelestialBodyProfile::Rocky,
-        );
-        let built = CelestialClipmapPlanInput {
-            key: CelestialClipmapPlanKey {
-                finest_exponent: 0,
-                coarsest_exponent: 20,
-                policy_revision: 1,
-            },
-            observer_anchor_local: DVec3::ZERO,
-            planning_anchor_local: DVec3::ZERO,
-            validity_radius_metres: 100.0,
-            clearance_metres: 1.0,
-            finest: VoxelPresentationResolution::new(0),
-            coarsest: VoxelPresentationResolution::new(20),
-        };
-        let mut current = built;
-        current.key.policy_revision = 2;
-
-        assert_eq!(
-            plan_task_relevance(
-                built,
-                current,
-                field,
-                field,
-                Some(DVec3::ZERO),
-            ),
-            ClipmapPlanTaskRelevance::Stale,
-        );
-    }
-
-    #[test]
-    fn finest_exponent_change_is_not_structural_plan_incompatibility() {
-        let a = CelestialClipmapPlanKey {
-            finest_exponent: 0,
-            coarsest_exponent: 20,
-            policy_revision: 9,
-        };
-        let b = CelestialClipmapPlanKey {
-            finest_exponent: 5,
-            ..a
-        };
-        assert!(clipmap_plan_keys_structurally_compatible(a, b));
-    }
-
-    #[test]
-    fn warm_replan_targets_final_frontier_without_coarse_regression() {
-        let stages = vec![vec![], vec![], vec![]];
-        assert_eq!(
-            stages.len(),
-            3,
-            "warm-stage policy is covered by quality-preserving selection test",
-        );
-    }
-
-    #[test]
-    fn whole_body_root_reach_exceeds_planet_diameter_at_surface() {
-        let radius = 6_371_000.0_f64;
-        let observer_radius = radius + 25.0;
-        let whole_body_reach =
-            observer_radius + radius * WHOLE_BODY_ROOT_MARGIN;
-
-        assert!(whole_body_reach > radius * 2.0);
-    }
-
-    #[test]
-    fn coverage_cell_remembers_resolution_and_contains_local_points() {
-        let cell = CelestialClipmapCoverageCell {
-            center_local_metres: DVec3::new(10.0, 20.0, 30.0),
-            half_extent_metres: DVec3::splat(8.0),
-            sample_spacing_metres: 2.0,
-        };
-
-        assert_eq!(cell.sample_spacing_metres(), 2.0);
-        assert!(cell.contains_local_point(DVec3::new(12.0, 18.0, 31.0)));
-        assert!(!cell.contains_local_point(DVec3::new(19.0, 20.0, 30.0)));
-    }
-
-    #[test]
-    fn face_adjacency_finds_coarse_to_fine_boundary() {
-        let coarse = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(1),
-            coord: IVec3::ZERO,
-        };
-        let fine = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(0),
-            coord: IVec3::new(2, 0, 0),
-        };
-
-        assert_eq!(
-            face_from_a_to_b(coarse, fine),
-            Some(VoxelTransitionFace::HighX),
-        );
-    }
 }

@@ -38,6 +38,7 @@ pub(in crate::voxel) struct VoxelGenerationTask {
     world: Entity,
     /// Unpublished addresses represented by this worker batch.
     keys: Vec<VoxelMaterializationKey>,
+    tokens: HashMap<VoxelMaterializationKey, u64>,
     task: VoxelWorkerTicket<Vec<VoxelGeneratedChunk>>,
     received: bool,
     ready: VecDeque<VoxelGeneratedChunk>,
@@ -52,6 +53,7 @@ impl VoxelGenerationTask {
     ) -> Self {
         debug_assert!(!jobs.is_empty());
         let keys = jobs.iter().map(|job| job.key).collect();
+        let tokens = jobs.iter().map(|job| (job.key, job.token)).collect();
         let build = move || {
             jobs.into_iter()
                 .map(|job| {
@@ -75,6 +77,7 @@ impl VoxelGenerationTask {
         Self {
             world,
             keys,
+            tokens,
             task,
             received: false,
             ready: VecDeque::new(),
@@ -104,11 +107,26 @@ pub(in crate::voxel) fn finish_chunk_generation(
             break;
         }
         if !generation.received {
-            let Some(completed) = generation.task.try_take() else {
-                continue;
-            };
-            generation.received = true;
-            generation.ready = completed.into();
+            match generation.task.try_take() {
+                Ok(None) => continue,
+                Ok(Some(completed)) => {
+                    generation.received = true;
+                    generation.ready = completed.into();
+                }
+                Err(failure) => {
+                    warn!(?failure, world = ?generation.world, "voxel generation worker failed");
+                    if let Ok((mut world, _, _)) = worlds.get_mut(generation.world) {
+                        for key in &generation.keys {
+                            if let Some(&token) = generation.tokens.get(key) {
+                                world.materializations_mut().fail_generation(*key, token);
+                            }
+                        }
+                    }
+                    telemetry.generation_failed();
+                    commands.entity(task_entity).despawn();
+                    continue;
+                }
+            }
         }
 
         let Ok((mut world, logical_realization, streaming)) =
@@ -151,6 +169,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
                 &mut output.chunk,
             );
             generation.keys.retain(|key| *key != output.key);
+            generation.tokens.remove(&output.key);
             let needs_surface =
                 streaming.is_none_or(|streaming| streaming.surface_required(output.key));
             if world.materializations_mut().publish_generated(
@@ -173,7 +192,8 @@ pub(in crate::voxel) fn finish_chunk_generation(
 
 
 /// Cancels a batch when none of its unpublished addresses remain active after
-/// the latest residency reconciliation. Dropping Bevy's Task handle cancels it.
+/// the latest residency reconciliation. Dropping its ticket suppresses output;
+/// the worker's compute lease ends when the queued/running closure exits.
 pub(in crate::voxel) fn retire_stale_generation_tasks(
     mut commands: Commands,
     worlds: Query<&VoxelWorld>,
@@ -382,22 +402,8 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 
 /// Applies edits appended after a generation task took its immutable snapshot.
 ///
-/// This direct no-authority path exists only to regression-test edit replay.
-#[cfg(test)]
-pub(super) fn catch_up_generated_chunk(
-    world: &VoxelWorld,
-    address: VoxelMaterializationChunkAddress,
-    applied_edit_count: usize,
-    chunk: &mut VoxelChunk,
-) {
-    catch_up_generated_chunk_with_authority(
-        world,
-        None,
-        address,
-        applied_edit_count,
-        chunk,
-    );
-}
+/// Worlds without a semantic authority replay edits from their local
+/// modification layer through the same publication boundary.
 
 fn catch_up_generated_chunk_with_authority(
     world: &VoxelWorld,

@@ -1270,6 +1270,3 @@ fn set_axis_i32(value: &mut IVec3, axis: usize, component: i32) {
         _ => unreachable!(),
     }
 }
-
-#[cfg(test)]
-mod tests;

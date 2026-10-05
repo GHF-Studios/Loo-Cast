@@ -1,4 +1,4 @@
-// Installer tranche: usf-semantic-celestial-frames-body-local-edits-v1//! Body-local semantic coordinates for movable voxel authority.
+//! Body-local semantic coordinates for movable voxel authority.
 //!
 //! A [`VoxelFramePosition`] is deliberately distinct from a world-global
 //! [`VoxelQueryPosition`]. Persistent authority edits use this coordinate;

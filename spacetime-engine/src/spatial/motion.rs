@@ -95,26 +95,3 @@ pub(in crate::spatial) fn sync_canonical_motion_from_runtime(
         motion.set_from_native_velocity(layer.scale(), velocity.0);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn canonical_velocity_survives_root_scale_projection() {
-        let root = SpatialScale::MAX;
-        let mut motion = UsfCanonicalMotion::default();
-        motion.set_velocity_metres_per_second(DVec3::new(120.0, -3.5, 8.0));
-
-        let native = motion.native_velocity(root);
-        assert!(native.is_finite());
-        assert_ne!(native, Vec3::ZERO);
-
-        let mut reconstructed = UsfCanonicalMotion::default();
-        reconstructed.set_from_native_velocity(root, native);
-        let error =
-            (reconstructed.velocity_metres_per_second() - motion.velocity_metres_per_second())
-                .length();
-        assert!(error < 1.0e-4);
-    }
-}

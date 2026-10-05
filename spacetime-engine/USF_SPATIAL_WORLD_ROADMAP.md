@@ -93,7 +93,7 @@ A canonical `UsfPosition` is **not a giant `Vec3`**. It should expose deliberate
 - get chunk/region address at a scale,
 - move to parent/child address,
 - compare/measure relative positions when representable in a bounded local chart,
-- project into a `UsfSpatialFrame`,
+- project into a `UsfRuntimeChartState`,
 - eventually transition the leaf scale.
 
 Arbitrary global floating-point vector algebra is not the goal.
@@ -621,7 +621,7 @@ Pass B implementation state:
 - the authoritative edit log remains globally ordered, while its sparse acceleration index is keyed by canonical `VoxelMaterializationChunkAddress`,
 - dense `VoxelChunk` storage/sampling/raycasting is strictly chunk-local; canonical edits are projected into that bounded chart only while applying them,
 - background generation recipes snapshot canonical materialization address, canonical world origin, procedural base, and semantic edits; no frame-relative chunk position survives into worker generation,
-- streaming converts the bounded runtime viewer position through `UsfSpatialFrame` into a canonical query position, then derives nearby canonical materialization addresses without a global `VoxelChunkCoord`,
+- streaming converts the bounded runtime viewer position through `UsfRuntimeChartState` into a canonical query position, then derives nearby canonical materialization addresses without a global `VoxelChunkCoord`,
 - materialization entities carry direct bounded runtime projection transforms and explicit `VoxelChunkOf` ownership; origin rebasing moves only that projection, not the canonical address,
 - `VoxelChunkCoord` remains only as a hidden compatibility adapter for nearby authored/test offsets and is no longer query/edit/streaming/generation authority,
 - the existing procedural terrain field is preserved in the ordinary bounded gameplay region; a temporary canonical semantic fallback avoids giant float coordinates during extreme fixed-scale travel,
@@ -657,7 +657,7 @@ Do not overbuild global scheduling/budget policy yet; create the minimum clean c
 
 Implementation state:
 
-- `SpatialDemandSource` is a generic bounded cuboid request carrying extent, priority and enabled state; `SpatialDemandSnapshot` projects enabled source manifestations through the current `UsfSpatialFrame` into canonical `UsfPosition` scopes each frame,
+- `SpatialDemandSource` is a generic bounded cuboid request carrying extent, priority and enabled state; `SpatialDemandSnapshot` projects enabled source manifestations through the current `UsfRuntimeChartState` into canonical `UsfPosition` scopes each frame,
 - representation capability remains subsystem-local: `VoxelMaterializationDemand` opts a source into voxel realization without putting voxel knowledge into the generic spatial-demand layer,
 - `VoxelStreaming` no longer owns a viewer or radius; it keeps only voxel realization throughput/material policy and consumes the merged canonical demand snapshot,
 - canonical `10³` base addresses de-duplicate overlapping requests; priority orders missing work against the existing load budget, and addresses leave the registry when no source still requests them,

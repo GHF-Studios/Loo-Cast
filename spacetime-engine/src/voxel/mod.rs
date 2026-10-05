@@ -11,7 +11,6 @@ mod celestial_realization;
 mod base;
 mod chunk;
 mod collision_query;
-pub(crate) mod developer_policy;
 mod devtools;
 mod edit;
 mod field;
@@ -19,9 +18,9 @@ mod frame;
 mod mesh;
 mod medium;
 mod modification;
+mod presentation_palette;
 mod worker;
 mod physics;
-mod planetary_surface;
 mod realization;
 mod region;
 mod resolution;
@@ -49,9 +48,6 @@ pub use field::{
 };
 pub use frame::{VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameSnapshot};
 pub use modification::VoxelModificationLayer;
-pub use planetary_surface::{
-    PlanetarySurfaceFace, PlanetarySurfacePatchId, PlanetarySurfaceRealization,
-};
 pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{
     VoxelRealizationDemandSnapshot, VoxelRealizationIntentSnapshot,
@@ -154,11 +150,8 @@ impl Plugin for VoxelPlugin {
             .add_systems(
                 Update,
                 //
-                // Celestial presentation is now one Cartesian volumetric
-                // hierarchy owned by voxel::resolution. The old cubed-sphere
-                // outer-shell adapter used far-field radial compression even
-                // while the observer was on/near the body, which collapses
-                // altitude into a counterfeit near-camera sheet.
+                // Celestial presentation is a Cartesian volumetric hierarchy
+                // owned by voxel::resolution.
                 streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
             )
             .add_systems(

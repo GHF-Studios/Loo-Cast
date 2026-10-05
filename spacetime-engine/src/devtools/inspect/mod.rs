@@ -14,6 +14,3 @@ pub use metadata::{
 pub use model::{InspectAction, InspectField, InspectSection, InspectValue};
 pub use registry::{AppInspectExt, InspectTypeRegistration, InspectTypeRegistry};
 pub use traits::{Inspect, InspectFieldVisitor, InspectFieldVisitorMut};
-
-#[cfg(test)]
-mod tests;

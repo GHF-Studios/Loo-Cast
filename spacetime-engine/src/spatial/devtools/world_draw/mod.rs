@@ -4,7 +4,7 @@ use super::*;
 
 pub(super) fn collect_spatial_demand_world_draw(
     tools: Res<DeveloperTools>,
-    spatial_frame: Res<UsfSpatialFrame>,
+    spatial_frame: Res<UsfRuntimeChartState>,
     demands: Res<SpatialDemandSnapshot>,
     frame: Res<WorldDrawFrame>,
 ) {

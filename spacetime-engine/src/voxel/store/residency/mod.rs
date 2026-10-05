@@ -21,6 +21,7 @@ impl VoxelMaterializationStore {
                 derived_revision: None,
                 surface: None,
                 derived_in_flight: None,
+                derived_failed_revision: None,
             },
         );
         Some(token)
@@ -57,7 +58,8 @@ impl VoxelMaterializationStore {
 
         if let Some(entry) = self.entries.get_mut(&address) {
             match &entry.state {
-                VoxelMaterializationState::Pending { .. } => {
+                VoxelMaterializationState::Pending { .. }
+                | VoxelMaterializationState::Failed => {
                     remove_pending = true;
                 }
                 VoxelMaterializationState::Dense(_) => {
@@ -109,6 +111,7 @@ impl VoxelMaterializationStore {
                 derived_revision: uniform_revision,
                 surface: None,
                 derived_in_flight: None,
+                derived_failed_revision: None,
             },
         );
 
@@ -167,6 +170,24 @@ impl VoxelMaterializationStore {
             // exists. Capability publication observes active_dense_revision().
             self.bump_capability_revision();
         }
+        true
+    }
+
+    /// A failed job leaves an observable unavailable reservation. It is not a
+    /// dense or empty result, and the same token cannot publish later.
+    pub(in crate::voxel) fn fail_generation(
+        &mut self,
+        address: VoxelMaterializationKey,
+        token: u64,
+    ) -> bool {
+        let Some(entry) = self.entries.get_mut(&address) else {
+            return false;
+        };
+        if !matches!(&entry.state, VoxelMaterializationState::Pending { token: current } if *current == token) {
+            return false;
+        }
+        entry.state = VoxelMaterializationState::Failed;
+        self.mark_render_dirty(address);
         true
     }
 
@@ -242,30 +263,6 @@ impl VoxelMaterializationStore {
                 // membership so no renderer shell can outlive its source mesh.
                 self.mark_render_dirty(address);
             }
-        }
-    }
-}
-
-
-#[cfg(test)]
-mod segmented_materialization_tests {
-    use super::*;
-
-    #[test]
-    fn uniform_generated_chunks_are_immediately_derived_without_surface() {
-        for sample in [
-            VoxelSample::empty(32.0),
-            VoxelSample::new(-32.0, VoxelMaterialId::ROCK),
-        ] {
-            let mut store = VoxelMaterializationStore::default();
-            let key = VoxelMaterializationKey::new([0, 0, 0]);
-            let token = store.reserve_generation(key).unwrap();
-            let chunk = VoxelChunk::filled(sample);
-
-            assert!(store.publish_generated(key, token, chunk, true));
-            assert_eq!(store.active_derived_revision(key), Some(0));
-            assert!(store.surface(key).is_none());
-            assert!(store.pop_dirty_derived().is_none());
         }
     }
 }

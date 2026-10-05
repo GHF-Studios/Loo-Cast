@@ -9,7 +9,7 @@ use crate::{
     spatial::{
         SPATIAL_DEMAND_VISUALIZATION, UsfCapabilityRealization,
         UsfPrimaryInteractionSlice, UsfScaleLayer, UsfScaleRoleMask,
-        UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
+        UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -234,7 +234,7 @@ fn terrain_pipeline_census(
 
 fn collect_voxel_materialization_world_draw(
     tools: Res<DeveloperTools>,
-    spatial_frame: Res<UsfSpatialFrame>,
+    spatial_frame: Res<UsfRuntimeChartState>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     frame: Res<WorldDrawFrame>,

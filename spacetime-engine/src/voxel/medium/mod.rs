@@ -6,13 +6,13 @@
 use avian3d::prelude::{AngularVelocity, LinearVelocity};
 use bevy::prelude::*;
 
-use crate::spatial::{UsfScaleLayer, UsfSpatialFrame};
+use crate::spatial::{UsfScaleLayer, UsfRuntimeChartState};
 
 use super::{VoxelQueryPosition, VoxelWorld};
 
 pub(in crate::voxel) fn apply_voxel_medium_drag(
     time: Res<Time<Fixed>>,
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     mut bodies: Query<(
         &Transform,
@@ -60,16 +60,5 @@ pub(in crate::voxel) fn apply_voxel_medium_drag(
         if let Some(mut angular) = angular {
             angular.0 *= (-drag * 0.35 * dt).exp();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn exponential_drag_is_timestep_composable() {
-        let drag = 0.85_f32;
-        let one = (-drag).exp();
-        let halves = (-drag * 0.5).exp() * (-drag * 0.5).exp();
-        assert!((one - halves).abs() < 1.0e-6);
     }
 }

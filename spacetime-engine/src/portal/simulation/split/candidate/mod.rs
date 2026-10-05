@@ -21,12 +21,19 @@ pub(in crate::portal::simulation) fn active_pair_is_valid(
     split: ActivePortalSplit,
     portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
 ) -> bool {
-    portals
-        .get(split.source)
-        .is_ok_and(|(_, _, active, _)| active.0)
-        && portals
-            .get(split.destination)
-            .is_ok_and(|(_, _, active, _)| active.0)
+    active_portal_pair(split, portals).is_some()
+}
+
+/// Resolve both active ends together so physical split consumers share the
+/// same validity rule before using either transform for a rigid mapping.
+pub(in crate::portal::simulation) fn active_portal_pair<'a>(
+    split: ActivePortalSplit,
+    portals: &'a Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
+) -> Option<(&'a Portal, &'a Transform, &'a Transform)> {
+    let (_, source_portal, source_active, source) = portals.get(split.source).ok()?;
+    let (_, _, destination_active, destination) = portals.get(split.destination).ok()?;
+    (source_active.0 && destination_active.0)
+        .then_some((source_portal, source, destination))
 }
 
 pub(in crate::portal::simulation) fn find_split_candidate(

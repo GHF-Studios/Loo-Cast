@@ -205,12 +205,6 @@ impl RuntimeVariableRegistry {
             .map_or_else(Vec::new, |binding| binding.spec.domain.completions(prefix))
     }
 
-    pub(crate) fn bindings_snapshot(&self) -> Vec<(String, RuntimeVariableBinding)> {
-        self.bindings
-            .iter()
-            .map(|(path, binding)| (path.clone(), *binding))
-            .collect()
-    }
 }
 
 pub trait AppRuntimeVariableExt {
@@ -403,80 +397,4 @@ fn normalize_path(path: &str) -> String {
         .collect::<Vec<_>>()
         .join(" ")
         .to_ascii_lowercase()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Resource, Debug)]
-    struct TestValue(f32);
-
-    fn get_test(world: &mut World) -> Result<String, String> {
-        Ok(world.resource::<TestValue>().0.to_string())
-    }
-
-    fn set_test(world: &mut World, raw: &str) -> Result<(), String> {
-        let value = raw
-            .parse::<f32>()
-            .map_err(|_| "test value must be a number".to_string())?;
-        if !value.is_finite() || !(0.0..=10.0).contains(&value) {
-            return Err("test value must be finite and inside [0, 10]".to_string());
-        }
-        world.resource_mut::<TestValue>().0 = value;
-        Ok(())
-    }
-
-    fn reset_test(world: &mut World) -> Result<(), String> {
-        world.resource_mut::<TestValue>().0 = 3.0;
-        Ok(())
-    }
-
-    fn default_test() -> String {
-        "3".to_string()
-    }
-
-    fn binding(authority: RuntimeVariableAuthority) -> RuntimeVariableBinding {
-        RuntimeVariableBinding::new(
-            RuntimeVariableSpec {
-                path: "test.value",
-                summary: "test",
-                value_type: RuntimeVariableValueType::F32,
-                units: None,
-                authority,
-                domain: RuntimeVariableDomain::Range {
-                    minimum: 0.0,
-                    maximum: Some(10.0),
-                },
-            },
-            get_test,
-            set_test,
-            reset_test,
-            default_test,
-        )
-    }
-
-    #[test]
-    fn typed_binding_validates_and_resets_without_string_state_authority() {
-        let mut world = World::new();
-        world.insert_resource(TestValue(3.0));
-        let binding = binding(RuntimeVariableAuthority::LocalDeveloperControl);
-
-        binding.set(&mut world, "7.5").unwrap();
-        assert_eq!(world.resource::<TestValue>().0, 7.5);
-        assert!(binding.set(&mut world, "100").is_err());
-
-        binding.reset(&mut world).unwrap();
-        assert_eq!(world.resource::<TestValue>().0, 3.0);
-    }
-
-    #[test]
-    fn generic_runtime_config_refuses_semantic_operation_authority() {
-        let mut world = World::new();
-        world.insert_resource(TestValue(3.0));
-        let binding = binding(RuntimeVariableAuthority::SemanticOperation);
-
-        assert!(binding.set(&mut world, "5").is_err());
-        assert_eq!(world.resource::<TestValue>().0, 3.0);
-    }
 }

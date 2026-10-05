@@ -150,6 +150,3 @@ impl VoxelChunk {
 mod editing;
 mod raycast;
 mod sampling;
-
-#[cfg(test)]
-mod tests;

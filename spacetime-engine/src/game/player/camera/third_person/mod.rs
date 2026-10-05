@@ -55,7 +55,9 @@ pub(super) fn resolve_third_person_boom(
     let mut resolved_distance = 0.0;
 
     for _ in 0..MAX_CAMERA_PORTAL_HOPS {
-        if remaining <= f32::EPSILON {
+        // A metre-authored boom can be far below machine epsilon in a coarse
+        // Scale Slice while remaining a real, representable native distance.
+        if remaining <= 0.0 {
             break;
         }
 
@@ -64,7 +66,12 @@ pub(super) fn resolve_third_person_boom(
             break;
         };
         let end = transform.translation + back * remaining;
-        let crossing = nearest_camera_portal_crossing(portals, transform.translation, end);
+        let crossing = nearest_camera_portal_crossing(
+            portals,
+            transform.translation,
+            end,
+            remaining,
+        );
         let segment_distance = crossing
             .as_ref()
             .map_or(remaining, |crossing| crossing.distance);
@@ -130,9 +137,11 @@ fn nearest_camera_portal_crossing(
     >,
     start: Vec3,
     end: Vec3,
+    segment_length: f32,
 ) -> Option<CameraPortalCrossing> {
-    let segment_length = start.distance(end);
-    if segment_length <= f32::EPSILON {
+    // Use the authored path length: squaring a small native displacement to
+    // recover its length can underflow even though the displacement is valid.
+    if segment_length <= 0.0 {
         return None;
     }
 
@@ -155,7 +164,7 @@ fn nearest_camera_portal_crossing(
         }
 
         let distance = segment_length * fraction;
-        if distance <= f32::EPSILON {
+        if distance <= 0.0 {
             continue;
         }
 

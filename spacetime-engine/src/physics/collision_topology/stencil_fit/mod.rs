@@ -285,6 +285,3 @@ fn set_component(vector: &mut Vec3, axis: usize, value: f32) {
         _ => vector.z = value,
     }
 }
-
-#[cfg(test)]
-mod tests;

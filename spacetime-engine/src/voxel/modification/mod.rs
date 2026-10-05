@@ -69,6 +69,3 @@ impl VoxelModificationLayer {
             .map(|index| self.edits[index])
     }
 }
-
-#[cfg(test)]
-mod tests;

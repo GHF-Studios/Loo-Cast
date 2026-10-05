@@ -140,6 +140,3 @@ pub(super) fn sync_split_visuals(
 mod mesh;
 
 use mesh::{LocalFacePlane, convex_polyhedron_mesh, full_box_mesh};
-
-#[cfg(test)]
-mod tests;

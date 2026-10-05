@@ -2,5 +2,10 @@
 name = "loo-cast-packagepack"
 version.workspace = true
 edition.workspace = true
+autotests = false
+
+[lib]
+test = false
+doctest = false
 
 [dependencies]

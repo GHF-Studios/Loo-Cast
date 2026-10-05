@@ -1,6 +1,7 @@
 //! Authored kinematic motion state and fixed-step realization.
 
 use super::*;
+use crate::spatial::{UsfOriginRebased, UsfScaleLayer, UsfSpatialAnchor};
 
 pub(super) fn authored_motion(base: Transform, motion: CompiledMotion) -> AuthoredMotion {
     AuthoredMotion {
@@ -38,5 +39,25 @@ pub(in crate::geometry) fn animate_authored_movers(
         transform.translation = translation;
         transform.rotation = motion.base.rotation;
         velocity.0 = linear_velocity;
+    }
+}
+
+/// Keep the stored motion origin in the same runtime chart as its transform.
+/// The rebase system shifts root transforms; the next fixed tick must not
+/// restore the pre-rebase translation from `AuthoredMotion::base`.
+pub(in crate::geometry) fn rebase_authored_movers(
+    mut rebases: MessageReader<UsfOriginRebased>,
+    anchor: Single<&UsfScaleLayer, With<UsfSpatialAnchor>>,
+    mut movers: Query<(Entity, &mut AuthoredMotion, Option<&UsfScaleLayer>), Without<ChildOf>>,
+) {
+    for rebase in rebases.read() {
+        for (entity, mut motion, layer) in &mut movers {
+            let scale = layer.map_or(anchor.scale(), |layer| layer.scale());
+            match rebase.delta.at_scale(scale) {
+                Ok(shift) => motion.base.translation -= shift,
+                Err(error) => error!(?entity, ?scale, ?error,
+                    "authored motion base could not follow runtime chart rebase"),
+            }
+        }
     }
 }

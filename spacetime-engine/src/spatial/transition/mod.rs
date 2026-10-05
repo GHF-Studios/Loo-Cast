@@ -15,7 +15,7 @@ use crate::ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery};
 use super::{
     SpatialScale, UsfCanonicalMotion, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
     UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
-    UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
+    UsfSpatialAnchor, UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -315,7 +315,7 @@ pub(super) struct InteractionHandoffWaitFingerprint {
 pub(super) fn apply_spatial_transitions(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut active: ResMut<UsfPrimaryInteractionSlice>,
-    mut frame: ResMut<UsfSpatialFrame>,
+    mut frame: ResMut<UsfRuntimeChartState>,
     mut queue: ResMut<UsfSpatialTransitionQueue>,
     handoff_guards: Res<UsfInteractionHandoffGuards>,
     coverage: Res<UsfScaleCoverageSnapshot>,

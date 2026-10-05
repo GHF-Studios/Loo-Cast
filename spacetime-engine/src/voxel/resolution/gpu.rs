@@ -7,7 +7,7 @@
 //!
 
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     sync::{Arc, Mutex},
 };
 
@@ -30,7 +30,7 @@ use bevy::{
         renderer::{RenderContext, RenderGraph, RenderQueue},
         Render, RenderApp, RenderStartup,
     },
-    shader::{Shader, ShaderCacheError},
+    shader::{load_shader_library, Shader, ShaderCacheError},
 };
 
 use crate::{
@@ -215,6 +215,7 @@ pub(crate) struct GpuTerrainPresentationPlugin;
 
 impl Plugin for GpuTerrainPresentationPlugin {
     fn build(&self, app: &mut App) {
+        load_shader_library!(app, "gpu_schema.wgsl");
         load_internal_asset!(
             app,
             GPU_TERRAIN_DENSITY_SHADER,
@@ -910,7 +911,12 @@ fn prepare_gpu_terrain_blocks(
     mut failure_reported: Local<bool>,
 ) {
     state.pending.clear();
+    let active_meshes = blocks.iter().map(|block| block.mesh.id())
+        .collect::<HashSet<_>>();
     state.extracted_blocks = blocks.iter().count();
+    // Completed components are removed on the main world after publication.
+    // Their build IDs cannot retain render-world bookkeeping indefinitely.
+    state.processed.retain(|id, _| active_meshes.contains(id));
 
     let mut failed = None;
     let density_ready = match pipeline_cache
@@ -1064,6 +1070,7 @@ fn compute_gpu_terrain(
     let diagnostics = diagnostics.as_deref();
 
     let pending = std::mem::take(&mut state.pending);
+    #[cfg(feature = "profiling-tracy")]
     let pending_count = pending.len();
     let mut dispatched = 0usize;
     let mut transition_faces = 0u64;
@@ -1200,5 +1207,3 @@ fn compute_gpu_terrain(
         state.processed.len(),
     );
 }
-
-

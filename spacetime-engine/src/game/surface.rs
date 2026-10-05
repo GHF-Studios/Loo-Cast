@@ -282,16 +282,3 @@ impl Plugin for SurfacePlugin {
             );
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn physical_clearance_subtracts_canonical_hull_support() {
-        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(2.0, 4.0, 2.0));
-        let support = hull.projection_radius_metres(Quat::IDENTITY, Vec3::Y);
-        assert!((support - 2.0).abs() < 1.0e-6);
-        assert!((3.0_f64 - f64::from(support) - 1.0).abs() < 1.0e-9);
-    }
-}

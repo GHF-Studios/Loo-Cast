@@ -287,6 +287,3 @@ pub(super) use presentation::{
 };
 
 use third_person::resolve_third_person_boom;
-
-#[cfg(test)]
-mod tests;

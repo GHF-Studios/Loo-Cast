@@ -85,29 +85,6 @@ impl VoxelMaterializationStore {
         None
     }
 
-    /// Pops the first still-dirty address matching `predicate`, preserving the
-    /// relative order of unmatched entries.
-    pub(in crate::voxel) fn pop_dirty_derived_matching(
-        &mut self,
-        mut predicate: impl FnMut(VoxelMaterializationKey) -> bool,
-    ) -> Option<VoxelMaterializationKey> {
-        let remaining = self.dirty_derived.len();
-        for _ in 0..remaining {
-            let Some(address) = self.dirty_derived.pop_front() else {
-                break;
-            };
-            if !self.dirty_derived_set.contains(&address) {
-                continue;
-            }
-            if predicate(address) {
-                self.dirty_derived_set.remove(&address);
-                return Some(address);
-            }
-            self.dirty_derived.push_back(address);
-        }
-        None
-    }
-
     /// Re-arm surface derivation from already resident dense truth after a
     /// capability-role upgrade. Current/in-flight revisions remain no-ops.
     pub(in crate::voxel) fn ensure_derived_dirty(
@@ -170,7 +147,10 @@ impl VoxelMaterializationStore {
         }
         let chunk = entry.dense()?;
         let revision = chunk.revision();
-        if entry.derived_revision == Some(revision) || entry.derived_in_flight == Some(revision) {
+        if entry.derived_revision == Some(revision)
+            || entry.derived_in_flight == Some(revision)
+            || entry.derived_failed_revision == Some(revision)
+        {
             return None;
         }
 
@@ -196,6 +176,21 @@ impl VoxelMaterializationStore {
         }
         if reactivate_dirty {
             self.mark_derived_dirty(address);
+        }
+    }
+
+    /// A failed derivation remains unavailable for this dense revision. A new
+    /// revision may retry, but failure must never publish as empty surface.
+    pub(in crate::voxel) fn fail_surface_build(
+        &mut self,
+        address: VoxelMaterializationKey,
+        revision: u64,
+    ) {
+        if let Some(entry) = self.entries.get_mut(&address)
+            && entry.derived_in_flight == Some(revision)
+        {
+            entry.derived_in_flight = None;
+            entry.derived_failed_revision = Some(revision);
         }
     }
 

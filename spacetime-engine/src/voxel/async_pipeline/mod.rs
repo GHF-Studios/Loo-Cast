@@ -15,6 +15,7 @@ use crate::{
 };
 
 use super::{
+    presentation_palette::debug_band_rgb,
     VoxelBase, VoxelMaterializationKey, VoxelWorld,
     streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
@@ -59,9 +60,23 @@ pub(super) fn publish_completed_chunk_builds(
         else {
             break;
         };
-        let Some(output) = build.task.try_take() else {
-            frame_budget.finish(work_token);
-            continue;
+        let output = match build.task.try_take() {
+            Ok(None) => {
+                frame_budget.finish(work_token);
+                continue;
+            }
+            Ok(Some(output)) => output,
+            Err(failure) => {
+                warn!(?failure, world = ?build.world, key = ?build.key, "voxel surface worker failed");
+                if let Ok((_, mut world)) = worlds.get_mut(build.world) {
+                    world.materializations_mut()
+                        .fail_surface_build(build.key, build.revision);
+                }
+                commands.entity(task_entity).despawn();
+                telemetry.derived_failed();
+                frame_budget.finish(work_token);
+                continue;
+            }
         };
 
         if let Ok((name, mut world)) = worlds.get_mut(build.world) {
@@ -312,42 +327,8 @@ fn debug_scale_band_color(
 // This is still a *USF Scale* diagnostic, never presentation LOD. It shares the
 // slower sixteen-band visual language with binary LOD diagnostics so either
 // hierarchy can be inspected without a harsh seven-color wrap.
-const SCALE_DEBUG_HUES: [[f32; 3]; 16] = [
-    [0.670, 0.369, 0.820],
-    [0.820, 0.369, 0.801],
-    [0.820, 0.369, 0.632],
-    [0.820, 0.369, 0.463],
-    [0.820, 0.444, 0.369],
-    [0.820, 0.613, 0.369],
-    [0.820, 0.782, 0.369],
-    [0.688, 0.820, 0.369],
-    [0.519, 0.820, 0.369],
-    [0.369, 0.820, 0.388],
-    [0.369, 0.820, 0.557],
-    [0.369, 0.820, 0.726],
-    [0.369, 0.745, 0.820],
-    [0.369, 0.576, 0.820],
-    [0.369, 0.407, 0.820],
-    [0.501, 0.369, 0.820],
-];
 
 fn rainbow_debug_color(relative_band: i16) -> [f32; 4] {
-    let [r, g, b] = SCALE_DEBUG_HUES[relative_band.rem_euclid(16) as usize];
+    let [r, g, b] = debug_band_rgb(relative_band);
     [r, g, b, 1.0]
-}
-
-#[cfg(test)]
-mod scale_band_debug_tests {
-    use super::*;
-
-    #[test]
-    fn scale_diagnostic_uses_slow_sixteen_band_hue_revolution() {
-        let s0 = SpatialScale::ZERO;
-        let s1 = SpatialScale::new(1).unwrap();
-        let s2 = SpatialScale::new(2).unwrap();
-
-        assert_eq!(debug_scale_band_color(s0, s0), [0.670, 0.369, 0.820, 1.0]);
-        assert_eq!(debug_scale_band_color(s1, s0), [0.820, 0.369, 0.801, 1.0]);
-        assert_eq!(debug_scale_band_color(s2, s0), [0.820, 0.369, 0.632, 1.0]);
-    }
 }

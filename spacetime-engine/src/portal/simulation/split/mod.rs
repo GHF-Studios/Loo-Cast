@@ -22,7 +22,8 @@ pub(crate) use character::{
 
 pub(super) use aperture::{box_fits_aperture_at, center_crossing_fraction};
 pub(super) use candidate::{
-    active_pair_is_valid, box_reaches_portal_this_tick, find_split_candidate,
+    active_pair_is_valid, active_portal_pair, box_reaches_portal_this_tick,
+    find_split_candidate,
 };
 
 /// Distance beyond the trailing support radius before an active split collapses.

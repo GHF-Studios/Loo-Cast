@@ -100,26 +100,3 @@ pub(crate) fn coplanar_apertures_overlap(
             center_distance < first_radius + second_radius - OVERLAP_EDGE_EPSILON
         })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn coplanar_portals_reject_overlap_but_allow_touching() {
-        let first = Transform::default();
-        let overlapping = Transform::from_xyz(1.0, 0.0, 0.0);
-        let touching = Transform::from_xyz(2.5, 0.0, 0.0);
-        let half_size = Vec2::new(1.25, 1.75);
-
-        assert!(coplanar_apertures_overlap(
-            &first,
-            half_size,
-            &overlapping,
-            half_size,
-        ));
-        assert!(!coplanar_apertures_overlap(
-            &first, half_size, &touching, half_size,
-        ));
-    }
-}

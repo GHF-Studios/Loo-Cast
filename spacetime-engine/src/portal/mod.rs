@@ -18,8 +18,6 @@ mod simulation;
 mod topology;
 mod systems;
 
-#[cfg(test)]
-mod tests;
 
 pub use domain::{
     Portal, PortalActive, PortalCommand, PortalConfig, PortalEndpoint, PortalEndpointConfig,

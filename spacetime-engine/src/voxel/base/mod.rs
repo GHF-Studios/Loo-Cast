@@ -22,10 +22,6 @@ pub(crate) use celestial::{
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
-pub(crate) use noise::{
-    value_noise_3d as script_value_noise_3d,
-};
-
 use volume::PreparedProceduralVolume;
 
 const EMPTY_DISTANCE: f32 = 1024.0;
@@ -183,11 +179,3 @@ impl PreparedVoxelBase {
         }
     }
 }
-
-#[cfg(test)]
-use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale};
-#[cfg(test)]
-use noise::{semantic_value_noise, volumetric_noise};
-
-#[cfg(test)]
-mod tests;

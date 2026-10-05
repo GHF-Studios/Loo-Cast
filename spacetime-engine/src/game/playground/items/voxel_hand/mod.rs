@@ -8,7 +8,7 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame},
+    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame, UsfRuntimeChartState},
     voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit, VoxelFrameSnapshot, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelWorld},
 };
 
@@ -42,7 +42,7 @@ fn use_voxel_hand(
     mut uses: MessageReader<UseItem>,
     keyboard: Res<ButtonInput<KeyCode>>,
     active: Res<UsfPrimaryInteractionSlice>,
-    spatial_frame: Res<UsfSpatialFrame>,
+    spatial_frame: Res<UsfRuntimeChartState>,
     mut worlds: ParamSet<(
         Query<
             (

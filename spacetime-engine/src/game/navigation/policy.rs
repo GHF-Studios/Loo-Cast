@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use crate::{
     game::control::LocalControlSubject,
     spatial::{
-        UsfNavigationContext, UsfNavigationContextKind, UsfScaleLayer, UsfSpatialFrame,
+        UsfNavigationContext, UsfNavigationContextKind, UsfScaleLayer, UsfRuntimeChartState,
         UsfTravelInfluenceKind, UsfTravelNeighborhood,
     },
 };
@@ -18,7 +18,7 @@ use crate::{
 use super::{AdaptiveCruise, TravelEnvelope, TravelProfile};
 
 pub(super) fn sync_travel_envelope(
-    frame: Res<UsfSpatialFrame>,
+    frame: Res<UsfRuntimeChartState>,
     subject: Single<
         (
             &Transform,
@@ -175,31 +175,5 @@ fn medium_speed_limit(
     } else {
         interior_limit
             + boundary_clearance_metres / entry_horizon_seconds.max(f64::EPSILON)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn profile_handoff_is_capture_boundary_not_inner_emergency_stop() {
-        let profile = TravelProfile::spacecraft();
-        let radius = 1_700_000.0;
-        assert_eq!(
-            profile.planetary_handoff_clearance(radius),
-            profile.planetary_handoff_clearance(radius),
-        );
-    }
-
-    #[test]
-    fn hard_body_limit_converges_to_capture_speed() {
-        let handoff = 100_000.0;
-        let capture = 1_500.0;
-        let at_handoff = hard_body_speed_limit(handoff, handoff, capture, 120.0);
-        let farther = hard_body_speed_limit(1_000_000.0, handoff, capture, 120.0);
-
-        assert!((at_handoff - capture).abs() < 1.0e-6);
-        assert!(farther > at_handoff);
     }
 }

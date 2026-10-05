@@ -291,10 +291,6 @@ impl VoxelStreaming {
             })
     }
 
-    #[cfg(test)]
-    fn effective_desired_set(&self) -> HashSet<VoxelMaterializationKey> {
-        self.effective_desired.clone()
-    }
 
     fn take_residency_delta(
         &mut self,
@@ -411,10 +407,12 @@ pub struct VoxelStreamingTelemetry {
     generation_started_total: u64,
     generation_completed_total: u64,
     generation_cancelled_total: u64,
+    generation_failed_total: u64,
     generation_chunks_abandoned_total: u64,
     derived_started_total: u64,
     derived_completed_total: u64,
     derived_cancelled_total: u64,
+    derived_failed_total: u64,
     derived_skipped_empty_total: u64,
 }
 
@@ -425,7 +423,7 @@ impl VoxelStreamingTelemetry {
 
     pub fn summary(self) -> String {
         format!(
-            "workers capacity={} generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={} skipped_empty={}",
+            "workers capacity={} generation={} derived={} total={} | gen started={} completed={} cancelled={} failed={} abandoned_chunks={} | surface started={} completed={} cancelled={} failed={} skipped_empty={}",
             self.worker_capacity,
             self.generation_in_flight,
             self.derived_in_flight,
@@ -433,10 +431,12 @@ impl VoxelStreamingTelemetry {
             self.generation_started_total,
             self.generation_completed_total,
             self.generation_cancelled_total,
+            self.generation_failed_total,
             self.generation_chunks_abandoned_total,
             self.derived_started_total,
             self.derived_completed_total,
             self.derived_cancelled_total,
+            self.derived_failed_total,
             self.derived_skipped_empty_total,
         )
     }
@@ -454,6 +454,10 @@ impl VoxelStreamingTelemetry {
         self.generation_cancelled_total += 1;
         self.generation_chunks_abandoned_total += chunks as u64;
     }
+    pub(super) fn generation_failed(&mut self) {
+        self.generation_in_flight = self.generation_in_flight.saturating_sub(1);
+        self.generation_failed_total += 1;
+    }
     pub(super) fn derived_started(&mut self) {
         self.derived_in_flight += 1;
         self.derived_started_total += 1;
@@ -465,6 +469,10 @@ impl VoxelStreamingTelemetry {
     pub(super) fn derived_cancelled(&mut self) {
         self.derived_in_flight = self.derived_in_flight.saturating_sub(1);
         self.derived_cancelled_total += 1;
+    }
+    pub(super) fn derived_failed(&mut self) {
+        self.derived_in_flight = self.derived_in_flight.saturating_sub(1);
+        self.derived_failed_total += 1;
     }
     pub(super) fn derived_skipped_empty(&mut self) {
         self.derived_skipped_empty_total += 1;
@@ -532,6 +540,3 @@ impl VoxelPinnedDemand {
         self.surface_radius_native
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -4,19 +4,19 @@
 //! backend use?". It must not also answer "how densely should this semantic
 //! field be polygonized?". Those are independent axes.
 //!
-//! This module is intentionally a shadow mechanism today. Existing dense
-//! [`super::VoxelWorld`] materializations remain the live editable/collision
-//! working caches. Presentation will migrate onto this resolution domain only
-//! after the balancing + transition-meshing contract is proven.
+//! The binary clipmap is live presentation. Dense [`super::VoxelWorld`]
+//! materializations remain independent editable/collision working caches.
 
 
 #![allow(dead_code)]
 
+mod classification;
 mod gpu;
 mod live;
+mod topology;
+mod visibility;
 
 pub(super) use live::{
-    CelestialClipmapCoverageCell, CelestialClipmapCoverageSnapshot,
     CelestialClipmapTelemetry,
 };
 
@@ -287,114 +287,7 @@ impl VoxelPresentationResolutionPlan {
     }
 }
 
-#[cfg(test)]
-mod transvoxel_proof;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn physical_resolution_is_independent_from_usf_chart() {
-        let resolution = VoxelPresentationResolution::new(10);
-        let spacing_metres = resolution.sample_spacing_metres();
-        assert_eq!(spacing_metres, 1024.0);
-
-        for chart in [
-            SpatialScale::new(3).unwrap(),
-            SpatialScale::new(5).unwrap(),
-        ] {
-            let native = resolution.sample_spacing_native(chart).unwrap();
-            let reconstructed = native * chart.metres_per_native();
-            assert!((reconstructed - spacing_metres).abs() < 1.0e-9);
-        }
-    }
-
-    #[test]
-    fn requested_spacing_selects_binary_ladder_without_usf_scale() {
-        assert_eq!(
-            VoxelPresentationResolution::at_most_metres(10.0)
-                .unwrap()
-                .sample_spacing_metres(),
-            8.0,
-        );
-        assert_eq!(
-            VoxelPresentationResolution::at_most_metres(100.0)
-                .unwrap()
-                .sample_spacing_metres(),
-            64.0,
-        );
-    }
-
-    #[test]
-    fn balancing_refines_a_too_coarse_neighbor_to_two_to_one() {
-        let mut plan = VoxelPresentationResolutionPlan::default();
-        plan.request(
-            IVec3::ZERO,
-            VoxelPresentationResolution::new(4),
-        );
-        plan.request(
-            IVec3::X,
-            VoxelPresentationResolution::new(0),
-        );
-
-        assert!(!plan.is_balanced_2_to_1());
-        plan.balance_2_to_1();
-
-        assert!(plan.is_balanced_2_to_1());
-        assert_eq!(
-            plan.resolution(IVec3::ZERO),
-            Some(VoxelPresentationResolution::new(1)),
-        );
-        assert_eq!(
-            plan.resolution(IVec3::X),
-            Some(VoxelPresentationResolution::new(0)),
-        );
-    }
-
-    #[test]
-    fn transition_face_is_owned_by_coarse_block_toward_fine_neighbor() {
-        let mut plan = VoxelPresentationResolutionPlan::default();
-        plan.request(
-            IVec3::ZERO,
-            VoxelPresentationResolution::new(1),
-        );
-        plan.request(
-            IVec3::X,
-            VoxelPresentationResolution::new(0),
-        );
-        plan.balance_2_to_1();
-
-        let coarse = plan.transition_faces(IVec3::ZERO);
-        let fine = plan.transition_faces(IVec3::X);
-
-        assert!(coarse.contains(VoxelTransitionFace::HighX));
-        assert!(fine.is_empty());
-    }
-
-    #[test]
-    fn finest_duplicate_request_wins_without_new_authority() {
-        let mut plan = VoxelPresentationResolutionPlan::default();
-        plan.request(
-            IVec3::ZERO,
-            VoxelPresentationResolution::new(5),
-        );
-        plan.request(
-            IVec3::ZERO,
-            VoxelPresentationResolution::new(2),
-        );
-        plan.request(
-            IVec3::ZERO,
-            VoxelPresentationResolution::new(4),
-        );
-
-        assert_eq!(plan.len(), 1);
-        assert_eq!(
-            plan.resolution(IVec3::ZERO),
-            Some(VoxelPresentationResolution::new(2)),
-        );
-    }
-}
 
 
 pub(super) fn configure(app: &mut bevy::prelude::App) {

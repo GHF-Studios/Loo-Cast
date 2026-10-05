@@ -14,6 +14,56 @@ A recurring engine rule is:
 
 Disposable representations must not silently become semantic authority.
 
+A runtime chart rebase changes representation only. Spatial preflight and the
+physics backend resolve direct and attached-body Scale Slice membership through
+the same rule before any origin shift is applied.
+
+Runtime interactions must resolve Scale Slice membership before comparing
+positions or converting physical distances. A split peer inherits its
+authoritative realization's slice; unlayered runtime samples follow the chart
+anchor. Authored motion bases follow rebases alongside their transforms.
+
+## Terrain presentation and work
+
+Celestial clipmap blocks are presentation requests over one canonical field.
+The actual camera view remains in demand while predicted motion adds prefetch
+interest. Camera exclusion does not prove field emptiness or remove collision
+and editing residency.
+
+The canonical field owns conservative radial bounds for shell and solid-core
+rejection; cave inward support extends the lower bound. Sparse boundary samples
+may guide refinement, but they cannot certify that a planned GPU block is
+empty. A GPU dispatch acknowledgement records submitted work, not a geometry
+readback or hardware completion fence. Publication still waits for the local
+projection barrier.
+
+GPU build admission rotates across authorities when frame limits are reached;
+render-side processed build records are retired with their extracted blocks.
+The admission limits bound work submission, not total GPU memory residency.
+
+The resolution domain separates dyadic block topology, field classification,
+and body-local view demand. The field cache is keyed by the canonical field and block; it does not
+store a camera decision or moving surface focus. Broad
+shell rejection is a conservative field proof. Fine probes distinguish an
+observed boundary, a sample miss, and unavailable samples. A sample miss is
+only a refinement priority signal, never a semantic empty certificate. The
+planner retains a parent when a split admits no children, and rolls back a
+split wave that cannot restore 2:1 balance.
+
+Dense CPU voxels own editable samples and collision support; GPU Transvoxel
+blocks own binary presentation over a bounded, quantized descriptor of the
+same canonical field. The shared WGSL schema defines both GPU passes' buffer
+layout. Numeric agreement is domain-limited by descriptor projection and f32
+evaluation, and bitwise CPU/GPU parity is not assumed. Edited authorities
+currently stay on the dense presentation path until an edit-aware GPU snapshot
+exists.
+
+Worker tickets distinguish pending output from terminal failure. A failed
+generation reservation and a failed surface derivation remain unavailable;
+neither may be published as an empty result. The worker pool keeps servicing
+other jobs after an individual job panics. Dense and derived publication retain
+their own revision checks and make-before-break coverage.
+
 ## Module boundaries
 
 A module should have one coherent reason to change. Split a file when it mixes
@@ -38,7 +88,7 @@ Every semantically meaningful Rust module is represented by a directory with
 a `mod.rs`, even when it currently contains only one source file. Role/support
 files such as `components.rs`, `types.rs`, `systems.rs`, `resources.rs`,
 `functions.rs`, `model.rs`, `state.rs`, `config.rs`, `plugin.rs`,
-`registration.rs`, `tests.rs`, `input.rs`, `math.rs`, and `source.rs` may
+`registration.rs`, `input.rs`, `math.rs`, and `source.rs` may
 remain plain files inside that semantic module. These names describe
 implementation roles, not standalone architectural domains.
 
@@ -87,9 +137,9 @@ should name the invariant.
 
 Avoid catch-all fallback behavior that hides invalid state.
 
-## Tests
+## Validation
 
-Tests are intentional, not ceremonial. Prefer them for canonical addressing and
-precision invariants, configuration boundaries, geometry/topology edge cases,
-deterministic refinement behavior, and regressions that are difficult to
-validate reliably through interactive use.
+This repository does not carry automated test targets or executable doctests.
+Validate production changes with workspace builds, focused static checks,
+shader and pipeline creation, and direct runtime inspection. Keep assertions
+that enforce production invariants and diagnostics that explain runtime state.
