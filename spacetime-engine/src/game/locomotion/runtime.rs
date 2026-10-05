@@ -26,26 +26,21 @@ use crate::{
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
-        slice::UsfPhysicsSlices,
-        gravity::GravitySample,
         character::{
-            CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
-            CharacterMovementInput,
+            CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementInput,
         },
+        gravity::GravitySample,
+        slice::UsfPhysicsSlices,
         topology::KinematicQueryExclusions,
     },
-    spatial::{
-        SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfRuntimeChartState,
-    },
+    spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState, UsfScaleLayer},
 };
 
 use super::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
-    DetailedBodyScale, FlightAttitudeCommand, FlightControlIntent,
-    LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
-    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, MotionKernel,
-    ScaleInteractionProxy,
-    VelocitySemantics,
+    DetailedBodyScale, FlightAttitudeCommand, FlightControlIntent, LocomotionCapabilities,
+    LocomotionEnabled, LocomotionInhibition, LocomotionRegime, LocomotionRegimeOverride,
+    LocomotionRequest, MotionKernel, ScaleInteractionProxy, VelocitySemantics,
 };
 
 fn nearest_body_clearance_and_radius(travel: &TravelState) -> Option<(f64, f64)> {
@@ -341,7 +336,10 @@ pub(super) fn resolve_locomotion_state(
                     travel,
                     profile,
                     *capabilities,
-                ) => requested,
+                ) =>
+            {
+                requested
+            }
             LocomotionRequest::Regime(_) => {
                 locomotion.request_automatic();
                 automatic
@@ -438,14 +436,10 @@ pub(super) fn sync_locomotion_runtime(
         }
         CollisionPolicy::ScaleProxy => {
             if collider.is_none() || layer.is_changed() || detailed_collision.is_some() {
-                let clearance_metres =
-                    proxy.map_or(0.0, |proxy| proxy.clearance_metres());
+                let clearance_metres = proxy.map_or(0.0, |proxy| proxy.clearance_metres());
                 commands
                     .entity(entity)
-                    .insert(hull.bounding_sphere_collider(
-                        layer.scale(),
-                        clearance_metres,
-                    ))
+                    .insert(hull.bounding_sphere_collider(layer.scale(), clearance_metres))
                     .remove::<DetailedBodyCollision>();
             }
         }
@@ -463,16 +457,10 @@ fn vec3_to_dvec3(value: Vec3) -> DVec3 {
     DVec3::new(f64::from(value.x), f64::from(value.y), f64::from(value.z))
 }
 
-fn flight_wish(
-    intent: &FlightControlIntent,
-    attitude: Quat,
-    physical_up: Vec3,
-) -> DVec3 {
+fn flight_wish(intent: &FlightControlIntent, attitude: Quat, physical_up: Vec3) -> DVec3 {
     let axes = intent.translation_axes();
     vec3_to_dvec3(
-        (attitude * Vec3::X * axes.x
-            + attitude * Vec3::NEG_Z * axes.z
-            + physical_up * axes.y)
+        (attitude * Vec3::X * axes.x + attitude * Vec3::NEG_Z * axes.z + physical_up * axes.y)
             .normalize_or_zero(),
     )
 }
@@ -507,12 +495,17 @@ fn integrate_flight_attitude(
             }
 
             let angle = 2.0 * current.dot(target).clamp(-1.0, 1.0).acos();
-            let maximum_step =
-                profile.flight.target_attitude_response_radians_per_second.max(0.0) * dt;
+            let maximum_step = profile
+                .flight
+                .target_attitude_response_radians_per_second
+                .max(0.0)
+                * dt;
             if angle <= maximum_step || angle <= 1.0e-6 {
                 target
             } else {
-                current.slerp(target, (maximum_step / angle).clamp(0.0, 1.0)).normalize()
+                current
+                    .slerp(target, (maximum_step / angle).clamp(0.0, 1.0))
+                    .normalize()
             }
         }
     }
@@ -533,9 +526,8 @@ fn integrate_local_inertial_velocity(
     }
 
     let thrust_acceleration = thrust_acceleration.max(0.0);
-    let thrusting = thrusters_enabled
-        && thrust_acceleration > 0.0
-        && wish.length_squared() > 1.0e-18;
+    let thrusting =
+        thrusters_enabled && thrust_acceleration > 0.0 && wish.length_squared() > 1.0e-18;
 
     // Gravity remains canonical sampled field state. RCS only changes this
     // subject's local-flight response to that field; it never mutates gravity.
@@ -633,10 +625,7 @@ fn commit_runtime_position_to_canonical(
     body: &Transform,
     semantic_positions: &mut Query<&mut UsfPosition>,
 ) {
-    let Ok(next) = frame
-        .origin()
-        .translated_at_scale(layer, body.translation)
-    else {
+    let Ok(next) = frame.origin().translated_at_scale(layer, body.translation) else {
         error!(
             subject = ?semantic_entity,
             scale = %layer,
@@ -673,8 +662,8 @@ fn collide_runtime_motion(
         return desired_native_velocity;
     };
 
-    let excluded = std::iter::once(entity)
-        .chain(exclusions.into_iter().flat_map(|items| items.iter()));
+    let excluded =
+        std::iter::once(entity).chain(exclusions.into_iter().flat_map(|items| items.iter()));
     let filter = physics_charts.filter_for_scale(layer, excluded);
     let moved = move_and_slide.move_and_slide(
         collider,
@@ -723,14 +712,8 @@ pub(super) fn flight_movement(
     )>,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
-    let (
-        entity,
-        mut body,
-        layer,
-        locomotion,
-        mut motion,
-        mut linear_velocity,
-    ) = subject.into_inner();
+    let (entity, mut body, layer, locomotion, mut motion, mut linear_velocity) =
+        subject.into_inner();
 
     let Some(semantic_entity) = ownership.semantic_of(entity) else {
         error!(
@@ -768,12 +751,8 @@ pub(super) fn flight_movement(
     }
 
     if intent.active() {
-        body.rotation = integrate_flight_attitude(
-            body.rotation,
-            intent.attitude(),
-            profile,
-            time.delta_secs(),
-        );
+        body.rotation =
+            integrate_flight_attitude(body.rotation, intent.attitude(), profile, time.delta_secs());
     }
 
     let up = vec3_to_dvec3(locomotion_frame.up()).normalize_or_zero();
@@ -801,8 +780,12 @@ pub(super) fn flight_movement(
             *was_cruise_active = false;
             *was_explicit_cruise = false;
             let thrust = f64::from(
-                profile.flight.local_acceleration_metres_per_second2.max(0.0),
-            ) * pace * boost;
+                profile
+                    .flight
+                    .local_acceleration_metres_per_second2
+                    .max(0.0),
+            ) * pace
+                * boost;
             integrate_local_inertial_velocity(
                 motion.velocity_metres_per_second(),
                 wish,
@@ -818,8 +801,12 @@ pub(super) fn flight_movement(
             *was_cruise_active = false;
             *was_explicit_cruise = false;
             let thrust = f64::from(
-                profile.flight.orbital_acceleration_metres_per_second2.max(0.0),
-            ) * pace * boost;
+                profile
+                    .flight
+                    .orbital_acceleration_metres_per_second2
+                    .max(0.0),
+            ) * pace
+                * boost;
             motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
         }
         MotionKernel::Cruise => {
@@ -829,57 +816,20 @@ pub(super) fn flight_movement(
             let just_explicitly_engaged = explicit && !*was_explicit_cruise;
             *was_cruise_active = true;
             *was_explicit_cruise = explicit;
-
-            cruise.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
-            cruise.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
-            cruise.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
-            cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
-
-            if just_explicitly_engaged {
-                cruise.throttle = throttle_for_speed(
-                    envelope.cruise_default_speed_metres_per_second,
-                    envelope.cruise_max_speed_metres_per_second,
-                );
-                cruise.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
-            } else if just_engaged {
-                cruise.throttle = 0.0;
-                cruise.speed_scale0 = motion.speed_metres_per_second();
-            }
-
-            cruise.throttle = (
-                cruise.throttle
-                    + intent.forward_axis()
-                        * profile.cruise.throttle_rate_per_second
-                        * time.delta_secs()
-            )
-            .clamp(0.0, 1.0);
-
-            //
-            // Pace multiplies the requested cruise speed *beneath* the
-            // navigation envelope. Hard-body/medium limits remain authoritative.
-            let requested = (
-                envelope.cruise_max_speed_metres_per_second
-                    * f64::from(cruise.throttle.powf(2.0))
-                    * pace
-            )
-                .clamp(
-                    0.0,
-                    envelope.cruise_max_speed_metres_per_second,
-                );
-            cruise.speed_scale0 = smooth_log_value(
-                cruise.speed_scale0,
-                requested,
-                time.delta_secs(),
-                profile.cruise.speed_response,
-            );
-
-            let direction =
-                vec3_to_dvec3(body.rotation * Vec3::NEG_Z).normalize_or_zero();
-            cruise_velocity(
-                motion.velocity_metres_per_second(),
-                direction,
-                cruise.speed_scale0,
-            )
+            step_cruise(CruiseStep {
+                state: &mut cruise,
+                envelope,
+                travel,
+                profile,
+                intent,
+                current_velocity: motion.velocity_metres_per_second(),
+                current_speed: motion.speed_metres_per_second(),
+                rotation: body.rotation,
+                pace,
+                delta_seconds: time.delta_secs(),
+                just_engaged,
+                just_explicitly_engaged,
+            })
         }
         MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
     };
@@ -935,6 +885,74 @@ pub(super) fn flight_movement(
         ),
         "runtime-authoritative flight must use a collision-capable local motion kernel"
     );
+}
+
+/// One canonical-SI cruise policy update; the caller owns chart projection
+/// and the final semantic motion commit.
+struct CruiseStep<'a> {
+    state: &'a mut AdaptiveCruise,
+    envelope: &'a TravelEnvelope,
+    travel: &'a TravelState,
+    profile: &'a TravelProfile,
+    intent: &'a FlightControlIntent,
+    current_velocity: DVec3,
+    current_speed: f64,
+    rotation: Quat,
+    pace: f64,
+    delta_seconds: f32,
+    just_engaged: bool,
+    just_explicitly_engaged: bool,
+}
+
+fn step_cruise(step: CruiseStep<'_>) -> DVec3 {
+    let CruiseStep {
+        state,
+        envelope,
+        travel,
+        profile,
+        intent,
+        current_velocity,
+        current_speed,
+        rotation,
+        pace,
+        delta_seconds,
+        just_engaged,
+        just_explicitly_engaged,
+    } = step;
+    state.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
+    state.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+    state.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
+    state.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
+
+    if just_explicitly_engaged {
+        state.throttle = throttle_for_speed(
+            envelope.cruise_default_speed_metres_per_second,
+            envelope.cruise_max_speed_metres_per_second,
+        );
+        state.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+    } else if just_engaged {
+        state.throttle = 0.0;
+        state.speed_scale0 = current_speed;
+    }
+
+    state.throttle = (state.throttle
+        + intent.forward_axis() * profile.cruise.throttle_rate_per_second * delta_seconds)
+        .clamp(0.0, 1.0);
+
+    // Pace acts beneath the navigation envelope; hard-body and medium limits
+    // remain authoritative even when the controller requests a higher speed.
+    let requested =
+        (envelope.cruise_max_speed_metres_per_second * f64::from(state.throttle.powf(2.0)) * pace)
+            .clamp(0.0, envelope.cruise_max_speed_metres_per_second);
+    state.speed_scale0 = smooth_log_value(
+        state.speed_scale0,
+        requested,
+        delta_seconds,
+        profile.cruise.speed_response,
+    );
+
+    let direction = vec3_to_dvec3(rotation * Vec3::NEG_Z).normalize_or_zero();
+    cruise_velocity(current_velocity, direction, state.speed_scale0)
 }
 
 fn cruise_velocity(

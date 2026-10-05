@@ -2,7 +2,102 @@
 
 use super::*;
 
-pub(super) fn handle_spacecraft_actions(
+/// Landing and launch mutate the controlled ship's physical and semantic pose
+/// before any boarding control transfer can be requested this frame.
+pub(super) fn handle_landing_actions(
+    input: Res<PlayerInputFrame>,
+    frame: Res<UsfRuntimeChartState>,
+    ownership: UsfOwnershipQuery,
+    mut semantic_positions: Query<&mut UsfPosition>,
+    mut controlled_ship: Query<
+        (
+            Entity,
+            &mut Transform,
+            &UsfScaleLayer,
+            &CharacterLocomotionFrame,
+            &mut ControlledSubjectLocomotion,
+            &mut LinearVelocity,
+            &mut UsfCanonicalMotion,
+            &mut LocomotionInhibition,
+            &mut FlightContactState,
+            &FlightLandingOpportunity,
+            &SpacecraftLandingSolution,
+            &mut PortalTraveler,
+        ),
+        (
+            With<SpacecraftManifestation>,
+            With<LocalControlSubject>,
+            Without<Player>,
+        ),
+    >,
+) {
+    let Ok((
+        ship_entity,
+        mut ship_transform,
+        ship_layer,
+        ship_frame,
+        mut ship_locomotion,
+        mut ship_velocity,
+        mut ship_motion,
+        mut ship_inhibition,
+        mut ship_contact,
+        ship_landing,
+        ship_landing_solution,
+        mut ship_traveler,
+    )) = controlled_ship.single_mut()
+    else {
+        return;
+    };
+    if !ship_contact.is_landed()
+        && input.gameplay_active()
+        && input.just_pressed(PlayerAction::ToggleLanding)
+        && ship_landing.available()
+        && let Some((settled_translation, aligned)) =
+            ship_landing_solution.at_scale(ship_layer.scale())
+    {
+        let Ok(settled_semantic) = frame
+            .origin()
+            .translated_at_scale(ship_layer.scale(), settled_translation)
+        else {
+            return;
+        };
+        let Some(semantic_ship) = ownership.semantic_of(ship_entity) else {
+            return;
+        };
+        let Ok(mut semantic_position) = semantic_positions.get_mut(semantic_ship) else {
+            return;
+        };
+
+        ship_transform.translation = settled_translation;
+        ship_transform.rotation = aligned;
+        ship_traveler.commit_position(settled_translation);
+        *semantic_position = settled_semantic;
+        ship_velocity.0 = Vec3::ZERO;
+        ship_motion.stop();
+        ship_contact.land();
+        ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
+        ship_locomotion.request_automatic();
+        ship_locomotion.set_thrusters_enabled(false);
+        ship_locomotion.set_rcs_enabled(false);
+        return;
+    }
+
+    if ship_contact.is_landed()
+        && input.gameplay_active()
+        && input.just_pressed(PlayerAction::TakeOff)
+    {
+        ship_contact.launch();
+        ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
+        ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
+        ship_locomotion.set_thrusters_enabled(true);
+        ship_locomotion.set_rcs_enabled(true);
+        ship_velocity.0 = ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);
+        ship_motion.set_from_native_velocity(ship_layer.scale(), ship_velocity.0);
+        return;
+    }
+}
+
+pub(super) fn handle_ship_exit(
     input: Res<PlayerInputFrame>,
     frame: Res<UsfRuntimeChartState>,
     spatial_query: SpatialQuery,
@@ -33,19 +128,12 @@ pub(super) fn handle_spacecraft_actions(
     mut controlled_ship: Query<
         (
             Entity,
-            &mut Transform,
+            &Transform,
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
             &PhysicalBoxHull,
             &mut SpatialDemandSource,
-            &mut ControlledSubjectLocomotion,
-            &mut LinearVelocity,
-            &mut UsfCanonicalMotion,
-            &mut LocomotionInhibition,
-            &mut FlightContactState,
-            &FlightLandingOpportunity,
-            &SpacecraftLandingSolution,
-            &mut PortalTraveler,
+            &FlightContactState,
         ),
         (
             With<SpacecraftManifestation>,
@@ -53,87 +141,17 @@ pub(super) fn handle_spacecraft_actions(
             Without<Player>,
         ),
     >,
-    player_controlled: Query<(), (With<Player>, With<LocalControlSubject>)>,
-    mut ships: Query<
-        (
-            Entity,
-            &Transform,
-            &UsfScaleLayer,
-            &FlightContactState,
-            &mut SpatialDemandSource,
-        ),
-        (
-            With<SpacecraftManifestation>,
-            Without<LocalControlSubject>,
-            Without<Player>,
-        ),
-    >,
 ) {
     if let Ok((
         ship_entity,
-        mut ship_transform,
+        ship_transform,
         ship_layer,
         ship_frame,
         ship_hull,
         mut ship_demand,
-        mut ship_locomotion,
-        mut ship_velocity,
-        mut ship_motion,
-        mut ship_inhibition,
-        mut ship_contact,
-        ship_landing,
-        ship_landing_solution,
-        mut ship_traveler,
+        ship_contact,
     )) = controlled_ship.single_mut()
     {
-        if !ship_contact.is_landed()
-            && input.gameplay_active()
-            && input.just_pressed(PlayerAction::ToggleLanding)
-            && ship_landing.available()
-            && let Some((settled_translation, aligned)) =
-                ship_landing_solution.at_scale(ship_layer.scale())
-        {
-            let Ok(settled_semantic) = frame
-                .origin()
-                .translated_at_scale(ship_layer.scale(), settled_translation)
-            else {
-                return;
-            };
-            let Some(semantic_ship) = ownership.semantic_of(ship_entity) else {
-                return;
-            };
-            let Ok(mut semantic_position) = semantic_positions.get_mut(semantic_ship) else {
-                return;
-            };
-
-            ship_transform.translation = settled_translation;
-            ship_transform.rotation = aligned;
-            ship_traveler.commit_position(settled_translation);
-            *semantic_position = settled_semantic;
-            ship_velocity.0 = Vec3::ZERO;
-            ship_motion.stop();
-            ship_contact.land();
-            ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
-            ship_locomotion.request_automatic();
-            ship_locomotion.set_thrusters_enabled(false);
-            ship_locomotion.set_rcs_enabled(false);
-            return;
-        }
-
-        if ship_contact.is_landed()
-            && input.gameplay_active()
-            && input.just_pressed(PlayerAction::TakeOff)
-        {
-            ship_contact.launch();
-            ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
-            ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
-            ship_locomotion.set_thrusters_enabled(true);
-            ship_locomotion.set_rcs_enabled(true);
-            ship_velocity.0 = ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);
-            ship_motion.set_from_native_velocity(ship_layer.scale(), ship_velocity.0);
-            return;
-        }
-
         if !ship_contact.is_landed()
             || !input.gameplay_active()
             || !input.just_pressed(PlayerAction::Interact)
@@ -234,7 +252,43 @@ pub(super) fn handle_spacecraft_actions(
         ));
         return;
     }
+}
 
+/// Boarding chooses a nearby landed ship and queues the semantic control
+/// transfer; the controlled player's manifestation is hidden until disembark.
+pub(super) fn handle_ship_entry(
+    input: Res<PlayerInputFrame>,
+    frame: Res<UsfRuntimeChartState>,
+    ownership: UsfOwnershipQuery,
+    mut commands: Commands,
+    mut control_transfers: MessageWriter<LocalControlTransferRequest>,
+    player: Single<
+        (
+            Entity,
+            &Transform,
+            &UsfScaleLayer,
+            &mut Visibility,
+            &mut SpatialDemandSource,
+            &mut LocomotionEnabled,
+        ),
+        (With<Player>, Without<SpacecraftManifestation>),
+    >,
+    player_controlled: Query<(), (With<Player>, With<LocalControlSubject>)>,
+    mut ships: Query<
+        (
+            Entity,
+            &Transform,
+            &UsfScaleLayer,
+            &FlightContactState,
+            &mut SpatialDemandSource,
+        ),
+        (
+            With<SpacecraftManifestation>,
+            Without<LocalControlSubject>,
+            Without<Player>,
+        ),
+    >,
+) {
     if !input.gameplay_active() || !input.just_pressed(PlayerAction::Interact) {
         return;
     }
@@ -246,14 +300,6 @@ pub(super) fn handle_spacecraft_actions(
         mut player_visibility,
         mut player_demand,
         mut player_enabled,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
-        _,
     ) = player.into_inner();
 
     if !player_controlled.contains(player_entity) {

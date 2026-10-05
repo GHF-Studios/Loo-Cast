@@ -24,8 +24,6 @@ pub(super) fn collect_thermal_inspection(
     focus: Res<DeveloperFocus>,
     thermal_bodies: Query<&ThermalBody>,
     thermal_fields: Query<(&ThermalField, &ThermalMaterial)>,
-    combustible_materials: Query<&CombustibleMaterial>,
-    fuels: Query<&Fuel>,
     combustions: Query<&Combustion>,
     mut frame: ResMut<InspectionFrame>,
 ) {
@@ -178,7 +176,21 @@ pub(super) fn collect_thermal_inspection(
     } else {
         frame.submit(thermal);
     }
+}
 
+/// Combustion inspection is contributed independently from aggregate heat and
+/// thermal-grid inspection; each domain section owns its own optional data.
+pub(super) fn collect_combustion_inspection(
+    focus: Res<DeveloperFocus>,
+    combustible_materials: Query<&CombustibleMaterial>,
+    fuels: Query<&Fuel>,
+    combustions: Query<&Combustion>,
+    mut frame: ResMut<InspectionFrame>,
+) {
+    let Some(target) = focus.current() else {
+        return;
+    };
+    let four = InspectNumberFormat::significant_digits(4);
     if let Ok(material) = combustible_materials.get(target.semantic_entity) {
         let mut combustion = InspectSection::new(COMBUSTION_SECTION, "Combustion", 22)
             .for_structure(THERMAL_STRUCTURE)

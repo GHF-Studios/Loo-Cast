@@ -4,12 +4,11 @@ use super::*;
 
 use crate::{
     game::{
-        control::{LocalController, LocalControlSubject, LocalViewTarget},
+        control::{LocalControlSubject, LocalController, LocalViewTarget},
         flight::{FlightTelemetry, TraversalPolicy},
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale,
-            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled,
-            LocomotionInhibition, ScaleInteractionProxy,
+            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, FlightControlIntent,
+            LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition, ScaleInteractionProxy,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, NavigationPresentationProfile,
@@ -20,8 +19,7 @@ use crate::{
     },
     physics::gravity::GravitySample,
     spatial::{
-        UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfNavigationContext,
-        UsfScaleRoleMask,
+        UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfNavigationContext, UsfScaleRoleMask,
     },
 };
 
@@ -45,6 +43,30 @@ pub(super) fn spawn_player(
         )
         .expect("initial player position must project into the root runtime chart");
 
+    let (_, partition) = spawn_semantic_player(&mut commands, semantic_position);
+    let player = spawn_player_manifestation(&mut commands, partition, runtime_position);
+    let peer = spawn_split_solver_peer(&mut commands, player, runtime_position);
+    commands.entity(player).insert((
+        PortalSplitTraveler::new(Transform::from_translation(runtime_position), peer),
+        KinematicQueryExclusions::from_entities([peer]),
+    ));
+    let primary_view = spawn_primary_view(&mut commands, runtime_position);
+    attach_player_models(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        player,
+        peer,
+        primary_view,
+    );
+    spawn_projection_view(&mut commands, runtime_position);
+}
+
+/// Semantic identity and authority partition outlive all runtime manifestations.
+fn spawn_semantic_player(
+    commands: &mut Commands,
+    semantic_position: UsfPosition,
+) -> (Entity, Entity) {
     let semantic_player = commands
         .spawn((
             Name::new("Player Entity"),
@@ -64,14 +86,20 @@ pub(super) fn spawn_player(
         ))
         .id();
 
+    (semantic_player, player_partition)
+}
+
+fn spawn_player_manifestation(
+    commands: &mut Commands,
+    player_partition: Entity,
+    runtime_position: Vec3,
+) -> Entity {
     let player = commands
         .spawn((
             (
                 Name::new("Player Manifestation"),
                 Visibility::Inherited,
                 Player,
-                
-                
                 UsfLogicalRealizationOf(player_partition),
             ),
             (
@@ -79,28 +107,20 @@ pub(super) fn spawn_player(
                 UsfViewAnchor,
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
-                UsfInteractionScaleAffinity::new(SpatialScale::ZERO).requiring(
-                    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
-                ),
+                UsfInteractionScaleAffinity::new(SpatialScale::ZERO)
+                    .requiring(UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION)),
                 ThermalSpatialSample,
                 // The parent-module constant is authored in physical metres.
-                SpatialDemandSource::cuboid_metres(
-                    PLAYER_SPATIAL_DEMAND_HALF_EXTENT,
-                )
-                .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
+                SpatialDemandSource::cuboid_metres(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
+                    .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
                 VoxelMaterializationDemand,
                 PlayerController::default(),
                 PlayerAim::default(),
             ),
-            (
-                LocalControlSubject,
-                LocalViewTarget,
-            ),
+            (LocalControlSubject, LocalViewTarget),
             (
                 ViewCameraProfile::character(),
-                SpatialRefinementDemand::cuboid_metres(
-                    PLAYER_SPATIAL_DEMAND_HALF_EXTENT,
-                ),
+                SpatialRefinementDemand::cuboid_metres(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
                 LocomotionCapabilities::character(),
                 LocomotionEnabled(true),
                 CharacterStance::default(),
@@ -132,10 +152,7 @@ pub(super) fn spawn_player(
                 // Slices. CharacterMotor is only one detailed-body solver and
                 // must not be the component that implicitly creates the state
                 // needed by coarse navigation, cruise or input adapters.
-                (
-                    GravitySample::default(),
-                    GravityAlignedLocomotionFrame,
-                ),
+                (GravitySample::default(), GravityAlignedLocomotionFrame),
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
                 CharacterMovementConfig::default(),
@@ -155,6 +172,14 @@ pub(super) fn spawn_player(
         ))
         .id();
 
+    player
+}
+
+fn spawn_split_solver_peer(
+    commands: &mut Commands,
+    player: Entity,
+    runtime_position: Vec3,
+) -> Entity {
     let split_solver_peer = commands
         .spawn((
             (
@@ -162,7 +187,6 @@ pub(super) fn spawn_player(
                 Visibility::Inherited,
                 // Pairwise portal/Avian solver slot only. Generic logical
                 // realization ownership is attached temporarily while split.
-                
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
                 SpatialSplitPeer { authority: player },
@@ -182,11 +206,10 @@ pub(super) fn spawn_player(
         ))
         .id();
 
-    commands.entity(player).insert((
-        PortalSplitTraveler::new(Transform::from_translation(runtime_position), split_solver_peer),
-        KinematicQueryExclusions::from_entities([split_solver_peer]),
-    ));
+    split_solver_peer
+}
 
+fn spawn_primary_view(commands: &mut Commands, runtime_position: Vec3) -> Entity {
     let primary_view = commands
         .spawn((
             Name::new("Player Local Camera"),
@@ -207,23 +230,34 @@ pub(super) fn spawn_player(
         ))
         .id();
 
+    primary_view
+}
+
+fn attach_player_models(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    player: Entity,
+    split_solver_peer: Entity,
+    primary_view: Entity,
+) {
     commands.entity(player).with_children(|parent| {
         parent.spawn((
-            model::create_model(&mut meshes, &mut materials),
+            model::create_model(meshes, materials),
             UsfPresentationProjectionOf(player),
             UsfPresentationViewOf(primary_view),
         ));
     });
-    commands
-        .entity(split_solver_peer)
-        .with_children(|parent| {
-            parent.spawn((
-                model::create_model(&mut meshes, &mut materials),
-                UsfPresentationProjectionOf(split_solver_peer),
-                UsfPresentationViewOf(primary_view),
-            ));
-        });
+    commands.entity(split_solver_peer).with_children(|parent| {
+        parent.spawn((
+            model::create_model(meshes, materials),
+            UsfPresentationProjectionOf(split_solver_peer),
+            UsfPresentationViewOf(primary_view),
+        ));
+    });
+}
 
+fn spawn_projection_view(commands: &mut Commands, runtime_position: Vec3) {
     commands.spawn((
         Name::new("USF Projection Camera"),
         camera::UsfProjectionCamera,

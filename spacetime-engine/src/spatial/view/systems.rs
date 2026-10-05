@@ -285,69 +285,6 @@ pub(in crate::spatial) fn project_scenery_presentations(
             commands.entity(entity).insert(NotShadowReceiver);
         }
 
-        let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
-            view.anchor(),
-            presentation.scale(),
-            SCENERY_RELATIVE_BOUND,
-        ) else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-
-        // Radial-distance compression is a far-field illusion. Letting a huge
-        // body's compressed proxy surround the observer turns a macro visual
-        // approximation into fake local terrain. Inside its declared invalid
-        // region, expose missing fine presentation rather than drawing a
-        // counterfeit surface.
-        if scenery_is_inside_near_field_exclusion(*presentation, relative) {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        // Position and size use one similarity frame. Camera eye/boom offset is
-        // removed before projection so changing view exponent cannot change
-        // parallax. Far-field radial compression then operates on that true
-        // camera-relative vector.
-        let Some(native_to_view) =
-            view.projection_factor_f64(presentation.scale())
-        else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        let Some(raw_relative) =
-            view.project_relative_native_from_eye(relative, presentation.scale())
-        else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        let raw_distance = raw_relative.length();
-
-        if !raw_distance.is_finite() {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        let shell = presentation.render_shell_radius();
-        let compression = if raw_distance > f64::EPSILON {
-            shell / (shell + raw_distance)
-        } else {
-            1.0
-        };
-        let projected_scale = (native_to_view * compression) as f32;
-
-        if !projected_scale.is_finite() || projected_scale <= f32::EPSILON {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        let projected = raw_relative * compression;
-        let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
-        if !projected.is_finite() {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        let desired_global = view.presentation_origin() + projected;
         let parent_translation = if let Some(parent) = parent {
             let Ok(parent_transform) = parents.get(parent.0) else {
                 *visibility = Visibility::Hidden;
@@ -357,15 +294,63 @@ pub(in crate::spatial) fn project_scenery_presentations(
         } else {
             None
         };
-        let desired_translation =
-            local_translation_from_global(desired_global, parent_translation);
-
-        if transform.translation != desired_translation {
-            transform.translation = desired_translation;
-        }
-        transform.scale = Vec3::splat(projected_scale);
+        let Some((translation, scale)) = scenery_projection_pose(&view, presentation, parent_translation) else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        if transform.translation != translation { transform.translation = translation; }
+        transform.scale = Vec3::splat(scale);
         *visibility = Visibility::Inherited;
     }
+}
+
+/// Numerical far-field projection has no authority over scenery identity or
+/// coverage; failure only suppresses this disposable presentation.
+fn scenery_projection_pose(
+    view: &UsfViewContext,
+    presentation: &UsfSceneryPresentation,
+    parent_translation: Option<Vec3>,
+) -> Option<(Vec3, f32)> {
+    let relative = presentation.anchor().relative_at_scale_bounded(
+        view.anchor(), presentation.scale(), SCENERY_RELATIVE_BOUND,
+    ).ok()?;
+    if scenery_is_inside_near_field_exclusion(*presentation, relative) { return None; }
+    let native_to_view = view.projection_factor_f64(presentation.scale())?;
+    let raw_relative = view.project_relative_native_from_eye(relative, presentation.scale())?;
+    let raw_distance = raw_relative.length();
+    if !raw_distance.is_finite() { return None; }
+    let shell = presentation.render_shell_radius();
+    let compression = if raw_distance > f64::EPSILON {
+        shell / (shell + raw_distance)
+    } else { 1.0 };
+    let scale = (native_to_view * compression) as f32;
+    if !scale.is_finite() || scale <= f32::EPSILON { return None; }
+    let projected = raw_relative * compression;
+    let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
+    if !projected.is_finite() { return None; }
+    let global = view.presentation_origin() + projected;
+    Some((local_translation_from_global(global, parent_translation), scale))
+}
+
+/// Contextual Scale presentation is view-owned; physical interaction Scale
+/// selection remains outside this projection calculation.
+fn contextual_scale_projection_pose(
+    view: &UsfViewContext,
+    presentation: &UsfScalePresentation,
+    parent_translation: Option<Vec3>,
+) -> Option<(Vec3, f32)> {
+    if !view.context_scale_eligible(presentation.scale()) { return None; }
+    let relative = presentation.anchor().relative_at_scale_bounded(
+        view.anchor(), presentation.scale(), PRESENTATION_RELATIVE_BOUND,
+    ).ok()?;
+    let factor = view.direct_projection_factor(presentation.scale())?;
+    let projected = view.project_relative_native_from_eye(relative, presentation.scale())?;
+    if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) { return None; }
+    let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
+    if !projected.is_finite() { return None; }
+    let global = view.presentation_origin() + projected;
+    if !global.is_finite() { return None; }
+    Some((local_translation_from_global(global, parent_translation), factor))
 }
 
 fn capability_terrain_uses_physical_projection(
@@ -489,73 +474,13 @@ pub(in crate::spatial) fn project_scale_presentations(
             commands.entity(entity).insert(NotShadowReceiver);
         }
 
-        // Every supported coarser contextual Scale Slice may contribute.
-        // Immediately-finer realized apertures clip their parent on the GPU,
-        // so no one global scale owns the whole contextual scene.
-        if !view.context_scale_eligible(presentation.scale()) {
-            if !matches!(*visibility, Visibility::Hidden) {
-                *visibility = Visibility::Hidden;
-            }
-            continue;
-        }
-
-        let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
-            view.anchor(),
-            presentation.scale(),
-            PRESENTATION_RELATIVE_BOUND,
-        ) else {
-            if !matches!(*visibility, Visibility::Hidden) {
-                *visibility = Visibility::Hidden;
-            }
-            continue;
-        };
-
-        let Some(factor) =
-            view.direct_projection_factor(presentation.scale())
-        else {
+        let parent_translation = parent_state.map(|(transform, _)| transform.translation);
+        let Some((translation, scale)) = contextual_scale_projection_pose(&view, presentation, parent_translation) else {
             *visibility = Visibility::Hidden;
             continue;
         };
-        let Some(projected_relative64) =
-            view.project_relative_native_from_eye(relative, presentation.scale())
-        else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        if projected_relative64.abs().max_element()
-            > f64::from(PRESENTATION_RELATIVE_BOUND)
-        {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-        let projected_relative = Vec3::new(
-            projected_relative64.x as f32,
-            projected_relative64.y as f32,
-            projected_relative64.z as f32,
-        );
-        if !projected_relative.is_finite() {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-        let desired_global =
-            view.presentation_origin() + projected_relative;
-        if !desired_global.is_finite() {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        let desired_translation = if let Some((parent_transform, _)) = parent_state {
-            desired_global - parent_transform.translation
-        } else {
-            desired_global
-        };
-        if transform.translation != desired_translation {
-            transform.translation = desired_translation;
-        }
-        let desired_scale = Vec3::splat(factor);
-        if transform.scale != desired_scale {
-            transform.scale = desired_scale;
-        }
+        if transform.translation != translation { transform.translation = translation; }
+        if transform.scale != Vec3::splat(scale) { transform.scale = Vec3::splat(scale); }
         if !matches!(*visibility, Visibility::Inherited) {
             *visibility = Visibility::Inherited;
         }

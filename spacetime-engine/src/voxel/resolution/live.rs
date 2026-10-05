@@ -4,67 +4,57 @@
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
 
-use std::{
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::{
-    camera::{primitives::Aabb, visibility::{NoAutoAabb, RenderLayers}},
+    camera::{
+        primitives::Aabb,
+        visibility::{NoAutoAabb, RenderLayers},
+    },
     light::{NotShadowCaster, NotShadowReceiver},
     math::DVec3,
     prelude::*,
     render::storage::ShaderBuffer,
 };
 
-use crate::reconstructible::{
-    ReconstructibleFrameBudget, ReconstructibleWorkClass,
-};
-use crate::procedural_assets::{
-    DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
-};
+use crate::procedural_assets::{DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary};
+use crate::reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass};
 use crate::view::USF_PRESENTATION_LAYER;
-use crate::voxel::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelStreaming, VoxelWorld,
-};
+use crate::voxel::{MATERIALIZATION_CHUNK_SIZE, VoxelStreaming, VoxelWorld};
 
 use crate::{
     ecs::UsfPresentationProjectionOf,
     spatial::{
-         SpatialRealizationGranularityRequest, SpatialScale, UsfCapabilitySet,
-        UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
-        UsfScaleRoleMask, UsfSemanticFrame, UsfSpatialSet,
-        UsfViewContext, UsfViewDemandSnapshot,
-        UsfViewRenderAnchor,
+        SpatialRealizationGranularityRequest, SpatialScale, UsfCapabilitySet, UsfPosition,
+        UsfPrimaryInteractionSlice, UsfScaleLayer, UsfScaleRoleMask, UsfSemanticFrame,
+        UsfSpatialSet, UsfViewContext, UsfViewDemandSnapshot, UsfViewRenderAnchor,
     },
 };
 
 use super::classification::{CelestialClipmapSurfaceCache, ClipmapBoundaryClassifier};
-use super::visibility::ClipmapVisibilityDemand;
 use super::topology::{
     BLOCK_SUBDIVISIONS, CLIPMAP_FACE_DIRECTIONS, CelestialClipmapBlockKey,
     block_contains_local_point, block_distance_squared_to_point, block_distance_to_point,
-    leaf_containing_point, same_or_coarser_face_neighbor,
-    transition_faces_for_frontier,
+    leaf_containing_point, same_or_coarser_face_neighbor, transition_faces_for_frontier,
 };
+use super::visibility::ClipmapVisibilityDemand;
 
-use super::{
-    gpu::{
-        allocation_mesh, descriptor_for_block, GpuTerrainBlock,
-        GpuTerrainRuntime,
-    },
-    VoxelPresentationResolution, VoxelTransitionFaces,
-};
 use super::super::{
-    presentation_palette::{DEBUG_BAND_COUNT, debug_band_rgb},
-    CelestialVoxelField,
-    CelestialVoxelRealization, CelestialVoxelRealizationPolicy, VoxelAuthority,
+    CelestialVoxelField, CelestialVoxelRealization, CelestialVoxelRealizationPolicy,
+    VoxelAuthority,
     manifestation::{
-        create_voxel_render_material, VoxelMaterializationPresentation,
-        VoxelMaterializationRuntime, VoxelPresentationFallbackRetireReady,
-        VoxelRenderMaterial,
+        VoxelMaterializationPresentation, VoxelMaterializationRuntime,
+        VoxelPresentationFallbackRetireReady, VoxelRenderMaterial, create_voxel_render_material,
     },
+    presentation_palette::{DEBUG_BAND_COUNT, debug_band_rgb},
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTicket},
 };
+use super::{
+    VoxelPresentationResolution, VoxelTransitionFaces,
+    gpu::{GpuTerrainBlock, GpuTerrainRuntime, allocation_mesh, descriptor_for_block},
+};
+
+mod planning;
 
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
@@ -155,8 +145,8 @@ impl CelestialClipmapBandDebugMaterials {
         // If this is the debug-grid marker, the shared voxel shader supplies
         // textureless analytical grid detail in physical metres.
         tinted.base_color = clipmap_band_debug_color(relative_level);
-        let grid_uv_metres_per_unit = (base == debug_grid)
-            .then_some(DEBUG_GRID_BASE_UV_METRES_PER_UNIT);
+        let grid_uv_metres_per_unit =
+            (base == debug_grid).then_some(DEBUG_GRID_BASE_UV_METRES_PER_UNIT);
         let handle = create_voxel_render_material(
             tinted,
             grid_uv_metres_per_unit,
@@ -172,7 +162,6 @@ fn clipmap_band_debug_color(relative_level: i16) -> Color {
     let [r, g, b] = debug_band_rgb(relative_level);
     Color::srgb(r, g, b)
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CelestialClipmapBlockSpec {
@@ -216,14 +205,10 @@ struct CelestialClipmapPlan {
     committed_generation: Option<u64>,
 }
 
-
 fn seed_clipmap_stage_completion(
     authority: Entity,
     plan: &mut CelestialClipmapPlan,
-    active_entities: &HashMap<
-        (Entity, CelestialClipmapBlockSpec),
-        Entity,
-    >,
+    active_entities: &HashMap<(Entity, CelestialClipmapBlockSpec), Entity>,
 ) {
     plan.completed.clear();
     plan.meshful.clear();
@@ -250,10 +235,8 @@ impl PartialEq for ClipmapRefinementCandidate {
     fn eq(&self, other: &Self) -> bool {
         self.inside_validity == other.inside_validity
             && self.refinement_debt == other.refinement_debt
-            && self.projected_error.total_cmp(&other.projected_error)
-                == std::cmp::Ordering::Equal
-            && self.distance.total_cmp(&other.distance)
-                == std::cmp::Ordering::Equal
+            && self.projected_error.total_cmp(&other.projected_error) == std::cmp::Ordering::Equal
+            && self.distance.total_cmp(&other.distance) == std::cmp::Ordering::Equal
             && self.key == other.key
     }
 }
@@ -278,10 +261,7 @@ impl Ord for ClipmapRefinementCandidate {
     }
 }
 
-
-fn block_sort_key(
-    key: CelestialClipmapBlockKey,
-) -> (i16, i32, i32, i32) {
+fn block_sort_key(key: CelestialClipmapBlockKey) -> (i16, i32, i32, i32) {
     (
         key.resolution.binary_exponent(),
         key.coord.x,
@@ -315,17 +295,14 @@ fn refinement_candidate(
     }
 
     let distance = block_distance_to_point(key, observer_anchor_local);
-    let effective_distance = effective_observer_lod_distance_metres(
-        distance,
-        validity_radius_metres,
-    );
+    let effective_distance =
+        effective_observer_lod_distance_metres(distance, validity_radius_metres);
     let target = target_resolution_at_distance(finest, effective_distance);
     let refinement_debt = key
         .resolution
         .binary_exponent()
         .saturating_sub(target.binary_exponent());
-    let projected_error =
-        key.spacing_metres() / distance.max(key.spacing_metres());
+    let projected_error = key.spacing_metres() / distance.max(key.spacing_metres());
 
     (refinement_debt > 0).then_some(ClipmapRefinementCandidate {
         inside_validity: distance <= validity_radius_metres.max(0.0),
@@ -336,14 +313,12 @@ fn refinement_candidate(
     })
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum LeafRefinementOutcome {
     Refined,
     Retained,
     Unavailable,
 }
-
 
 fn refine_leaf_indexed(
     input: CelestialClipmapPlanInput,
@@ -368,7 +343,8 @@ fn refine_leaf_indexed(
             continue;
         }
         if block_contains_local_point(child, input.planning_anchor_local)
-            || surface_cache.refinement_intersects(child, classifier) {
+            || surface_cache.refinement_intersects(child, classifier)
+        {
             leaves.insert(child);
             inserted.push(child);
         }
@@ -382,14 +358,11 @@ fn refine_leaf_indexed(
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 struct LeafRefinementMutation {
     parent: CelestialClipmapBlockKey,
     children: [Option<CelestialClipmapBlockKey>; 8],
 }
-
 
 fn refine_leaf_transactional(
     input: CelestialClipmapPlanInput,
@@ -400,14 +373,7 @@ fn refine_leaf_transactional(
     inserted: &mut Vec<CelestialClipmapBlockKey>,
     journal: &mut Vec<LeafRefinementMutation>,
 ) -> LeafRefinementOutcome {
-    let outcome = refine_leaf_indexed(
-        input,
-        leaves,
-        parent,
-        surface_cache,
-        classifier,
-        inserted,
-    );
+    let outcome = refine_leaf_indexed(input, leaves, parent, surface_cache, classifier, inserted);
 
     if outcome == LeafRefinementOutcome::Refined {
         let mut children = [None; 8];
@@ -418,7 +384,6 @@ fn refine_leaf_transactional(
     }
     outcome
 }
-
 
 fn rollback_leaf_refinements(
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
@@ -445,12 +410,9 @@ fn balance_leaves_2_to_1_from_seeds(
     journal: &mut Vec<LeafRefinementMutation>,
     balanced_inserted: &mut Vec<CelestialClipmapBlockKey>,
 ) -> bool {
-    let mut queue =
-        VecDeque::<CelestialClipmapBlockKey>::with_capacity(seeds.len().max(64));
+    let mut queue = VecDeque::<CelestialClipmapBlockKey>::with_capacity(seeds.len().max(64));
     let mut queued =
-        HashSet::<CelestialClipmapBlockKey>::with_capacity(
-            seeds.len().saturating_mul(2).max(64),
-        );
+        HashSet::<CelestialClipmapBlockKey>::with_capacity(seeds.len().saturating_mul(2).max(64));
 
     for &seed in seeds {
         if queued.insert(seed) {
@@ -468,17 +430,12 @@ fn balance_leaves_2_to_1_from_seeds(
         }
 
         for (face, _) in CLIPMAP_FACE_DIRECTIONS {
-            let Some(neighbor) = same_or_coarser_face_neighbor(
-                leaves,
-                key,
-                face,
-                maximum_exponent,
-            ) else {
+            let Some(neighbor) = same_or_coarser_face_neighbor(leaves, key, face, maximum_exponent)
+            else {
                 continue;
             };
-            let difference =
-                i32::from(neighbor.resolution.binary_exponent())
-                    - i32::from(key.resolution.binary_exponent());
+            let difference = i32::from(neighbor.resolution.binary_exponent())
+                - i32::from(key.resolution.binary_exponent());
             if difference <= 1 {
                 continue;
             }
@@ -517,7 +474,6 @@ fn balance_leaves_2_to_1_from_seeds(
     true
 }
 
-
 #[derive(Resource, Default)]
 struct CelestialClipmapRegistry {
     next_generation: u64,
@@ -526,8 +482,7 @@ struct CelestialClipmapRegistry {
     planner_caches: HashMap<Entity, CelestialClipmapSurfaceCache>,
     // Stable presentation shells + async tickets live in this reconstructible
     // registry. They are runtime bookkeeping, not semantic ECS entities.
-    active_entities:
-        HashMap<(Entity, CelestialClipmapBlockSpec), Entity>,
+    active_entities: HashMap<(Entity, CelestialClipmapBlockSpec), Entity>,
     plan_tasks: Vec<CelestialClipmapPlanBuildTask>,
     build_tasks: Vec<CelestialClipmapBuildTask>,
 
@@ -608,16 +563,13 @@ impl CelestialClipmapTelemetry {
         stages: &[Vec<CelestialClipmapBlockSpec>],
     ) {
         self.boundary_clearance_metres = Some(input.clearance_metres);
-        self.requested_finest_spacing_metres =
-            Some(input.finest.sample_spacing_metres());
-        self.planned_finest_spacing_metres = stages
-            .last()
-            .and_then(|stage| {
-                stage
-                    .iter()
-                    .map(|spec| spec.key.spacing_metres())
-                    .min_by(f64::total_cmp)
-            });
+        self.requested_finest_spacing_metres = Some(input.finest.sample_spacing_metres());
+        self.planned_finest_spacing_metres = stages.last().and_then(|stage| {
+            stage
+                .iter()
+                .map(|spec| spec.key.spacing_metres())
+                .min_by(f64::total_cmp)
+        });
         self.planner_leaf_budget = sparse_frontier_leaf_budget(input);
         self.planner_final_leaves = stages.last().map_or(0, Vec::len);
         self.planner_budget_saturated = self.planner_final_leaves
@@ -628,33 +580,22 @@ impl CelestialClipmapTelemetry {
                 .is_some_and(|(planned, requested)| planned > requested * 1.001);
     }
 
-    fn record_dense_fallbacks(
-        &mut self,
-        held: usize,
-        retire_ready: usize,
-        forced_retire: usize,
-    ) {
+    fn record_dense_fallbacks(&mut self, held: usize, retire_ready: usize, forced_retire: usize) {
         self.dense_fallback_held = held;
         self.dense_fallback_retire_ready = retire_ready;
         self.dense_fallback_forced_retire = forced_retire;
     }
 
-    fn record_plan_task_relevance(
-        &mut self,
-        relevance: ClipmapPlanTaskRelevance,
-    ) {
+    fn record_plan_task_relevance(&mut self, relevance: ClipmapPlanTaskRelevance) {
         match relevance {
             ClipmapPlanTaskRelevance::Fresh => {
-                self.fresh_plan_accepts_total =
-                    self.fresh_plan_accepts_total.saturating_add(1);
+                self.fresh_plan_accepts_total = self.fresh_plan_accepts_total.saturating_add(1);
             }
             ClipmapPlanTaskRelevance::RollingProgress => {
-                self.rolling_plan_accepts_total =
-                    self.rolling_plan_accepts_total.saturating_add(1);
+                self.rolling_plan_accepts_total = self.rolling_plan_accepts_total.saturating_add(1);
             }
             ClipmapPlanTaskRelevance::Stale => {
-                self.stale_plan_drops_total =
-                    self.stale_plan_drops_total.saturating_add(1);
+                self.stale_plan_drops_total = self.stale_plan_drops_total.saturating_add(1);
             }
         }
     }
@@ -662,7 +603,6 @@ impl CelestialClipmapTelemetry {
     fn record_committed_focus_lag(&mut self, lag_metres: Option<f64>) {
         self.committed_focus_lag_metres = lag_metres;
     }
-
 
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
@@ -813,7 +753,6 @@ impl CelestialTerrainPresentationState {
     }
 }
 
-
 #[derive(Resource, Debug, Default)]
 pub(in crate::voxel) struct CelestialClipmapCoverageSnapshot {
     revision: u64,
@@ -861,16 +800,8 @@ impl CelestialClipmapCoverageSnapshot {
             a.center_local_metres
                 .x
                 .total_cmp(&b.center_local_metres.x)
-                .then_with(|| {
-                    a.center_local_metres
-                        .y
-                        .total_cmp(&b.center_local_metres.y)
-                })
-                .then_with(|| {
-                    a.center_local_metres
-                        .z
-                        .total_cmp(&b.center_local_metres.z)
-                })
+                .then_with(|| a.center_local_metres.y.total_cmp(&b.center_local_metres.y))
+                .then_with(|| a.center_local_metres.z.total_cmp(&b.center_local_metres.z))
         });
 
         if self.by_authority.get(&authority) == Some(&coverage) {
@@ -886,9 +817,7 @@ impl CelestialClipmapCoverageSnapshot {
         authority: Entity,
         coverage: &[CelestialClipmapCoverageCell],
     ) {
-        if self.by_authority.get(&authority).map(Vec::as_slice)
-            == Some(coverage)
-        {
+        if self.by_authority.get(&authority).map(Vec::as_slice) == Some(coverage) {
             return;
         }
         let target = self.by_authority.entry(authority).or_default();
@@ -905,51 +834,40 @@ impl CelestialClipmapCoverageSnapshot {
 
     fn retain_authorities(&mut self, live: &HashSet<Entity>) {
         let before = self.by_authority.len();
-        self.by_authority.retain(|authority, _| live.contains(authority));
+        self.by_authority
+            .retain(|authority, _| live.contains(authority));
         if self.by_authority.len() != before {
             self.revision = self.revision.wrapping_add(1).max(1);
         }
     }
 }
 
-fn visual_target_spacing_metres(
-    clearance_metres: f64,
-    pixels_per_radian: Option<f32>,
-) -> f64 {
+fn visual_target_spacing_metres(clearance_metres: f64, pixels_per_radian: Option<f32>) -> f64 {
     let clearance = clearance_metres.abs().max(MIN_SAMPLE_SPACING_METRES);
 
-    let clearance_target =
-        clearance / TARGET_CELLS_PER_CLEARANCE;
+    let clearance_target = clearance / TARGET_CELLS_PER_CLEARANCE;
 
     let screen_target = pixels_per_radian
         .map(f64::from)
         .filter(|value| value.is_finite() && *value > 0.0)
-        .map(|pixels_per_radian| {
-            clearance
-                * TARGET_PIXELS_PER_BINARY_SAMPLE
-                / pixels_per_radian
-        })
+        .map(|pixels_per_radian| clearance * TARGET_PIXELS_PER_BINARY_SAMPLE / pixels_per_radian)
         .unwrap_or(clearance_target);
 
     // Both constraints are upper bounds on acceptable sample spacing. Choose
     // the stricter one; binary quantization later selects at-or-finer.
     clearance_target
         .min(screen_target)
-        .clamp(
-            MIN_SAMPLE_SPACING_METRES,
-            MAX_FINE_SAMPLE_SPACING_METRES,
-        )
+        .clamp(MIN_SAMPLE_SPACING_METRES, MAX_FINE_SAMPLE_SPACING_METRES)
 }
 
 fn target_resolution_at_distance(
     finest: VoxelPresentationResolution,
     distance_metres: f64,
 ) -> VoxelPresentationResolution {
-    let requested_spacing = (distance_metres / TARGET_CELLS_PER_DISTANCE)
-        .max(finest.sample_spacing_metres());
+    let requested_spacing =
+        (distance_metres / TARGET_CELLS_PER_DISTANCE).max(finest.sample_spacing_metres());
     let requested =
-        VoxelPresentationResolution::at_most_metres(requested_spacing)
-            .unwrap_or(finest);
+        VoxelPresentationResolution::at_most_metres(requested_spacing).unwrap_or(finest);
     requested.max(finest)
 }
 
@@ -997,8 +915,7 @@ fn derive_plan_input(
     //
     // Interaction Scale does not participate. Presentation quality is a
     // physical/screen-space problem.
-    let desired_spacing =
-        visual_target_spacing_metres(clearance, pixels_per_radian);
+    let desired_spacing = visual_target_spacing_metres(clearance, pixels_per_radian);
     let granularity = SpatialRealizationGranularityRequest::new(
         desired_spacing,
         MIN_SAMPLE_SPACING_METRES,
@@ -1015,39 +932,28 @@ fn derive_plan_input(
 
     // The quality target is a MAXIMUM acceptable spacing. Quantize to
     // the closest binary level at-or-finer, never one step coarser.
-    let finest = VoxelPresentationResolution::at_most_metres(
-        granularity.target_spacing_metres(),
-    )?;
+    let finest = VoxelPresentationResolution::at_most_metres(granularity.target_spacing_metres())?;
 
     // Stable root resolution is a function of body diameter, not altitude.
     // At least one root-block extent spans the semantic diameter; multiple fixed
     // body-local root cells cover quadrants because the lattice origin is the
     // body's origin/corner boundary rather than an observer-relative origin.
     let body_diameter_metres =
-        field.conservative_outer_radius_metres()
-            * 2.0
-            * WHOLE_BODY_ROOT_MARGIN;
+        field.conservative_outer_radius_metres() * 2.0 * WHOLE_BODY_ROOT_MARGIN;
     let coarse_spacing_target =
-        (body_diameter_metres / BLOCK_SUBDIVISIONS as f64)
-            .max(finest.sample_spacing_metres());
+        (body_diameter_metres / BLOCK_SUBDIVISIONS as f64).max(finest.sample_spacing_metres());
     let coarse_exp_f64 = coarse_spacing_target.log2().ceil();
-    if coarse_exp_f64 < f64::from(i16::MIN)
-        || coarse_exp_f64 > f64::from(i16::MAX)
-    {
+    if coarse_exp_f64 < f64::from(i16::MIN) || coarse_exp_f64 > f64::from(i16::MAX) {
         return None;
     }
-    let coarsest = VoxelPresentationResolution::new(
-        (coarse_exp_f64 as i16).max(finest.binary_exponent()),
-    );
+    let coarsest =
+        VoxelPresentationResolution::new((coarse_exp_f64 as i16).max(finest.binary_exponent()));
 
     // The anchor is deliberately continuous rather than snapped to a bucket.
     // A live plan decides when this anchor has moved far enough to justify a
     // replacement; boundary crossing by itself is meaningless.
-    let fine_extent =
-        finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    let validity_radius_metres = granularity
-        .validity_radius_metres()
-        .max(fine_extent * 4.0);
+    let fine_extent = finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let validity_radius_metres = granularity.validity_radius_metres().max(fine_extent * 4.0);
 
     Some(CelestialClipmapPlanInput {
         key: CelestialClipmapPlanKey {
@@ -1076,22 +982,21 @@ fn plan_requires_refresh(
         return true;
     }
 
-    let observer_displacement =
-        (input.observer_anchor_local - plan.observer_anchor_local).length();
-    let surface_displacement =
-        (input.planning_anchor_local - plan.planning_anchor_local).length();
+    let observer_displacement = (input.observer_anchor_local - plan.observer_anchor_local).length();
+    let surface_displacement = (input.planning_anchor_local - plan.planning_anchor_local).length();
     let displacement = observer_displacement.max(surface_displacement);
-    let fine_extent =
-        input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    if plan.visibility.requires_refresh(&input.visibility, fine_extent) {
+    let fine_extent = input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    if plan
+        .visibility
+        .requires_refresh(&input.visibility, fine_extent)
+    {
         return true;
     }
 
     //
     // Validity radius says how much already-built terrain remains useful; it is
     // not permission for the finest focus to wander across most of that region.
-    let hold_radius = (plan.validity_radius_metres
-        * FOCUS_REPLAN_VALIDITY_FRACTION)
+    let hold_radius = (plan.validity_radius_metres * FOCUS_REPLAN_VALIDITY_FRACTION)
         .max(fine_extent * FOCUS_REPLAN_MIN_FINE_EXTENTS);
     displacement > hold_radius
 }
@@ -1133,10 +1038,7 @@ fn plan_task_relevance(
     committed_anchor_local: Option<DVec3>,
 ) -> ClipmapPlanTaskRelevance {
     if built_field != current_field
-        || !clipmap_plan_keys_structurally_compatible(
-            built.key,
-            current.key,
-        )
+        || !clipmap_plan_keys_structurally_compatible(built.key, current.key)
         || !built
             .visibility
             .result_still_relevant_to(&current.visibility)
@@ -1144,19 +1046,13 @@ fn plan_task_relevance(
         return ClipmapPlanTaskRelevance::Stale;
     }
 
-    let built_lag =
-        (current.observer_anchor_local - built.observer_anchor_local)
-            .length();
+    let built_lag = (current.observer_anchor_local - built.observer_anchor_local).length();
     if !built_lag.is_finite() {
         return ClipmapPlanTaskRelevance::Stale;
     }
 
-    let built_fine_extent =
-        built.finest.sample_spacing_metres()
-            * BLOCK_SUBDIVISIONS as f64;
-    let current_fine_extent =
-        current.finest.sample_spacing_metres()
-            * BLOCK_SUBDIVISIONS as f64;
+    let built_fine_extent = built.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let current_fine_extent = current.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
 
     let fresh_radius = built
         .validity_radius_metres
@@ -1174,14 +1070,12 @@ fn plan_task_relevance(
     let Some(committed_anchor_local) = committed_anchor_local else {
         return ClipmapPlanTaskRelevance::Stale;
     };
-    let committed_lag =
-        (current.observer_anchor_local - committed_anchor_local).length();
+    let committed_lag = (current.observer_anchor_local - committed_anchor_local).length();
     if !committed_lag.is_finite() {
         return ClipmapPlanTaskRelevance::Stale;
     }
 
-    let progress_margin =
-        built_fine_extent.min(current_fine_extent).max(1.0);
+    let progress_margin = built_fine_extent.min(current_fine_extent).max(1.0);
     if built_lag + progress_margin < committed_lag {
         ClipmapPlanTaskRelevance::RollingProgress
     } else {
@@ -1197,8 +1091,7 @@ fn local_frontier_spacing<'a>(
     specs
         .into_iter()
         .filter(|spec| {
-            block_distance_to_point(spec.key, planning_anchor_local)
-                <= probe_radius_metres
+            block_distance_to_point(spec.key, planning_anchor_local) <= probe_radius_metres
         })
         .map(|spec| spec.key.spacing_metres())
         .min_by(f64::total_cmp)
@@ -1220,10 +1113,8 @@ fn initial_stage_for_plan(
     // Preserve whatever local quality is already visible at the new focus. Do
     // not regress to roots, but also do not wait for the entire final frontier
     // when an intermediate replacement is already at least as good.
-    let fine_extent =
-        input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    let probe_radius =
-        input.validity_radius_metres.max(fine_extent * 4.0);
+    let fine_extent = input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let probe_radius = input.validity_radius_metres.max(fine_extent * 4.0);
 
     let existing = local_frontier_spacing(
         committed_specs.iter(),
@@ -1234,21 +1125,13 @@ fn initial_stage_for_plan(
     // If the previous frontier does not cover the new focus, require a useful
     // bootstrap (within 8x target) before swapping. This is still much smaller
     // than a final-frontier global barrier.
-    let maximum_acceptable = existing.unwrap_or(
-        input.finest.sample_spacing_metres() * 8.0,
-    );
+    let maximum_acceptable = existing.unwrap_or(input.finest.sample_spacing_metres() * 8.0);
 
     stages
         .iter()
         .position(|stage| {
-            local_frontier_spacing(
-                stage.iter(),
-                input.planning_anchor_local,
-                probe_radius,
-            )
-            .is_some_and(|spacing| {
-                spacing <= maximum_acceptable * 1.001
-            })
+            local_frontier_spacing(stage.iter(), input.planning_anchor_local, probe_radius)
+                .is_some_and(|spacing| spacing <= maximum_acceptable * 1.001)
         })
         .or(Some(stages.len() - 1))
 }
@@ -1261,19 +1144,14 @@ fn body_root_coordinate_bounds(
     if !extent.is_finite() || extent <= 0.0 {
         return None;
     }
-    let radius =
-        field.conservative_outer_radius_metres() * WHOLE_BODY_ROOT_MARGIN;
+    let radius = field.conservative_outer_radius_metres() * WHOLE_BODY_ROOT_MARGIN;
     let low = (-radius / extent).floor();
     let high = (radius / extent).floor();
-    if low < f64::from(i32::MIN)
-        || high > f64::from(i32::MAX)
-        || low > high
-    {
+    if low < f64::from(i32::MIN) || high > f64::from(i32::MAX) || low > high {
         return None;
     }
     Some((low as i32, high as i32))
 }
-
 
 /// Converts one balanced leaf frontier into deterministic build specs.
 ///
@@ -1288,10 +1166,7 @@ fn specs_for_frontier(
         .iter()
         .copied()
         .map(|key| {
-            let distance2 = block_distance_squared_to_point(
-                key,
-                planning_anchor_local,
-            );
+            let distance2 = block_distance_squared_to_point(key, planning_anchor_local);
             (distance2.to_bits(), key)
         })
         .collect::<Vec<_>>();
@@ -1328,10 +1203,7 @@ fn frontier_capped_at_resolution(
     final_leaves: &HashSet<CelestialClipmapBlockKey>,
     cap: VoxelPresentationResolution,
 ) -> HashSet<CelestialClipmapBlockKey> {
-    let mut staged =
-        HashSet::<CelestialClipmapBlockKey>::with_capacity(
-            final_leaves.len(),
-        );
+    let mut staged = HashSet::<CelestialClipmapBlockKey>::with_capacity(final_leaves.len());
 
     for &key in final_leaves {
         let staged_key = if key.resolution < cap {
@@ -1354,26 +1226,18 @@ fn append_progressive_frontier_stages(
     ordering_anchor_local: DVec3,
 ) {
     let stride = RECORDED_FRONTIER_BINARY_LEVEL_STRIDE.max(1);
-    let mut exponent = coarsest
-        .binary_exponent()
-        .saturating_sub(stride);
+    let mut exponent = coarsest.binary_exponent().saturating_sub(stride);
 
     while exponent > finest.binary_exponent()
-        && stages.len().saturating_add(1)
-            < MAX_RECORDED_FRONTIER_STAGES
+        && stages.len().saturating_add(1) < MAX_RECORDED_FRONTIER_STAGES
     {
         let cap = VoxelPresentationResolution::new(exponent);
-        let staged_leaves =
-            frontier_capped_at_resolution(final_leaves, cap);
+        let staged_leaves = frontier_capped_at_resolution(final_leaves, cap);
         let staged_specs = {
-            let _span = bevy::log::info_span!(
-                "voxel.worker.presentation_planning.progressive_specs"
-            )
-            .entered();
-            specs_for_frontier(
-                &staged_leaves,
-                ordering_anchor_local,
-            )
+            let _span =
+                bevy::log::info_span!("voxel.worker.presentation_planning.progressive_specs")
+                    .entered();
+            specs_for_frontier(&staged_leaves, ordering_anchor_local)
         };
 
         if !staged_specs.is_empty()
@@ -1388,13 +1252,11 @@ fn append_progressive_frontier_stages(
 }
 
 fn sparse_frontier_leaf_budget(input: CelestialClipmapPlanInput) -> usize {
-    let requested_levels =
-        i32::from(input.coarsest.binary_exponent())
-            .saturating_sub(i32::from(input.finest.binary_exponent()))
-            .max(0) as usize;
+    let requested_levels = i32::from(input.coarsest.binary_exponent())
+        .saturating_sub(i32::from(input.finest.binary_exponent()))
+        .max(0) as usize;
 
-    let fine_extent =
-        input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let fine_extent = input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
     let validity_blocks = if fine_extent.is_finite() && fine_extent > 0.0 {
         (input.validity_radius_metres / fine_extent)
             .ceil()
@@ -1404,14 +1266,9 @@ fn sparse_frontier_leaf_budget(input: CelestialClipmapPlanInput) -> usize {
     };
 
     MIN_SPARSE_FRONTIER_LEAVES
-        .saturating_add(
-            requested_levels.saturating_mul(LEAVES_PER_REQUESTED_LEVEL),
-        )
+        .saturating_add(requested_levels.saturating_mul(LEAVES_PER_REQUESTED_LEVEL))
         .saturating_add(validity_blocks.saturating_mul(64))
-        .clamp(
-            MIN_SPARSE_FRONTIER_LEAVES,
-            MAX_SPARSE_FRONTIER_LEAVES,
-        )
+        .clamp(MIN_SPARSE_FRONTIER_LEAVES, MAX_SPARSE_FRONTIER_LEAVES)
 }
 
 const RECORDED_FRONTIER_BINARY_LEVEL_STRIDE: i16 = 4;
@@ -1424,12 +1281,9 @@ fn push_refinement_candidates(
     validity_radius_metres: f64,
 ) {
     for key in keys {
-        if let Some(candidate) = refinement_candidate(
-            key,
-            finest,
-            observer_anchor_local,
-            validity_radius_metres,
-        ) {
+        if let Some(candidate) =
+            refinement_candidate(key, finest, observer_anchor_local, validity_radius_metres)
+        {
             candidates.push(candidate);
         }
     }
@@ -1446,8 +1300,7 @@ fn should_record_frontier_checkpoint(
     let gained = recorded
         .binary_exponent()
         .saturating_sub(current.binary_exponent());
-    gained >= RECORDED_FRONTIER_BINARY_LEVEL_STRIDE
-        || current <= finest
+    gained >= RECORDED_FRONTIER_BINARY_LEVEL_STRIDE || current <= finest
 }
 
 /// Expensive sparse staged-frontier construction.
@@ -1468,18 +1321,12 @@ fn build_plan(
         "clipmap planner finest resolution must not be coarser than root"
     );
     assert!(
-        input.observer_anchor_local.is_finite()
-            && input.planning_anchor_local.is_finite(),
+        input.observer_anchor_local.is_finite() && input.planning_anchor_local.is_finite(),
         "clipmap planner anchors must be finite"
     );
 
     surface_cache.begin_plan(field);
-    let result = build_plan_inner(
-        field,
-        input,
-        surface_cache,
-        warm_replan,
-    );
+    let result = build_plan_inner(field, input, surface_cache, warm_replan);
     surface_cache.finish_plan();
     result
 }
@@ -1501,9 +1348,8 @@ fn build_plan_inner(
         &classifier,
         input.visibility,
     )?;
-    let bootstrap = (!warm_replan).then(|| {
-        specs_for_frontier(&leaves, input.observer_anchor_local)
-    });
+    let bootstrap =
+        (!warm_replan).then(|| specs_for_frontier(&leaves, input.observer_anchor_local));
 
     refine_plan_frontier(
         &mut leaves,
@@ -1513,8 +1359,7 @@ fn build_plan_inner(
         &classifier,
     );
 
-    let final_stage =
-        specs_for_frontier(&leaves, input.observer_anchor_local);
+    let final_stage = specs_for_frontier(&leaves, input.observer_anchor_local);
     if final_stage.is_empty() {
         return None;
     }
@@ -1535,15 +1380,9 @@ fn planner_root_leaves(
     classifier: &ClipmapBoundaryClassifier<'_>,
     visibility: ClipmapVisibilityDemand,
 ) -> Option<HashSet<CelestialClipmapBlockKey>> {
-    let _span =
-        bevy::log::info_span!("voxel.worker.presentation_planning.roots")
-            .entered();
-    let (root_low, root_high) =
-        body_root_coordinate_bounds(field, coarsest)?;
-    let mut leaves =
-        HashSet::<CelestialClipmapBlockKey>::with_capacity(
-            maximum_leaves.min(8_192),
-        );
+    let _span = bevy::log::info_span!("voxel.worker.presentation_planning.roots").entered();
+    let (root_low, root_high) = body_root_coordinate_bounds(field, coarsest)?;
+    let mut leaves = HashSet::<CelestialClipmapBlockKey>::with_capacity(maximum_leaves.min(8_192));
 
     for z in root_low..=root_high {
         for y in root_low..=root_high {
@@ -1565,17 +1404,11 @@ fn planner_root_leaves(
     (!leaves.is_empty()).then_some(leaves)
 }
 
-fn surface_focus_resolution(
-    input: CelestialClipmapPlanInput,
-) -> VoxelPresentationResolution {
-    let distance =
-        (input.observer_anchor_local - input.planning_anchor_local).length();
+fn surface_focus_resolution(input: CelestialClipmapPlanInput) -> VoxelPresentationResolution {
+    let distance = (input.observer_anchor_local - input.planning_anchor_local).length();
     target_resolution_at_distance(
         input.finest,
-        effective_observer_lod_distance_metres(
-            distance,
-            input.validity_radius_metres,
-        ),
+        effective_observer_lod_distance_metres(distance, input.validity_radius_metres),
     )
     .min(input.coarsest)
 }
@@ -1587,14 +1420,10 @@ fn refine_plan_frontier(
     surface_cache: &mut CelestialClipmapSurfaceCache,
     classifier: &ClipmapBoundaryClassifier<'_>,
 ) {
-    let _span =
-        bevy::log::info_span!("voxel.worker.presentation_planning.refine")
-            .entered();
+    let _span = bevy::log::info_span!("voxel.worker.presentation_planning.refine").entered();
     let focus_resolution = surface_focus_resolution(input);
     let mut candidates =
-        BinaryHeap::<ClipmapRefinementCandidate>::with_capacity(
-            leaves.len().min(8_192),
-        );
+        BinaryHeap::<ClipmapRefinementCandidate>::with_capacity(leaves.len().min(8_192));
     push_refinement_candidates(
         &mut candidates,
         leaves.iter().copied(),
@@ -1604,18 +1433,12 @@ fn refine_plan_frontier(
     );
 
     let mut journal =
-        Vec::<LeafRefinementMutation>::with_capacity(
-            MAX_PRIMARY_REFINEMENTS_PER_WAVE * 2,
-        );
+        Vec::<LeafRefinementMutation>::with_capacity(MAX_PRIMARY_REFINEMENTS_PER_WAVE * 2);
     let mut inserted = Vec::<CelestialClipmapBlockKey>::with_capacity(8);
     let mut balance_seeds =
-        Vec::<CelestialClipmapBlockKey>::with_capacity(
-            MAX_PRIMARY_REFINEMENTS_PER_WAVE * 8,
-        );
+        Vec::<CelestialClipmapBlockKey>::with_capacity(MAX_PRIMARY_REFINEMENTS_PER_WAVE * 8);
     let mut balanced_inserted =
-        Vec::<CelestialClipmapBlockKey>::with_capacity(
-            MAX_PRIMARY_REFINEMENTS_PER_WAVE * 8,
-        );
+        Vec::<CelestialClipmapBlockKey>::with_capacity(MAX_PRIMARY_REFINEMENTS_PER_WAVE * 8);
 
     loop {
         journal.clear();
@@ -1769,14 +1592,16 @@ fn build_publication_stages(
         stages.push(final_stage);
     }
 
-    assert!(!stages.is_empty(), "planner must publish at least one stage");
+    assert!(
+        !stages.is_empty(),
+        "planner must publish at least one stage"
+    );
     assert!(
         stages.len() <= MAX_RECORDED_FRONTIER_STAGES,
         "planner publication stage cap must be respected"
     );
     stages
 }
-
 
 fn park_clipmap_entity(
     commands: &mut Commands,
@@ -1790,7 +1615,9 @@ fn park_clipmap_entity(
     }
 
     let affected_visible_frontier = block.committed;
-    registry.active_entities.remove(&(block.authority, block.spec));
+    registry
+        .active_entities
+        .remove(&(block.authority, block.spec));
     block.active = false;
     block.committed = false;
     block.projection_ready = false;
@@ -1810,7 +1637,6 @@ fn park_clipmap_entity(
     }
 }
 
-
 fn spawn_gpu_clipmap_entity(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -1819,8 +1645,7 @@ fn spawn_gpu_clipmap_entity(
     build_id: u64,
 ) -> Entity {
     let extent = admission.spec.key.extent_metres() as f32;
-    let transition_face_count =
-        admission.spec.transition_faces.bits().count_ones();
+    let transition_face_count = admission.spec.transition_faces.bits().count_ones();
 
     assert!(
         extent.is_finite() && extent > 0.0,
@@ -1831,10 +1656,7 @@ fn spawn_gpu_clipmap_entity(
         "GPU clipmap transitions must describe at most six faces"
     );
 
-    let bounds = Aabb::from_min_max(
-        Vec3::ZERO,
-        Vec3::splat(extent),
-    );
+    let bounds = Aabb::from_min_max(Vec3::ZERO, Vec3::splat(extent));
     let mesh = meshes.add(allocation_mesh(transition_face_count));
 
     commands
@@ -1853,11 +1675,7 @@ fn spawn_gpu_clipmap_entity(
             MeshMaterial3d(presentation_material),
             bounds,
             NoAutoAabb,
-            GpuTerrainBlock::new(
-                mesh,
-                build_id,
-                admission.descriptor,
-            ),
+            GpuTerrainBlock::new(mesh, build_id, admission.descriptor),
             Transform::IDENTITY,
             RenderLayers::layer(USF_PRESENTATION_LAYER),
             NotShadowCaster,
@@ -1882,11 +1700,7 @@ fn sync_celestial_clipmap_realizations(
         &VoxelAuthority,
         &CelestialVoxelRealizationPolicy,
     )>,
-    mut blocks: Query<(
-        Entity,
-        &mut CelestialClipmapBlock,
-        &mut Visibility,
-    )>,
+    mut blocks: Query<(Entity, &mut CelestialClipmapBlock, &mut Visibility)>,
     mut registry: ResMut<CelestialClipmapRegistry>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
@@ -1906,15 +1720,8 @@ fn sync_celestial_clipmap_realizations(
 
     {
         let _span = bevy::log::info_span!("celestial_clipmap.plan_identity").entered();
-        for (
-            authority,
-            _name,
-            body_origin,
-            body_frame,
-            field,
-            voxel_authority,
-            _policy,
-        ) in &authorities
+        for (authority, _name, body_origin, body_frame, field, voxel_authority, _policy) in
+            &authorities
         {
             if !voxel_authority.is_empty() {
                 continue;
@@ -1932,16 +1739,12 @@ fn sync_celestial_clipmap_realizations(
             // Aim reconstructible presentation work where the observer is
             // expected to be when planning+mesh work drains, not at the point
             // already being left behind.
-            let prediction_seconds =
-                (expected_build_seconds * CLIPMAP_LATENCY_MULTIPLIER)
-                    .clamp(0.0, CLIPMAP_MAX_VALIDITY_SECONDS);
+            let prediction_seconds = (expected_build_seconds * CLIPMAP_LATENCY_MULTIPLIER)
+                .clamp(0.0, CLIPMAP_MAX_VALIDITY_SECONDS);
             let local_velocity_metres_per_second =
-                body_frame.orientation().conjugate()
-                    * view.velocity_metres_per_second();
+                body_frame.orientation().conjugate() * view.velocity_metres_per_second();
             let predicted_observer_local =
-                observer_local
-                    + local_velocity_metres_per_second
-                        * prediction_seconds;
+                observer_local + local_velocity_metres_per_second * prediction_seconds;
 
             let visibility = ClipmapVisibilityDemand::new(
                 *field,
@@ -1965,238 +1768,17 @@ fn sync_celestial_clipmap_realizations(
         }
     }
 
-    let mut planning_authorities = HashSet::<Entity>::new();
-    let mut plans_changed = false;
+    let (mut planning_authorities, plans_changed) =
+        planning::poll_plan_tasks(&mut registry, &mut telemetry, &current_inputs);
 
-    let _poll_plan_tasks_span =
-        bevy::log::info_span!("celestial_clipmap.poll_plans").entered();
-    let mut pending_plan_tasks = Vec::with_capacity(registry.plan_tasks.len());
-    for mut build in std::mem::take(&mut registry.plan_tasks) {
-        let Some(&(current_input, current_field)) =
-            current_inputs.get(&build.authority)
-        else {
-            continue;
-        };
-        planning_authorities.insert(build.authority);
-
-        let output = match build.task.try_take() {
-            Ok(None) => {
-                pending_plan_tasks.push(build);
-                continue;
-            }
-            Ok(Some(output)) => output,
-            Err(failure) => {
-                planning_authorities.remove(&build.authority);
-                warn!(?failure, authority = ?build.authority, "celestial clipmap plan worker failed");
-                continue;
-            }
-        };
-        planning_authorities.remove(&build.authority);
-        registry
-            .planner_caches
-            .insert(build.authority, output.surface_cache);
-
-        let committed_anchor_local = registry
-            .plans
-            .get(&build.authority)
-            .map(|plan| plan.observer_anchor_local);
-        let relevance = plan_task_relevance(
-            build.input,
-            current_input,
-            build.field,
-            current_field,
-            committed_anchor_local,
-        );
-        telemetry.record_plan_task_relevance(relevance);
-        if relevance == ClipmapPlanTaskRelevance::Stale {
-            continue;
-        }
-
-        let Some(stages) = output.stages else {
-            continue;
-        };
-
-        let (committed_generation, committed_specs) =
-            registry
-                .plans
-                .get(&build.authority)
-                .map(|plan| {
-                    (
-                        plan.committed_generation,
-                        plan.committed_specs.clone(),
-                    )
-                })
-                .unwrap_or((
-                    None,
-                    HashSet::new(),
-                ));
-
-        let Some(stage_index) = initial_stage_for_plan(
-            &stages,
-            &committed_specs,
-            build.input,
-        ) else {
-            continue;
-        };
-        let desired = stages[stage_index].clone();
-        if desired.is_empty() {
-            continue;
-        }
-
-        telemetry.record_plan_quality(build.input, &stages);
-        let actual_finest_spacing_metres = stages
-            .last()
-            .and_then(|stage| {
-                stage
-                    .iter()
-                    .map(|spec| spec.key.spacing_metres())
-                    .min_by(f64::total_cmp)
-            });
-
-        let current_target_lag_metres =
-            (current_input.planning_anchor_local
-                - build.input.planning_anchor_local)
-                .length();
-
-        trace!(
-            authority = ?build.authority,
-            ?relevance,
-            current_target_lag_metres,
-            canonical_clearance_metres = build.input.clearance_metres,
-            requested_finest_spacing_metres = build.input.finest.sample_spacing_metres(),
-            actual_finest_spacing_metres = ?actual_finest_spacing_metres,
-            coarsest_spacing_metres = build.input.coarsest.sample_spacing_metres(),
-            refinement_stages = stages.len(),
-            initial_blocks = desired.len(),
-            final_blocks = stages.last().map_or(0, Vec::len),
-            requested_target_reached =
-                actual_finest_spacing_metres.is_some_and(|spacing| {
-                    spacing
-                        <= build.input.finest.sample_spacing_metres() * 1.001
-                }),
-            "celestial clipmap staged plan ready"
-        );
-
-        let generation = registry.next_generation();
-        registry.plans.insert(
-            build.authority,
-            CelestialClipmapPlan {
-                key: build.input.key,
-                field: build.field,
-                observer_anchor_local: build.input.observer_anchor_local,
-                planning_anchor_local: build.input.planning_anchor_local,
-                validity_radius_metres: build.input.validity_radius_metres,
-                visibility: build.input.visibility,
-                generation,
-                stages,
-                stage_index,
-                desired_set: desired.iter().copied().collect(),
-                desired,
-                completed: HashSet::new(),
-                meshful: HashSet::new(),
-                committed_specs,
-                committed_generation,
-            },
-        );
-
-        {
-            let CelestialClipmapRegistry {
-                plans,
-                active_entities,
-                ..
-            } = &mut *registry;
-            if let Some(plan) = plans.get_mut(&build.authority) {
-                seed_clipmap_stage_completion(
-                    build.authority,
-                    plan,
-                    active_entities,
-                );
-            }
-        }
-        registry.mark_frontier_changed();
-        plans_changed = true;
-    }
-
-    registry.plan_tasks = pending_plan_tasks;
-    drop(_poll_plan_tasks_span);
-
-    let _schedule_plan_span =
-        bevy::log::info_span!("celestial_clipmap.schedule_plans").entered();
-    let mut planning_slots =
-        workers.available_slots(VoxelWorkerLane::PresentationPlanning);
-    let committed_focus_lag = current_inputs
-        .iter()
-        .filter_map(|(authority, (input, _))| {
-            registry.plans.get(authority).map(|plan| {
-                (
-                    input.observer_anchor_local
-                        - plan.observer_anchor_local,
-                )
-                    .0
-                    .length()
-            })
-        })
-        .filter(|lag| lag.is_finite())
-        .max_by(f64::total_cmp);
-    telemetry.record_committed_focus_lag(committed_focus_lag);
-
-    for (&authority, &(input, field)) in &current_inputs {
-        let existing = registry.plans.get(&authority);
-        let replace = existing
-            .is_none_or(|plan| {
-                should_schedule_plan_refresh(plan, input, field)
-            });
-        if !replace
-            || planning_authorities.contains(&authority)
-            || planning_slots == 0
-        {
-            continue;
-        }
-        let warm_replan = existing
-            .is_some_and(|plan| !plan.committed_specs.is_empty());
-
-        let Some(work_token) =
-            frame_budget.begin(ReconstructibleWorkClass::Maintenance)
-        else {
-            break;
-        };
-
-        let mut surface_cache = registry
-            .planner_caches
-            .remove(&authority)
-            .unwrap_or_default();
-
-        let Some(task) = workers.try_submit(
-            VoxelWorkerLane::PresentationPlanning,
-            move || {
-                let stages = build_plan(
-                    field,
-                    input,
-                    &mut surface_cache,
-                    warm_replan,
-                );
-                CelestialClipmapPlanBuildOutput {
-                    stages,
-                    surface_cache,
-                }
-            },
-        ) else {
-            frame_budget.finish(work_token);
-            break;
-        };
-
-        telemetry.record_plan_request(warm_replan);
-        registry.plan_tasks.push(CelestialClipmapPlanBuildTask {
-            authority,
-            input,
-            field,
-            task,
-        });
-        planning_authorities.insert(authority);
-        planning_slots -= 1;
-        frame_budget.finish(work_token);
-    }
-    drop(_schedule_plan_span);
+    planning::schedule_plan_tasks(
+        &mut registry,
+        &mut telemetry,
+        &current_inputs,
+        &mut planning_authorities,
+        &workers,
+        &mut frame_budget,
+    );
 
     let plan_count_before_retain = registry.plans.len();
     registry
@@ -2215,9 +1797,7 @@ fn sync_celestial_clipmap_realizations(
             })
             .collect::<Vec<_>>();
         for entity in dead_entities {
-            if let Ok((_, mut block, mut visibility)) =
-                blocks.get_mut(entity)
-            {
+            if let Ok((_, mut block, mut visibility)) = blocks.get_mut(entity) {
                 park_clipmap_entity(
                     &mut commands,
                     entity,
@@ -2235,18 +1815,12 @@ fn sync_celestial_clipmap_realizations(
         .plans
         .values()
         .all(|plan| plan.committed_generation == Some(plan.generation));
-    if !plans_changed
-        && !plans_removed
-        && no_plan_tasks
-        && no_build_tasks
-        && plans_settled
-    {
+    if !plans_changed && !plans_removed && no_plan_tasks && no_build_tasks && plans_settled {
         return;
     }
 
     // Current-stage completion is seeded exactly once when a stage
     // becomes active and incrementally updated by worker results.
-
 
     //
     // CPU planning decides which semantic blocks are required. Binary density,
@@ -2259,34 +1833,24 @@ fn sync_celestial_clipmap_realizations(
         .drain_completed()
         .into_iter()
         .collect::<HashSet<_>>();
-    let mut inflight =
-        HashSet::<(Entity, CelestialClipmapBlockSpec)>::new();
+    let mut inflight = HashSet::<(Entity, CelestialClipmapBlockSpec)>::new();
 
     {
-        let _span =
-            bevy::log::info_span!("celestial_clipmap.poll_gpu_builds").entered();
-        let mut pending_builds =
-            Vec::with_capacity(registry.build_tasks.len());
+        let _span = bevy::log::info_span!("celestial_clipmap.poll_gpu_builds").entered();
+        let mut pending_builds = Vec::with_capacity(registry.build_tasks.len());
 
         for build in std::mem::take(&mut registry.build_tasks) {
             let key = (build.authority, build.spec);
 
-            let valid = registry
-                .plans
-                .get(&build.authority)
-                .is_some_and(|plan| {
-                    build.generation == plan.generation
-                        && plan.desired_set.contains(&build.spec)
-                        && build.field == plan.field
-                });
+            let valid = registry.plans.get(&build.authority).is_some_and(|plan| {
+                build.generation == plan.generation
+                    && plan.desired_set.contains(&build.spec)
+                    && build.field == plan.field
+            });
 
             if !valid {
-                if let Ok((_, mut block, mut visibility)) =
-                    blocks.get_mut(build.entity)
-                {
-                    commands
-                        .entity(build.entity)
-                        .remove::<GpuTerrainBlock>();
+                if let Ok((_, mut block, mut visibility)) = blocks.get_mut(build.entity) {
+                    commands.entity(build.entity).remove::<GpuTerrainBlock>();
                     park_clipmap_entity(
                         &mut commands,
                         build.entity,
@@ -2308,9 +1872,7 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            commands
-                .entity(build.entity)
-                .remove::<GpuTerrainBlock>();
+            commands.entity(build.entity).remove::<GpuTerrainBlock>();
             registry.active_entities.insert(key, build.entity);
             registry.mark_projection_pending(build.entity);
 
@@ -2326,8 +1888,7 @@ fn sync_celestial_clipmap_realizations(
     let mut admissions = Vec::<PendingGpuAdmission>::new();
 
     {
-        let _span =
-            bevy::log::info_span!("celestial_clipmap.schedule_gpu_builds").entered();
+        let _span = bevy::log::info_span!("celestial_clipmap.schedule_gpu_builds").entered();
 
         // Descriptor/publication admissions remain bounded even though there
         // are no CPU mesh jobs anymore, preventing allocator/entity bursts.
@@ -2341,9 +1902,8 @@ fn sync_celestial_clipmap_realizations(
         let mut authorities = registry.plans.keys().copied().collect::<Vec<_>>();
         authorities.sort_unstable_by_key(|authority| authority.to_bits());
         if let Some(cursor) = registry.gpu_admission_cursor {
-            let start = authorities.partition_point(|authority| {
-                authority.to_bits() <= cursor.to_bits()
-            });
+            let start =
+                authorities.partition_point(|authority| authority.to_bits() <= cursor.to_bits());
             let count = authorities.len();
             if count != 0 {
                 authorities.rotate_left(start % count);
@@ -2361,15 +1921,13 @@ fn sync_celestial_clipmap_realizations(
                     continue;
                 }
 
-                if inflight.len().saturating_add(admissions.len())
-                    >= MAX_GPU_BUILDS_IN_FLIGHT
+                if inflight.len().saturating_add(admissions.len()) >= MAX_GPU_BUILDS_IN_FLIGHT
                     || admitted >= MAX_GPU_ADMISSIONS_PER_FRAME
                 {
                     break 'authorities;
                 }
 
-                let Some(work_token) =
-                    frame_budget.begin(ReconstructibleWorkClass::Maintenance)
+                let Some(work_token) = frame_budget.begin(ReconstructibleWorkClass::Maintenance)
                 else {
                     break 'authorities;
                 };
@@ -2420,9 +1978,7 @@ fn sync_celestial_clipmap_realizations(
             continue;
         }
 
-        let Ok((_, _name, _, _, _, _, policy)) =
-            authorities.get(admission.authority)
-        else {
+        let Ok((_, _name, _, _, _, _, policy)) = authorities.get(admission.authority) else {
             continue;
         };
 
@@ -2471,7 +2027,9 @@ fn sync_celestial_clipmap_realizations(
         let mut retired_entities = Vec::<Entity>::new();
 
         let CelestialClipmapRegistry {
-            plans, active_entities, ..
+            plans,
+            active_entities,
+            ..
         } = &mut *registry;
         let mut committed_any_frontier = false;
         for (&authority, plan) in plans {
@@ -2498,46 +2056,33 @@ fn sync_celestial_clipmap_realizations(
                     active_entities
                         .get(&(authority, *spec))
                         .and_then(|entity| blocks.get(*entity).ok())
-                        .is_some_and(|(_, block, _)| {
-                            block.active && block.projection_ready
-                        })
+                        .is_some_and(|(_, block, _)| block.active && block.projection_ready)
                 })
             {
                 continue;
             }
 
-            let added_blocks = plan
-                .desired_set
-                .difference(&plan.committed_specs)
-                .count();
-            let retired_blocks = plan
-                .committed_specs
-                .difference(&plan.desired_set)
-                .count();
+            let added_blocks = plan.desired_set.difference(&plan.committed_specs).count();
+            let retired_blocks = plan.committed_specs.difference(&plan.desired_set).count();
 
             for ((block_authority, _), &entity) in active_entities.iter() {
                 if *block_authority != authority {
                     continue;
                 }
-                let Ok((_, mut block, _)) = blocks.get_mut(entity)
-                else {
+                let Ok((_, mut block, _)) = blocks.get_mut(entity) else {
                     continue;
                 };
                 if !block.active {
                     continue;
                 }
-                if plan.desired_set.contains(&block.spec)
-                {
+                if plan.desired_set.contains(&block.spec) {
                     block.committed = true;
                 } else {
                     retired_entities.push(entity);
                 }
             }
 
-            std::mem::swap(
-                &mut plan.committed_specs,
-                &mut plan.desired_set,
-            );
+            std::mem::swap(&mut plan.committed_specs, &mut plan.desired_set);
 
             let committed_generation = plan.generation;
             committed_any_frontier = true;
@@ -2545,17 +2090,11 @@ fn sync_celestial_clipmap_realizations(
             if plan.stage_index + 1 < plan.stages.len() {
                 plan.committed_generation = Some(committed_generation);
                 plan.stage_index += 1;
-                plan.generation =
-                    plan.generation.wrapping_add(1).max(1);
+                plan.generation = plan.generation.wrapping_add(1).max(1);
                 plan.desired.clone_from(&plan.stages[plan.stage_index]);
                 plan.desired_set.clear();
-                plan.desired_set
-                    .extend(plan.desired.iter().copied());
-                seed_clipmap_stage_completion(
-                    authority,
-                    plan,
-                    active_entities,
-                );
+                plan.desired_set.extend(plan.desired.iter().copied());
+                seed_clipmap_stage_completion(authority, plan, active_entities);
 
                 trace!(
                     authority = ?authority,
@@ -2589,9 +2128,7 @@ fn sync_celestial_clipmap_realizations(
             registry.mark_frontier_changed();
         }
         for entity in retired_entities {
-            if let Ok((_, mut block, mut visibility)) =
-                blocks.get_mut(entity)
-            {
+            if let Ok((_, mut block, mut visibility)) = blocks.get_mut(entity) {
                 park_clipmap_entity(
                     &mut commands,
                     entity,
@@ -2602,14 +2139,9 @@ fn sync_celestial_clipmap_realizations(
             }
         }
     }
-
 }
 
-
-fn binary_frontier_projection_complete(
-    expected_meshes: usize,
-    projected_meshes: usize,
-) -> bool {
+fn binary_frontier_projection_complete(expected_meshes: usize, projected_meshes: usize) -> bool {
     expected_meshes > 0 && projected_meshes == expected_meshes
 }
 
@@ -2642,8 +2174,7 @@ struct CelestialClipmapTransformScratch {
     binary_primary: HashSet<Entity>,
     projected_committed: Vec<Entity>,
     visible_levels: HashSet<i16>,
-    visible_by_authority:
-        HashMap<Entity, Vec<CelestialClipmapCoverageCell>>,
+    visible_by_authority: HashMap<Entity, Vec<CelestialClipmapCoverageCell>>,
     live_authorities: HashSet<Entity>,
     authority_stamps: HashMap<Entity, ClipmapAuthorityProjectionStamp>,
     next_authority_stamps: HashMap<Entity, ClipmapAuthorityProjectionStamp>,
@@ -2666,21 +2197,15 @@ fn project_clipmap_shell(
     metre_to_view: f32,
 ) -> bool {
     let local_origin = block.spec.key.origin_local_metres();
-    let relative_metres =
-        frame.relative_metres + frame.orientation * local_origin;
-    let projected =
-        (relative_metres - projection_eye) * metre_to_view_f64;
+    let relative_metres = frame.relative_metres + frame.orientation * local_origin;
+    let projected = (relative_metres - projection_eye) * metre_to_view_f64;
     if !projected.is_finite() {
         block.projection_ready = false;
         *visibility = Visibility::Hidden;
         return false;
     }
 
-    let projected = Vec3::new(
-        projected.x as f32,
-        projected.y as f32,
-        projected.z as f32,
-    );
+    let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
     let translation = presentation_origin + projected;
     if !translation.is_finite() {
         block.projection_ready = false;
@@ -2717,13 +2242,9 @@ fn sync_celestial_clipmap_transforms(
     mut scratch: Local<CelestialClipmapTransformScratch>,
     mut logged_projection: Local<bool>,
 ) {
-    let Some(metre_to_view_f64) =
-        view.projection_factor_f64(SpatialScale::ZERO)
-    else {
+    let Some(metre_to_view_f64) = view.projection_factor_f64(SpatialScale::ZERO) else {
         for &entity in registry.active_entities.values() {
-            if let Ok((mut block, _, mut visibility, _)) =
-                blocks.get_mut(entity)
-            {
+            if let Ok((mut block, _, mut visibility, _)) = blocks.get_mut(entity) {
                 block.projection_ready = false;
                 *visibility = Visibility::Hidden;
             }
@@ -2737,13 +2258,7 @@ fn sync_celestial_clipmap_transforms(
             coverage.replace_authority_from_slice(authority, &[]);
         }
         presentation_state.clear();
-        telemetry.record_visible_frontier(
-            0,
-            0,
-            &HashSet::new(),
-            None,
-            None,
-        );
+        telemetry.record_visible_frontier(0, 0, &HashSet::new(), None, None);
         scratch.initialized = false;
         return;
     };
@@ -2759,30 +2274,21 @@ fn sync_celestial_clipmap_transforms(
         projection_eye: view.projection_eye_offset_metres(),
         presentation_origin: view.presentation_origin(),
     };
-    let view_changed =
-        scratch.last_view_stamp != Some(view_stamp);
+    let view_changed = scratch.last_view_stamp != Some(view_stamp);
 
-    let _dirty_span =
-        bevy::log::info_span!(
-            "celestial_clipmap.transform_dirty_check"
-        )
-        .entered();
+    let _dirty_span = bevy::log::info_span!("celestial_clipmap.transform_dirty_check").entered();
 
     scratch.next_authority_stamps.clear();
-    let mut authority_changed =
-        scratch.authority_stamps.len() != registry.plans.len();
+    let mut authority_changed = scratch.authority_stamps.len() != registry.plans.len();
     for &authority in registry.plans.keys() {
-        let Ok((body_origin, body_frame, _, policy)) =
-            authorities.get(authority)
-        else {
+        let Ok((body_origin, body_frame, _, policy)) = authorities.get(authority) else {
             authority_changed = true;
             continue;
         };
         let stamp = ClipmapAuthorityProjectionStamp {
             origin: *body_origin,
             orientation: body_frame.orientation(),
-            presentation_material:
-                policy.presentation_material().clone(),
+            presentation_material: policy.presentation_material().clone(),
         };
         if scratch.authority_stamps.get(&authority) != Some(&stamp) {
             authority_changed = true;
@@ -2795,14 +2301,11 @@ fn sync_celestial_clipmap_transforms(
             next_authority_stamps,
             ..
         } = &mut *scratch;
-        std::mem::swap(
-            authority_stamps,
-            next_authority_stamps,
-        );
+        std::mem::swap(authority_stamps, next_authority_stamps);
     }
 
-    let frontier_changed = !scratch.initialized
-        || scratch.last_frontier_epoch != registry.frontier_epoch;
+    let frontier_changed =
+        !scratch.initialized || scratch.last_frontier_epoch != registry.frontier_epoch;
     let projection_changed = !scratch.initialized
         || scratch.last_projection_epoch != registry.projection_epoch
         || !registry.projection_pending.is_empty();
@@ -2824,10 +2327,7 @@ fn sync_celestial_clipmap_transforms(
         && !frontier_changed
         && projection_changed
     {
-        let _span = bevy::log::info_span!(
-            "celestial_clipmap.project_pending"
-        )
-        .entered();
+        let _span = bevy::log::info_span!("celestial_clipmap.project_pending").entered();
 
         scratch.pending_entities.clear();
         std::mem::swap(
@@ -2838,21 +2338,16 @@ fn sync_celestial_clipmap_transforms(
         // Move the reusable Vec out while iterating so the drain does not
         // retain a mutable borrow of `scratch` while we read `frames`.
         // Restore the now-empty allocation afterward for reuse next frame.
-        let mut pending_entities =
-            std::mem::take(&mut scratch.pending_entities);
+        let mut pending_entities = std::mem::take(&mut scratch.pending_entities);
 
         for entity in pending_entities.drain(..) {
-            let Ok((mut block, mut transform, mut visibility, _)) =
-                blocks.get_mut(entity)
-            else {
+            let Ok((mut block, mut transform, mut visibility, _)) = blocks.get_mut(entity) else {
                 continue;
             };
             if !block.active || block.committed {
                 continue;
             }
-            let Some(frame) =
-                scratch.frames.get(&block.authority).copied()
-            else {
+            let Some(frame) = scratch.frames.get(&block.authority).copied() else {
                 continue;
             };
             project_clipmap_shell(
@@ -2872,11 +2367,7 @@ fn sync_celestial_clipmap_transforms(
         return;
     }
 
-    let _full_span =
-        bevy::log::info_span!(
-            "celestial_clipmap.transform_full"
-        )
-        .entered();
+    let _full_span = bevy::log::info_span!("celestial_clipmap.transform_full").entered();
 
     scratch.pending_entities.clear();
     std::mem::swap(
@@ -2899,24 +2390,17 @@ fn sync_celestial_clipmap_transforms(
     }
 
     {
-        let _span = bevy::log::info_span!(
-            "celestial_clipmap.transform_authority_frames"
-        )
-        .entered();
+        let _span = bevy::log::info_span!("celestial_clipmap.transform_authority_frames").entered();
 
         for &authority in registry.plans.keys() {
-            let Ok((body_origin, body_frame, _, _)) =
-                authorities.get(authority)
-            else {
+            let Ok((body_origin, body_frame, _, _)) = authorities.get(authority) else {
                 continue;
             };
-            let Ok(relative_metres) =
-                body_origin.relative_at_scale_bounded_f64(
-                    view.anchor(),
-                    SpatialScale::ZERO,
-                    f64::MAX,
-                )
-            else {
+            let Ok(relative_metres) = body_origin.relative_at_scale_bounded_f64(
+                view.anchor(),
+                SpatialScale::ZERO,
+                f64::MAX,
+            ) else {
                 continue;
             };
             let orientation = body_frame.orientation();
@@ -2943,18 +2427,11 @@ fn sync_celestial_clipmap_transforms(
     let mut projected_any = false;
 
     {
-        let _span = bevy::log::info_span!(
-            "celestial_clipmap.transform_active_shells"
-        )
-        .entered();
+        let _span = bevy::log::info_span!("celestial_clipmap.transform_active_shells").entered();
 
         for &entity in registry.active_entities.values() {
-            let Ok((
-                mut block,
-                mut transform,
-                mut visibility,
-                mut material,
-            )) = blocks.get_mut(entity)
+            let Ok((mut block, mut transform, mut visibility, mut material)) =
+                blocks.get_mut(entity)
             else {
                 continue;
             };
@@ -2962,9 +2439,7 @@ fn sync_celestial_clipmap_transforms(
                 continue;
             }
 
-            let Some(frame) =
-                scratch.frames.get(&block.authority).copied()
-            else {
+            let Some(frame) = scratch.frames.get(&block.authority).copied() else {
                 block.projection_ready = false;
                 *visibility = Visibility::Hidden;
                 continue;
@@ -2982,29 +2457,20 @@ fn sync_celestial_clipmap_transforms(
                 .binary_exponent()
                 .saturating_sub(plan.key.finest_exponent);
             if block.material_relative_level != relative_level {
-                if let Ok((_, _, _, policy)) =
-                    authorities.get(block.authority)
-                {
-                    let standard_materials =
-                        &material_params.standard_materials;
-                    let debug_grid =
-                        &material_params.library.debug_grid;
-                    let render_materials =
-                        &mut material_params.render_materials;
-                    let shader_buffers =
-                        &mut material_params.shader_buffers;
-                    let band_materials =
-                        &mut material_params.band_materials;
-                    if let Some(desired) =
-                        band_materials.material_for(
-                            standard_materials,
-                            render_materials,
-                            shader_buffers,
-                            debug_grid,
-                            policy.presentation_material(),
-                            relative_level,
-                        )
-                    {
+                if let Ok((_, _, _, policy)) = authorities.get(block.authority) {
+                    let standard_materials = &material_params.standard_materials;
+                    let debug_grid = &material_params.library.debug_grid;
+                    let render_materials = &mut material_params.render_materials;
+                    let shader_buffers = &mut material_params.shader_buffers;
+                    let band_materials = &mut material_params.band_materials;
+                    if let Some(desired) = band_materials.material_for(
+                        standard_materials,
+                        render_materials,
+                        shader_buffers,
+                        debug_grid,
+                        policy.presentation_material(),
+                        relative_level,
+                    ) {
                         material.0 = desired;
                         block.material_relative_level = relative_level;
                     }
@@ -3012,8 +2478,7 @@ fn sync_celestial_clipmap_transforms(
             }
 
             if block.committed {
-                let counts =
-                    scratch.counts.entry(block.authority).or_default();
+                let counts = scratch.counts.entry(block.authority).or_default();
                 counts.0 = counts.0.saturating_add(1);
             }
 
@@ -3029,8 +2494,7 @@ fn sync_celestial_clipmap_transforms(
             ) {
                 projected_any = true;
                 if block.committed {
-                    let counts =
-                        scratch.counts.entry(block.authority).or_default();
+                    let counts = scratch.counts.entry(block.authority).or_default();
                     counts.1 = counts.1.saturating_add(1);
                     scratch.projected_committed.push(entity);
                 }
@@ -3058,10 +2522,8 @@ fn sync_celestial_clipmap_transforms(
     let mut coarsest_visible_spacing = None::<f64>;
 
     {
-        let _span = bevy::log::info_span!(
-            "celestial_clipmap.transform_visibility_coverage"
-        )
-        .entered();
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.transform_visibility_coverage").entered();
 
         let CelestialClipmapTransformScratch {
             projected_committed,
@@ -3072,13 +2534,10 @@ fn sync_celestial_clipmap_transforms(
         } = &mut *scratch;
 
         for &entity in projected_committed.iter() {
-            let Ok((block, _, mut visibility, _)) =
-                blocks.get_mut(entity)
-            else {
+            let Ok((block, _, mut visibility, _)) = blocks.get_mut(entity) else {
                 continue;
             };
-            let visible =
-                binary_primary.contains(&block.authority);
+            let visible = binary_primary.contains(&block.authority);
             *visibility = if visible {
                 Visibility::Inherited
             } else {
@@ -3090,35 +2549,24 @@ fn sync_celestial_clipmap_transforms(
 
             let spacing = block.spec.key.spacing_metres();
             visible_blocks = visible_blocks.saturating_add(1);
-            visible_levels.insert(
-                block.spec.key.resolution.binary_exponent(),
-            );
-            finest_visible_spacing = Some(
-                finest_visible_spacing
-                    .map_or(spacing, |value| value.min(spacing)),
-            );
-            coarsest_visible_spacing = Some(
-                coarsest_visible_spacing
-                    .map_or(spacing, |value| value.max(spacing)),
-            );
+            visible_levels.insert(block.spec.key.resolution.binary_exponent());
+            finest_visible_spacing =
+                Some(finest_visible_spacing.map_or(spacing, |value| value.min(spacing)));
+            coarsest_visible_spacing =
+                Some(coarsest_visible_spacing.map_or(spacing, |value| value.max(spacing)));
             visible_by_authority
                 .entry(block.authority)
                 .or_default()
                 .push(CelestialClipmapCoverageCell {
-                    center_local_metres:
-                        block.spec.key.center_local_metres(),
-                    half_extent_metres:
-                        block.spec.key.half_extent_metres(),
+                    center_local_metres: block.spec.key.center_local_metres(),
+                    half_extent_metres: block.spec.key.half_extent_metres(),
                     sample_spacing_metres: spacing,
                 });
         }
     }
 
     {
-        let _span = bevy::log::info_span!(
-            "celestial_clipmap.transform_publish_coverage"
-        )
-        .entered();
+        let _span = bevy::log::info_span!("celestial_clipmap.transform_publish_coverage").entered();
 
         coverage.retain_authorities(&scratch.live_authorities);
         for &authority in &scratch.live_authorities {
@@ -3130,9 +2578,7 @@ fn sync_celestial_clipmap_transforms(
             coverage.replace_authority_from_slice(authority, next);
         }
 
-        presentation_state.replace_binary_primary_from(
-            &scratch.binary_primary,
-        );
+        presentation_state.replace_binary_primary_from(&scratch.binary_primary);
         telemetry.record_visible_frontier(
             visible_blocks,
             binary_primary_count,
@@ -3178,10 +2624,7 @@ fn enforce_dense_interaction_presentation(
         &VoxelWorld,
         Option<&VoxelStreaming>,
     )>,
-    mut presentations: Query<
-        (&ChildOf, &mut Visibility),
-        With<VoxelMaterializationPresentation>,
-    >,
+    mut presentations: Query<(&ChildOf, &mut Visibility), With<VoxelMaterializationPresentation>>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
 ) {
     let primary_view_demand = view_demands.iter().next();
@@ -3193,9 +2636,7 @@ fn enforce_dense_interaction_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((realization, layer, world, streaming)) =
-            worlds.get(runtime.world())
-        else {
+        let Ok((realization, layer, world, streaming)) = worlds.get(runtime.world()) else {
             continue;
         };
 
@@ -3217,8 +2658,7 @@ fn enforce_dense_interaction_presentation(
             commands
                 .entity(parent.0)
                 .insert(VoxelPresentationFallbackRetireReady);
-            fallback_retire_ready =
-                fallback_retire_ready.saturating_add(1);
+            fallback_retire_ready = fallback_retire_ready.saturating_add(1);
             continue;
         }
 
@@ -3234,8 +2674,7 @@ fn enforce_dense_interaction_presentation(
                 commands
                     .entity(parent.0)
                     .insert(VoxelPresentationFallbackRetireReady);
-                fallback_retire_ready =
-                    fallback_retire_ready.saturating_add(1);
+                fallback_retire_ready = fallback_retire_ready.saturating_add(1);
             }
             continue;
         }
@@ -3245,28 +2684,22 @@ fn enforce_dense_interaction_presentation(
                 demand.intersects_presentation_native_aabb(
                     layer.scale(),
                     &center,
-                    Vec3::splat(
-                        MATERIALIZATION_CHUNK_SIZE as f32 * 0.5,
-                    ),
+                    Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5),
                 )
             })
         });
 
         let fallback_frontier_local = center.is_some_and(|center| {
             let retention_native =
-                MATERIALIZATION_CHUNK_SIZE as f32
-                    * DENSE_FALLBACK_RETENTION_CHUNKS;
+                MATERIALIZATION_CHUNK_SIZE as f32 * DENSE_FALLBACK_RETENTION_CHUNKS;
             center
                 .relative_at_scale_bounded(
                     &view.anchor(),
                     layer.scale(),
-                    retention_native
-                        + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0,
+                    retention_native + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0,
                 )
                 .ok()
-                .is_some_and(|relative| {
-                    relative.length() <= retention_native
-                })
+                .is_some_and(|relative| relative.length() <= retention_native)
         });
 
         if presentation_requested {
@@ -3282,19 +2715,16 @@ fn enforce_dense_interaction_presentation(
 
         // Historical dense presentation is not a cache of old visual LODs.
         // Retain only a short local bridge while binary authority is absent.
-        let forced_by_frontier =
-            view_relevant && !fallback_frontier_local;
+        let forced_by_frontier = view_relevant && !fallback_frontier_local;
 
         if !view_relevant || !fallback_frontier_local {
             *visibility = Visibility::Hidden;
             commands
                 .entity(parent.0)
                 .insert(VoxelPresentationFallbackRetireReady);
-            fallback_retire_ready =
-                fallback_retire_ready.saturating_add(1);
+            fallback_retire_ready = fallback_retire_ready.saturating_add(1);
             if forced_by_frontier {
-                fallback_forced_retire =
-                    fallback_forced_retire.saturating_add(1);
+                fallback_forced_retire = fallback_forced_retire.saturating_add(1);
             }
         } else {
             *visibility = Visibility::Inherited;
@@ -3305,11 +2735,7 @@ fn enforce_dense_interaction_presentation(
         }
     }
 
-    telemetry.record_dense_fallbacks(
-        fallback_held,
-        fallback_retire_ready,
-        fallback_forced_retire,
-    );
+    telemetry.record_dense_fallbacks(fallback_held, fallback_retire_ready, fallback_forced_retire);
 }
 
 pub(super) fn configure(app: &mut App) {
@@ -3327,7 +2753,6 @@ pub(super) fn configure(app: &mut App) {
         )
         .add_systems(
             PostUpdate,
-            enforce_dense_interaction_presentation
-                .after(UsfSpatialSet::ViewProjection),
+            enforce_dense_interaction_presentation.after(UsfSpatialSet::ViewProjection),
         );
 }

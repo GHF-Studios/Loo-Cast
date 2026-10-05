@@ -10,9 +10,7 @@ use crate::{
         DrawId, ScalarFieldMode, ScalarRange, VisualizationId, VisualizationSpec, WorldDrawBatch,
         WorldDrawFrame, WorldScalarField,
     },
-    physics::topology::{
-        SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
-    },
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery},
 };
 
 use super::{
@@ -45,16 +43,84 @@ pub(crate) fn configure(app: &mut App) {
     ))
     .add_systems(
         PostUpdate,
-        collect_thermal_world_draw.in_set(DeveloperSet::CollectWorldDraw),
+        (collect_thermal_cells, collect_thermal_coupling_field)
+            .chain()
+            .in_set(DeveloperSet::CollectWorldDraw),
     );
 }
 
-fn collect_thermal_world_draw(
+fn collect_thermal_cells(
+    tools: Res<DeveloperTools>,
+    thermal_bodies: Query<&ThermalBody>,
+    thermal_fields: Query<(&ThermalField, &ThermalMaterial)>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    samples: Query<
+        (Entity, &GlobalTransform),
+        (
+            With<ThermalSpatialSample>,
+            Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
+        ),
+    >,
+    frame: Res<WorldDrawFrame>,
+) {
+    if !tools.visualization_enabled(CELLS_VISUALIZATION) {
+        return;
+    }
+    let mut batch = WorldDrawBatch::default();
+    let range = ScalarRange::new(273.15, 800.0);
+    for (runtime, transform) in &samples {
+        let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
+            continue;
+        };
+        let Ok(body) = thermal_bodies.get(semantic) else {
+            continue;
+        };
+
+        let temperature = body.temperature_kelvin();
+        let color = ColorRamp::THERMAL.sample_scalar(range, temperature);
+        let position = transform.translation();
+
+        batch.cross(
+            Isometry3d::new(position, Quat::IDENTITY),
+            0.35,
+            color,
+            DrawDepth::World,
+        );
+        batch.sphere(
+            Isometry3d::new(position, Quat::IDENTITY),
+            0.28,
+            color,
+            12,
+            DrawDepth::World,
+        );
+
+        if let Ok((field, material)) = thermal_fields.get(semantic) {
+            let minimum = field.minimum_temperature_kelvin(material);
+            let maximum = field.maximum_temperature_kelvin(material);
+            let cell_range = ScalarRange::new(minimum, maximum.max(minimum + 1.0));
+            let radius = (field.cell_size_meters().min_element() * 0.16).clamp(0.015, 0.12);
+
+            for cell in field.cell_samples(material) {
+                let cell_position = transform.affine().transform_point3(cell.local_center);
+                let cell_color =
+                    ColorRamp::THERMAL.sample_scalar(cell_range, cell.temperature_kelvin);
+                batch.sphere(
+                    Isometry3d::new(cell_position, Quat::IDENTITY),
+                    radius,
+                    cell_color,
+                    6,
+                    DrawDepth::World,
+                );
+            }
+        }
+    }
+    frame.submit(batch);
+}
+
+fn collect_thermal_coupling_field(
     tools: Res<DeveloperTools>,
     view: Res<DeveloperView>,
     transforms: Query<&GlobalTransform>,
-    thermal_bodies: Query<&ThermalBody>,
-    thermal_fields: Query<(&ThermalField, &ThermalMaterial)>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     samples: Query<
         (Entity, &GlobalTransform),
@@ -66,75 +132,15 @@ fn collect_thermal_world_draw(
     sources: Query<(Entity, &Combustion, &CombustibleMaterial)>,
     frame: Res<WorldDrawFrame>,
 ) {
-    let cells_enabled = tools.visualization_enabled(CELLS_VISUALIZATION);
-    let field_enabled = tools.visualization_enabled(COUPLING_FIELD_VISUALIZATION);
-    if !cells_enabled && !field_enabled {
+    if !tools.visualization_enabled(COUPLING_FIELD_VISUALIZATION) {
         return;
     }
-
     let mut batch = WorldDrawBatch::default();
-
-    if cells_enabled {
-        let range = ScalarRange::new(273.15, 800.0);
-        for (runtime, transform) in &samples {
-            let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
-                continue;
-            };
-            let Ok(body) = thermal_bodies.get(semantic) else {
-                continue;
-            };
-
-            let temperature = body.temperature_kelvin();
-            let color = ColorRamp::THERMAL.sample_scalar(range, temperature);
-            let position = transform.translation();
-
-            batch.cross(
-                Isometry3d::new(position, Quat::IDENTITY),
-                0.35,
-                color,
-                DrawDepth::World,
-            );
-            batch.sphere(
-                Isometry3d::new(position, Quat::IDENTITY),
-                0.28,
-                color,
-                12,
-                DrawDepth::World,
-            );
-
-            if let Ok((field, material)) = thermal_fields.get(semantic) {
-                let minimum = field.minimum_temperature_kelvin(material);
-                let maximum = field.maximum_temperature_kelvin(material);
-                let cell_range = ScalarRange::new(minimum, maximum.max(minimum + 1.0));
-                let radius = (field.cell_size_meters().min_element() * 0.16).clamp(0.015, 0.12);
-
-                for cell in field.cell_samples(material) {
-                    let cell_position = transform.affine().transform_point3(cell.local_center);
-                    let cell_color =
-                        ColorRamp::THERMAL.sample_scalar(cell_range, cell.temperature_kelvin);
-                    batch.sphere(
-                        Isometry3d::new(cell_position, Quat::IDENTITY),
-                        radius,
-                        cell_color,
-                        6,
-                        DrawDepth::World,
-                    );
-                }
-            }
-        }
-    }
-
-    if !field_enabled {
-        frame.submit(batch);
-        return;
-    }
-
     let Some(observer) = view
         .observer()
         .and_then(|entity| transforms.get(entity).ok())
         .map(GlobalTransform::compute_transform)
     else {
-        frame.submit(batch);
         return;
     };
 
@@ -167,7 +173,6 @@ fn collect_thermal_world_draw(
         .collect::<Vec<_>>();
 
     if influence_sources.is_empty() {
-        frame.submit(batch);
         return;
     }
 

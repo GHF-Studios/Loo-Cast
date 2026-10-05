@@ -49,7 +49,9 @@ mod inspection;
 
 use commit::{apply_thermal_inspection_actions, apply_thermal_inspection_edits};
 use gizmo::collect_focused_thermal_gizmo;
-use inspection::{collect_thermal_inspection, collect_thermal_structure};
+use inspection::{
+    collect_combustion_inspection, collect_thermal_inspection, collect_thermal_structure,
+};
 
 pub(crate) fn configure(app: &mut App) {
     app.add_systems(
@@ -65,7 +67,8 @@ pub(crate) fn configure(app: &mut App) {
     )
     .add_systems(
         PostUpdate,
-        collect_thermal_inspection.in_set(DeveloperSet::CollectInspection),
+        (collect_thermal_inspection, collect_combustion_inspection)
+            .in_set(DeveloperSet::CollectInspection),
     )
     .add_systems(
         PostUpdate,

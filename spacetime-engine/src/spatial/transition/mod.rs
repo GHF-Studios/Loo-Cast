@@ -13,9 +13,9 @@ use bevy::prelude::*;
 use crate::ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery};
 
 use super::{
-    SpatialScale, UsfCanonicalMotion, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
-    UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
-    UsfSpatialAnchor, UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
+    SpatialScale, UsfCanonicalMotion, UsfInteractionProjection, UsfPosition,
+    UsfPrimaryInteractionSlice, UsfRuntimeChartState, UsfScaleCoverageSnapshot, UsfScaleLayer,
+    UsfScaleRoleMask, UsfSpatialAnchor, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,11 +73,7 @@ impl UsfSpatialTransition {
         self
     }
 
-    pub fn requiring_coverage(
-        mut self,
-        roles: UsfScaleRoleMask,
-        radius_native: f32,
-    ) -> Self {
+    pub fn requiring_coverage(mut self, roles: UsfScaleRoleMask, radius_native: f32) -> Self {
         self.required_coverage = roles;
         self.required_coverage_authority = None;
         self.coverage_radius_native = radius_native.max(0.0);
@@ -149,11 +145,7 @@ impl UsfInteractionRequirement {
         }
     }
 
-    pub fn requiring_coverage(
-        mut self,
-        roles: UsfScaleRoleMask,
-        radius_native: f32,
-    ) -> Self {
+    pub fn requiring_coverage(mut self, roles: UsfScaleRoleMask, radius_native: f32) -> Self {
         self.required_coverage = roles;
         self.required_coverage_authority = None;
         self.coverage_radius_native = radius_native.max(0.0);
@@ -241,20 +233,14 @@ impl UsfSpatialTransitionQueue {
     ///
     /// Capability planners consume this read-only intent so destination
     /// responsibility can exist before a coverage-gated handoff commits.
-    pub(crate) fn pending_relocation_for(
-        &self,
-        subject: Entity,
-    ) -> Option<&UsfSpatialTransition> {
+    pub(crate) fn pending_relocation_for(&self, subject: Entity) -> Option<&UsfSpatialTransition> {
         self.pending
             .iter()
             .rev()
             .find(|request| request.subject == subject)
     }
 
-    fn take_latest_relocation_for(
-        &mut self,
-        subject: Entity,
-    ) -> Option<UsfSpatialTransition> {
+    fn take_latest_relocation_for(&mut self, subject: Entity) -> Option<UsfSpatialTransition> {
         let mut latest = None;
         let mut retained = VecDeque::with_capacity(self.pending.len());
 
@@ -270,10 +256,7 @@ impl UsfSpatialTransitionQueue {
         latest
     }
 
-    fn interaction_requirement_for(
-        &self,
-        subject: Entity,
-    ) -> Option<UsfInteractionRequirement> {
+    fn interaction_requirement_for(&self, subject: Entity) -> Option<UsfInteractionRequirement> {
         self.interaction_requirements.get(&subject).copied()
     }
 
@@ -310,6 +293,120 @@ pub(super) struct InteractionHandoffWaitFingerprint {
     collision_ready: bool,
     editing_ready: bool,
     guard_blocked: bool,
+}
+
+/// Normalized one-frame transition intent. Relocations retain their one-shot
+/// request so a coverage miss can put that exact command back in the queue.
+struct ResolvedTransition {
+    position: UsfPosition,
+    target_scale: SpatialScale,
+    view_exponent: Option<f32>,
+    velocity_policy: UsfTransitionVelocity,
+    required_coverage: UsfScaleRoleMask,
+    required_coverage_authority: Option<Entity>,
+    coverage_radius_native: f32,
+    cause: UsfSpatialTransitionCause,
+    requeue: Option<UsfSpatialTransition>,
+}
+
+impl ResolvedTransition {
+    fn take(
+        queue: &mut UsfSpatialTransitionQueue,
+        subject: Entity,
+        current_position: UsfPosition,
+        previous_scale: SpatialScale,
+    ) -> Option<Self> {
+        if let Some(request) = queue.take_latest_relocation_for(subject) {
+            return Some(Self {
+                position: request.position,
+                target_scale: request.target_scale.unwrap_or(previous_scale),
+                view_exponent: request.view_exponent,
+                velocity_policy: request.velocity,
+                required_coverage: request.required_coverage,
+                required_coverage_authority: request.required_coverage_authority,
+                coverage_radius_native: request.coverage_radius_native,
+                cause: UsfSpatialTransitionCause::Requested,
+                requeue: Some(request),
+            });
+        }
+        let requirement = queue.interaction_requirement_for(subject)?;
+        Some(Self {
+            position: current_position,
+            target_scale: requirement.target_scale,
+            view_exponent: None,
+            velocity_policy: requirement.velocity,
+            required_coverage: requirement.required_coverage,
+            required_coverage_authority: requirement.required_coverage_authority,
+            coverage_radius_native: requirement.coverage_radius_native,
+            cause: UsfSpatialTransitionCause::InteractionRequirement,
+            requeue: None,
+        })
+    }
+}
+
+/// Disposable coverage evidence. Individual role bits explain a wait; only
+/// the combined role query grants admission to the destination chart.
+struct CoverageEvidence {
+    realization_ready: bool,
+    presentation_ready: bool,
+    collision_ready: bool,
+    editing_ready: bool,
+    all_ready: bool,
+}
+
+impl CoverageEvidence {
+    fn collect(
+        coverage: &UsfScaleCoverageSnapshot,
+        position: &UsfPosition,
+        target_scale: SpatialScale,
+        required: UsfScaleRoleMask,
+        authority: Option<Entity>,
+        radius_native: f32,
+    ) -> Self {
+        let has_role = |role| {
+            if !required.contains(role) {
+                return true;
+            }
+            Self::has(
+                coverage,
+                position,
+                target_scale,
+                role,
+                authority,
+                radius_native,
+            )
+        };
+        Self {
+            realization_ready: has_role(UsfScaleRoleMask::REALIZATION),
+            presentation_ready: has_role(UsfScaleRoleMask::PRESENTATION),
+            collision_ready: has_role(UsfScaleRoleMask::COLLISION),
+            editing_ready: has_role(UsfScaleRoleMask::EDITING),
+            all_ready: required.is_empty()
+                || Self::has(
+                    coverage,
+                    position,
+                    target_scale,
+                    required,
+                    authority,
+                    radius_native,
+                ),
+        }
+    }
+
+    fn has(
+        coverage: &UsfScaleCoverageSnapshot,
+        position: &UsfPosition,
+        target_scale: SpatialScale,
+        roles: UsfScaleRoleMask,
+        authority: Option<Entity>,
+        radius_native: f32,
+    ) -> bool {
+        if let Some(authority) = authority {
+            coverage.has_near_for_authority(authority, target_scale, position, roles, radius_native)
+        } else {
+            coverage.has_near(target_scale, position, roles, radius_native)
+        }
+    }
 }
 
 pub(super) fn apply_spatial_transitions(
@@ -370,9 +467,7 @@ pub(super) fn apply_spatial_transitions(
         return;
     };
 
-    let relocation = queue.take_latest_relocation_for(subject);
-
-    let (
+    let Some(ResolvedTransition {
         position,
         target_scale,
         view_exponent,
@@ -382,36 +477,12 @@ pub(super) fn apply_spatial_transitions(
         coverage_radius_native,
         cause,
         requeue,
-    ) = if let Some(request) = relocation {
-        (
-            request.position,
-            request.target_scale.unwrap_or(previous_scale),
-            request.view_exponent,
-            request.velocity,
-            request.required_coverage,
-            request.required_coverage_authority,
-            request.coverage_radius_native,
-            UsfSpatialTransitionCause::Requested,
-            Some(request),
-        )
-    } else if let Some(requirement) = queue.interaction_requirement_for(subject) {
-        (
-            current_position,
-            requirement.target_scale,
-            None,
-            requirement.velocity,
-            requirement.required_coverage,
-            requirement.required_coverage_authority,
-            requirement.coverage_radius_native,
-            UsfSpatialTransitionCause::InteractionRequirement,
-            None,
-        )
-    } else {
+    }) = ResolvedTransition::take(&mut queue, subject, current_position, previous_scale)
+    else {
         return;
     };
 
-    if cause == UsfSpatialTransitionCause::InteractionRequirement
-        && target_scale == previous_scale
+    if cause == UsfSpatialTransitionCause::InteractionRequirement && target_scale == previous_scale
     {
         active.cancel_handoff();
         return;
@@ -423,51 +494,20 @@ pub(super) fn apply_spatial_transitions(
         active.cancel_handoff();
     }
 
-    let has_role = |role: UsfScaleRoleMask| {
-        if !required_coverage.contains(role) {
-            return true;
-        }
-        if let Some(authority) = required_coverage_authority {
-            coverage.has_near_for_authority(
-                authority,
-                target_scale,
-                &position,
-                role,
-                coverage_radius_native,
-            )
-        } else {
-            coverage.has_near(
-                target_scale,
-                &position,
-                role,
-                coverage_radius_native,
-            )
-        }
-    };
-
-    let realization_ready = has_role(UsfScaleRoleMask::REALIZATION);
-    let presentation_ready = has_role(UsfScaleRoleMask::PRESENTATION);
-    let collision_ready = has_role(UsfScaleRoleMask::COLLISION);
-    let editing_ready = has_role(UsfScaleRoleMask::EDITING);
-
-    let coverage_ready = if required_coverage.is_empty() {
-        true
-    } else if let Some(authority) = required_coverage_authority {
-        coverage.has_near_for_authority(
-            authority,
-            target_scale,
-            &position,
-            required_coverage,
-            coverage_radius_native,
-        )
-    } else {
-        coverage.has_near(
-            target_scale,
-            &position,
-            required_coverage,
-            coverage_radius_native,
-        )
-    };
+    let CoverageEvidence {
+        realization_ready,
+        presentation_ready,
+        collision_ready,
+        editing_ready,
+        all_ready: coverage_ready,
+    } = CoverageEvidence::collect(
+        &coverage,
+        &position,
+        target_scale,
+        required_coverage,
+        required_coverage_authority,
+        coverage_radius_native,
+    );
 
     if !coverage_ready {
         let fingerprint = InteractionHandoffWaitFingerprint {
@@ -558,7 +598,9 @@ pub(super) fn apply_spatial_transitions(
     for (_entity, mut transform, mut layer, position, velocity, motion, realization) in
         &mut participants.p1()
     {
-        if realization.is_none_or(|realization| ownership.semantic_for(realization) != Some(subject)) {
+        if realization
+            .is_none_or(|realization| ownership.semantic_for(realization) != Some(subject))
+        {
             continue;
         }
 
@@ -577,8 +619,8 @@ pub(super) fn apply_spatial_transitions(
             position.0 = translated;
         }
 
-        let belongs_to_subject =
-            realization.is_some_and(|realization| ownership.semantic_for(realization) == Some(subject));
+        let belongs_to_subject = realization
+            .is_some_and(|realization| ownership.semantic_for(realization) == Some(subject));
 
         if belongs_to_subject {
             match (motion, velocity) {

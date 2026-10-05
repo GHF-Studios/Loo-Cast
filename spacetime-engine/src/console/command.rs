@@ -36,6 +36,19 @@ pub(super) struct RegisteredConsoleCommand {
     completion: &'static [ConsoleArgumentCompletion],
 }
 
+impl RegisteredConsoleCommand {
+    /// A command-tail descriptor also owns every later argument of the nested
+    /// command; other descriptors apply to one position only.
+    fn completion_for(self, argument_index: usize) -> Option<(ConsoleArgumentCompletion, usize)> {
+        if let Some(completion) = self.completion.get(argument_index) {
+            return Some((*completion, argument_index));
+        }
+        let last = *self.completion.last()?;
+        matches!(last, ConsoleArgumentCompletion::CommandTail(_))
+            .then_some((last, self.completion.len() - 1))
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct ConsoleCommandRegistry {
     commands: BTreeMap<String, RegisteredConsoleCommand>,
@@ -454,17 +467,9 @@ fn completion_candidates_for_tokens(
         return Vec::new();
     };
     let argument_index = preceding.len().saturating_sub(consumed);
-    let (completion, completion_index) =
-        if let Some(completion) = command.completion.get(argument_index) {
-            (completion, argument_index)
-        } else if let Some(ConsoleArgumentCompletion::CommandTail(_)) = command.completion.last() {
-            (
-                command.completion.last().expect("checked completion tail"),
-                command.completion.len() - 1,
-            )
-        } else {
-            return Vec::new();
-        };
+    let Some((completion, completion_index)) = command.completion_for(argument_index) else {
+        return Vec::new();
+    };
 
     let prefix_lower = prefix.to_ascii_lowercase();
     let mut values = match completion {
@@ -496,7 +501,7 @@ fn completion_candidates_for_tokens(
         }
         ConsoleArgumentCompletion::RuntimeVariableValue { path_argument } => {
             let arguments = &preceding[consumed..];
-            arguments.get(*path_argument).map_or_else(Vec::new, |path| {
+            arguments.get(path_argument).map_or_else(Vec::new, |path| {
                 runtime_variables.value_completions(path, &prefix_lower)
             })
         }
@@ -581,16 +586,19 @@ fn common_prefix(values: &[String]) -> String {
     let Some(first) = values.first() else {
         return String::new();
     };
-    let mut length = first.len();
+    let mut prefix = first.clone();
     for value in &values[1..] {
-        length = first
-            .bytes()
-            .zip(value.bytes())
+        prefix = prefix
+            .chars()
+            .zip(value.chars())
             .take_while(|(left, right)| left == right)
-            .count()
-            .min(length);
+            .map(|(character, _)| character)
+            .collect();
+        if prefix.is_empty() {
+            break;
+        }
     }
-    first[..length].to_string()
+    prefix
 }
 
 pub(super) fn help_command(

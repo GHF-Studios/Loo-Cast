@@ -32,7 +32,6 @@ pub(super) fn update_transform_gizmo(
         state.drag = None;
         return;
     }
-
     let (window, cursor_options) = window.into_inner();
     let (camera, camera_transform) = camera.into_inner();
     let Some(cursor) = window.cursor_position() else {
@@ -45,31 +44,7 @@ pub(super) fn update_transform_gizmo(
         state.hovered = None;
         return;
     }
-
-    if keyboard.just_pressed(KeyCode::Escape) {
-        if let Some(drag) = state.drag.take()
-            && let Ok(mut transform) = transforms.get_mut(drag.entity)
-        {
-            *transform = drag.start_transform;
-        }
-        return;
-    }
-
-    if mouse.just_released(MouseButton::Left) {
-        state.drag = None;
-    }
-
-    if let Some(drag) = state.drag.clone() {
-        if !mouse.pressed(MouseButton::Left) {
-            state.drag = None;
-            return;
-        }
-        let Ok(mut transform) = transforms.get_mut(drag.entity) else {
-            state.drag = None;
-            return;
-        };
-        apply_drag(&mut transform, &drag, cursor);
-        state.hovered = Some(drag.handle);
+    if process_drag(&mouse, &keyboard, &mut transforms, &mut state, cursor) {
         return;
     }
 
@@ -85,7 +60,6 @@ pub(super) fn update_transform_gizmo(
         state.hovered = None;
         return;
     };
-
     state.hovered = hit_test(
         camera,
         camera_transform,
@@ -93,62 +67,112 @@ pub(super) fn update_transform_gizmo(
         settings.transform_space(),
         cursor,
     );
-
-    if !mouse.just_pressed(MouseButton::Left)
-        || state.hovered.is_none()
-        || parented.contains(target.spatial_entity)
-    {
+    let Some(handle) = state.hovered else {
+        return;
+    };
+    if !mouse.just_pressed(MouseButton::Left) || parented.contains(target.spatial_entity) {
         return;
     }
     let Ok(transform) = transforms.get_mut(target.spatial_entity) else {
         return;
     };
-    let handle = state.hovered.unwrap();
-    let transform_snapshot = (*transform).clone();
+    let snapshot = (*transform).clone();
     drop(transform);
+    state.drag = begin_drag(
+        target.spatial_entity,
+        handle,
+        snapshot,
+        global,
+        camera,
+        camera_transform,
+        settings.transform_space(),
+        cursor,
+    );
+}
 
+/// Active dragging owns the pointer until release or cancellation. Only an
+/// idle gizmo may begin a new hit test/drag on the same update.
+fn process_drag(
+    mouse: &ButtonInput<MouseButton>,
+    keyboard: &ButtonInput<KeyCode>,
+    transforms: &mut Query<&mut Transform, With<EditorTransformWritable>>,
+    state: &mut TransformGizmoInteraction,
+    cursor: Vec2,
+) -> bool {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        if let Some(drag) = state.drag.take()
+            && let Ok(mut transform) = transforms.get_mut(drag.entity)
+        {
+            *transform = drag.start_transform;
+        }
+        return true;
+    }
+    if mouse.just_released(MouseButton::Left) {
+        state.drag = None;
+    }
+    let Some(drag) = state.drag.clone() else {
+        return false;
+    };
+    if !mouse.pressed(MouseButton::Left) {
+        state.drag = None;
+        return true;
+    }
+    let Ok(mut transform) = transforms.get_mut(drag.entity) else {
+        state.drag = None;
+        return true;
+    };
+    apply_drag(&mut transform, &drag, cursor);
+    state.hovered = Some(drag.handle);
+    true
+}
+
+/// Capture all projection and basis data once. Subsequent dragging replays
+/// from the starting Transform, so frame-to-frame deltas do not accumulate.
+fn begin_drag(
+    entity: Entity,
+    handle: TransformHandle,
+    start_transform: Transform,
+    global: &GlobalTransform,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    space: EditorTransformSpace,
+    cursor: Vec2,
+) -> Option<TransformDrag> {
     let world = global.compute_transform();
     let origin = world.translation;
     let size = gizmo_world_size(camera_transform, origin);
-    let world_axis = handle_world_axis(handle, settings.transform_space(), world.rotation);
-    let Some(origin_screen) = project(camera, camera_transform, origin) else {
-        return;
-    };
-    let (axis_screen, pixels_per_world, axis_pixels) = if handle.operation
-        == TransformOperation::Rotate
-    {
-        // Rotation uses cursor angle around the projected origin. A rotation
-        // axis pointing toward the camera has almost no screen projection but
-        // its ring is maximally useful, so it must not fail drag initialization.
-        (Vec2::ZERO, 1.0, 1.0)
-    } else {
-        let Some(axis_end) = project(camera, camera_transform, origin + world_axis * size) else {
-            return;
+    let world_axis = handle_world_axis(handle, space, world.rotation);
+    let origin_screen = project(camera, camera_transform, origin)?;
+    let (axis_screen, pixels_per_world, axis_pixels) =
+        if handle.operation == TransformOperation::Rotate {
+            // Rotation uses cursor angle around the origin. An axis pointing at
+            // the camera still has a useful ring despite negligible projection.
+            (Vec2::ZERO, 1.0, 1.0)
+        } else {
+            let axis_end = project(camera, camera_transform, origin + world_axis * size)?;
+            let axis_delta = axis_end - origin_screen;
+            let axis_pixels = axis_delta.length();
+            if axis_pixels <= 1.0 {
+                return None;
+            }
+            (
+                axis_delta / axis_pixels,
+                axis_pixels / size.max(1.0e-5),
+                axis_pixels,
+            )
         };
-        let axis_delta = axis_end - origin_screen;
-        let axis_pixels = axis_delta.length();
-        if axis_pixels <= 1.0 {
-            return;
-        }
-        (
-            axis_delta / axis_pixels,
-            axis_pixels / size.max(1.0e-5),
-            axis_pixels,
-        )
-    };
-
-    state.drag = Some(TransformDrag {
-        entity: target.spatial_entity,
+    Some(TransformDrag {
+        entity,
         handle,
-        start_transform: transform_snapshot,
+        start_transform,
         start_cursor: cursor,
         origin_screen,
         axis_screen,
         pixels_per_world,
         axis_pixels,
         world_axis,
-        space: settings.transform_space(),
-    });
+        space,
+    })
 }
 
 fn apply_drag(transform: &mut Transform, drag: &TransformDrag, cursor: Vec2) {

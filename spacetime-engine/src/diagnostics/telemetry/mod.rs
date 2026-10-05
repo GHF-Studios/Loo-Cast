@@ -4,40 +4,47 @@ use super::*;
 
 pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &RuntimeDiagnostics) {
     let mut metrics = BTreeMap::new();
-    insert_metric(&mut metrics, "frame.fps", runtime.frame.fps);
-    insert_metric(&mut metrics, "frame.time-ms", runtime.frame.frame_time_ms);
-    insert_metric(
-        &mut metrics,
-        "frame.average-time-ms",
-        runtime.frame.average_frame_time_ms,
-    );
-    insert_metric(
-        &mut metrics,
-        "frame.one-percent-low-fps",
-        runtime.frame.one_percent_low_fps,
-    );
-    insert_metric(
-        &mut metrics,
-        "system.process-cpu-percent",
-        runtime.system.process_cpu_percent,
-    );
-    insert_metric(
-        &mut metrics,
-        "system.cpu-percent",
-        runtime.system.system_cpu_percent,
-    );
-    insert_metric(
-        &mut metrics,
-        "system.process-memory-gib",
-        runtime.system.process_memory_gib,
-    );
-    insert_metric(
-        &mut metrics,
-        "system.memory-percent",
-        runtime.system.system_memory_percent,
-    );
+    insert_frame_metrics(&mut metrics, runtime.frame);
+    insert_system_metrics(&mut metrics, runtime.system);
+    insert_physics_metrics(&mut metrics, runtime.physics);
+    telemetry.0.publish_metrics(metrics);
+}
 
-    let physics = runtime.physics;
+fn insert_frame_metrics(metrics: &mut BTreeMap<String, f64>, frame: FrameRuntimeDiagnostics) {
+    insert_metric(metrics, "frame.fps", frame.fps);
+    insert_metric(metrics, "frame.time-ms", frame.frame_time_ms);
+    insert_metric(
+        metrics,
+        "frame.average-time-ms",
+        frame.average_frame_time_ms,
+    );
+    insert_metric(
+        metrics,
+        "frame.one-percent-low-fps",
+        frame.one_percent_low_fps,
+    );
+}
+
+fn insert_system_metrics(metrics: &mut BTreeMap<String, f64>, system: SystemRuntimeDiagnostics) {
+    insert_metric(
+        metrics,
+        "system.process-cpu-percent",
+        system.process_cpu_percent,
+    );
+    insert_metric(metrics, "system.cpu-percent", system.system_cpu_percent);
+    insert_metric(
+        metrics,
+        "system.process-memory-gib",
+        system.process_memory_gib,
+    );
+    insert_metric(
+        metrics,
+        "system.memory-percent",
+        system.system_memory_percent,
+    );
+}
+
+fn insert_physics_metrics(metrics: &mut BTreeMap<String, f64>, physics: PhysicsRuntimeDiagnostics) {
     metrics.insert(
         "physics.steps-window".to_owned(),
         physics.physics_steps_window as f64,
@@ -60,7 +67,7 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
     );
 
     insert_collision_timer_metrics(
-        &mut metrics,
+        metrics,
         "broad-phase",
         physics.broad_phase_step_average_ms,
         physics.broad_phase_step_max_ms,
@@ -70,7 +77,7 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
         physics.broad_phase_frame_last_ms,
     );
     insert_collision_timer_metrics(
-        &mut metrics,
+        metrics,
         "narrow-phase",
         physics.narrow_phase_step_average_ms,
         physics.narrow_phase_step_max_ms,
@@ -80,6 +87,12 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
         physics.narrow_phase_frame_last_ms,
     );
 
+    insert_contact_metrics(metrics, physics);
+    insert_solver_metrics(metrics, physics);
+    insert_body_metrics(metrics, physics);
+}
+
+fn insert_contact_metrics(metrics: &mut BTreeMap<String, f64>, physics: PhysicsRuntimeDiagnostics) {
     metrics.insert(
         "physics.collision.contact-count.step-avg".to_owned(),
         physics.contact_count_step_average,
@@ -92,6 +105,25 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
         "physics.collision.contact-count.last-step".to_owned(),
         physics.contact_count_step_last as f64,
     );
+    metrics.insert(
+        "physics.contact-pairs.active".to_owned(),
+        physics.active_contact_pairs as f64,
+    );
+    metrics.insert(
+        "physics.contact-pairs.active-touching".to_owned(),
+        physics.active_touching_pairs as f64,
+    );
+    metrics.insert(
+        "physics.contact-pairs.sleeping".to_owned(),
+        physics.sleeping_contact_pairs as f64,
+    );
+    metrics.insert(
+        "physics.contact-pairs.sleeping-touching".to_owned(),
+        physics.sleeping_touching_pairs as f64,
+    );
+}
+
+fn insert_solver_metrics(metrics: &mut BTreeMap<String, f64>, physics: PhysicsRuntimeDiagnostics) {
     metrics.insert(
         "physics.solver.total.step-avg-ms".to_owned(),
         physics.solver_step_average_ms,
@@ -116,22 +148,9 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
         "physics.solver.contact-constraints.last-step".to_owned(),
         physics.solver_constraint_count_step_last as f64,
     );
-    metrics.insert(
-        "physics.contact-pairs.active".to_owned(),
-        physics.active_contact_pairs as f64,
-    );
-    metrics.insert(
-        "physics.contact-pairs.active-touching".to_owned(),
-        physics.active_touching_pairs as f64,
-    );
-    metrics.insert(
-        "physics.contact-pairs.sleeping".to_owned(),
-        physics.sleeping_contact_pairs as f64,
-    );
-    metrics.insert(
-        "physics.contact-pairs.sleeping-touching".to_owned(),
-        physics.sleeping_touching_pairs as f64,
-    );
+}
+
+fn insert_body_metrics(metrics: &mut BTreeMap<String, f64>, physics: PhysicsRuntimeDiagnostics) {
     metrics.insert(
         "physics.bodies.dynamic".to_owned(),
         physics.dynamic_bodies as f64,
@@ -152,8 +171,6 @@ pub(super) fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &Ru
         "physics.colliders".to_owned(),
         physics.collider_count as f64,
     );
-
-    telemetry.0.publish_metrics(metrics);
 }
 
 fn insert_collision_timer_metrics(

@@ -16,6 +16,47 @@ pub(super) struct ScriptWorkspaceRoots {
     pub(super) mode: &'static str,
 }
 
+impl ScriptWorkspaceRoots {
+    fn path_in(root: &Path, path: &str) -> Result<PathBuf, String> {
+        validate_relative_script_path(path)?;
+        Ok(root.join(Path::new(path)))
+    }
+
+    pub(super) fn has_default(&self, path: &str) -> bool {
+        Self::path_in(&self.defaults_root, path).is_ok_and(|path| path.is_file())
+    }
+
+    pub(super) fn read_live(&self, path: &str) -> Result<(String, PathBuf), String> {
+        let location = Self::path_in(&self.live_root, path)?;
+        let source = fs::read_to_string(&location)
+            .map_err(|error| format!("reload {} failed: {error}", location.display()))?;
+        Ok((source, location))
+    }
+
+    pub(super) fn write_live(&self, path: &str, source: &str) -> Result<PathBuf, String> {
+        let location = Self::path_in(&self.live_root, path)?;
+        if let Some(parent) = location.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("create script directory failed: {error}"))?;
+        }
+        fs::write(&location, source)
+            .map_err(|error| format!("save {} failed: {error}", location.display()))?;
+        Ok(location)
+    }
+
+    pub(super) fn reset_live_to_default(&self, path: &str) -> Result<String, String> {
+        let default_path = Self::path_in(&self.defaults_root, path)?;
+        let source = fs::read_to_string(&default_path).map_err(|error| {
+            format!(
+                "no shipped/default source for `{path}` at {}: {error}",
+                default_path.display()
+            )
+        })?;
+        self.write_live(path, &source)?;
+        Ok(source)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(super) struct ScriptWorkspaceBootstrap {
     pub(super) roots: ScriptWorkspaceRoots,

@@ -200,61 +200,7 @@ pub(super) fn presentation_command(
         return ConsoleCommandResult::error("primary USF view context is unavailable");
     };
 
-    let camera_line = |name: &str, value: Option<(Vec3, isize, String)>| {
-        value.map_or_else(
-            || format!("{name} camera = <unavailable>"),
-            |(p, order, depth)| format!(
-                "{name} camera: order={} origin=({:.4},{:.4},{:.4}) depth={}",
-                order, p.x, p.y, p.z, depth
-            ),
-        )
-    };
-    let local_camera = {
-        let mut q = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<PrimaryGameView>>();
-        q.iter(world).next().map(|(t,c,c3)| (t.translation,c.order,format!("{:?}",c3.depth_load_op)))
-    };
-    let context_camera = {
-        let mut q = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<UsfViewRenderAnchor>>();
-        q.iter(world).next().map(|(t,c,c3)| (t.translation,c.order,format!("{:?}",c3.depth_load_op)))
-    };
-
-    #[derive(Default)]
-    struct Counts { pt: usize, pv: usize, ct: usize, cv: usize }
-
-    let terrain = {
-        let mut q = world.query::<(&UsfScalePresentation, Option<&ChildOf>, &Visibility)>();
-        q.iter(world).map(|(p,parent,v)| (
-            p.scale(), parent.map(|x| x.0), !matches!(*v, Visibility::Hidden)
-        )).collect::<Vec<_>>()
-    };
-    let mut counts = BTreeMap::<i8, Counts>::new();
-    for (scale, parent, visible) in terrain {
-        let physical = parent
-            .and_then(|e| world.get::<UsfCapabilityRealization>(e))
-            .is_some() && scale == interaction.scale();
-        let c = counts.entry(scale.exponent()).or_default();
-        if physical {
-            c.pt += 1;
-            c.pv += usize::from(visible);
-        } else {
-            c.ct += 1;
-            c.cv += usize::from(visible);
-        }
-    }
-
-    let scenery = {
-        let mut q = world.query::<(&UsfSceneryPresentation, &Visibility)>();
-        q.iter(world).map(|(p,v)| (
-            p.scale(), !matches!(*v, Visibility::Hidden)
-        )).collect::<Vec<_>>()
-    };
-    let mut scenery_counts = BTreeMap::<i8,(usize,usize)>::new();
-    for (scale, visible) in scenery {
-        let c = scenery_counts.entry(scale.exponent()).or_default();
-        c.0 += 1;
-        c.1 += usize::from(visible);
-    }
-
+    let [local_camera, context_camera] = presentation_camera_lines(world);
     let mut lines = vec![
         format!("presentation probe = {}", probe.label()),
         format!(
@@ -264,8 +210,8 @@ pub(super) fn presentation_command(
             interaction.scale(),
             interaction.requested_scale().map_or(String::new(), |s| format!(" -> S{} pending", s)),
         ),
-        camera_line("local", local_camera),
-        camera_line("context", context_camera),
+        local_camera,
+        context_camera,
         format!(
             "control/navigation: affinity={} | clearance={} | approach={} | refinement target={}",
             interaction_affinity.map_or_else(
@@ -284,91 +230,126 @@ pub(super) fn presentation_command(
         ),
     ];
 
-    if let (
-        Some(authority),
-        Some(position),
-        Some(affinity),
-    ) = (
-        navigation.primary_body,
-        controlled_position,
-        interaction_affinity,
-    ) {
-        let target = affinity.scale();
-        let radius_native = affinity.coverage_radius_native();
-        let coverage = world.resource::<UsfScaleCoverageSnapshot>();
-        let realization_near = coverage.has_near_for_authority(
-            authority,
-            target,
-            &position,
-            UsfScaleRoleMask::REALIZATION,
-            radius_native,
-        );
-        let presentation_near = coverage.has_near_for_authority(
-            authority,
-            target,
-            &position,
-            UsfScaleRoleMask::PRESENTATION,
-            radius_native,
-        );
-        let collision_near = coverage.has_near_for_authority(
-            authority,
-            target,
-            &position,
-            UsfScaleRoleMask::COLLISION,
-            radius_native,
-        );
-
-        let mut total_entries = 0usize;
-        let mut realization_entries = 0usize;
-        let mut presentation_entries = 0usize;
-        let mut collision_entries = 0usize;
-        for entry in coverage.iter() {
-            if entry.authority() != authority || entry.scale() != target {
-                continue;
-            }
-            total_entries += 1;
-            let roles = entry.roles();
-            realization_entries +=
-                usize::from(roles.contains(UsfScaleRoleMask::REALIZATION));
-            presentation_entries +=
-                usize::from(roles.contains(UsfScaleRoleMask::PRESENTATION));
-            collision_entries +=
-                usize::from(roles.contains(UsfScaleRoleMask::COLLISION));
-        }
-
-        lines.push(format!(
-            "affinity readiness S{} r={:.3} native: near R={} P={} C={} | authority entries total={} R={} P={} C={}",
-            target,
-            radius_native,
-            realization_near,
-            presentation_near,
-            collision_near,
-            total_entries,
-            realization_entries,
-            presentation_entries,
-            collision_entries,
-        ));
-    } else {
-        lines.push(
-            "affinity readiness = <insufficient primary-body/control/canonical state>".to_string(),
-        );
-    }
-
-    if counts.is_empty() {
-        lines.push("scale terrain = <none>".to_string());
-    } else {
-        for (e,c) in counts {
-            lines.push(format!(
-                "terrain S{:+}: physical {}/{} visible | context {}/{} visible",
-                e,c.pv,c.pt,c.cv,c.ct
-            ));
-        }
-    }
-    for (e,(total,visible)) in scenery_counts {
-        lines.push(format!("scenery S{:+}: {}/{} visible", e,visible,total));
-    }
+    lines.push(affinity_readiness_line(world, navigation, controlled_position, interaction_affinity));
+    lines.extend(terrain_presentation_lines(world, interaction.scale()));
+    lines.extend(scenery_presentation_lines(world));
 
     ConsoleCommandResult::lines(lines)
+}
+
+fn presentation_camera_lines(world: &mut World) -> [String; 2] {
+    let local = {
+        let mut query = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<PrimaryGameView>>();
+        query.iter(world).next().map(|(transform, camera, camera3d)|
+            (transform.translation, camera.order, format!("{:?}", camera3d.depth_load_op)))
+    };
+    let context = {
+        let mut query = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<UsfViewRenderAnchor>>();
+        query.iter(world).next().map(|(transform, camera, camera3d)|
+            (transform.translation, camera.order, format!("{:?}", camera3d.depth_load_op)))
+    };
+    let format_camera = |name: &str, value: Option<(Vec3, isize, String)>| {
+        value.map_or_else(
+            || format!("{name} camera = <unavailable>"),
+            |(position, order, depth)| format!(
+                "{name} camera: order={} origin=({:.4},{:.4},{:.4}) depth={}",
+                order, position.x, position.y, position.z, depth
+            ),
+        )
+    };
+    [format_camera("local", local), format_camera("context", context)]
+}
+
+#[derive(Default)]
+struct PresentationCounts {
+    physical_total: usize,
+    physical_visible: usize,
+    context_total: usize,
+    context_visible: usize,
+}
+
+fn terrain_presentation_lines(world: &mut World, interaction_scale: crate::spatial::SpatialScale) -> Vec<String> {
+    let terrain = {
+        let mut query = world.query::<(&UsfScalePresentation, Option<&ChildOf>, &Visibility)>();
+        query.iter(world).map(|(presentation, parent, visibility)| (
+            presentation.scale(), parent.map(|parent| parent.0),
+            !matches!(*visibility, Visibility::Hidden),
+        )).collect::<Vec<_>>()
+    };
+    let mut counts = BTreeMap::<i8, PresentationCounts>::new();
+    for (scale, parent, visible) in terrain {
+        let physical = parent
+            .and_then(|entity| world.get::<UsfCapabilityRealization>(entity))
+            .is_some() && scale == interaction_scale;
+        let count = counts.entry(scale.exponent()).or_default();
+        if physical {
+            count.physical_total += 1;
+            count.physical_visible += usize::from(visible);
+        } else {
+            count.context_total += 1;
+            count.context_visible += usize::from(visible);
+        }
+    }
+    if counts.is_empty() { return vec!["scale terrain = <none>".to_string()]; }
+    counts.into_iter().map(|(exponent, count)| format!(
+        "terrain S{:+}: physical {}/{} visible | context {}/{} visible",
+        exponent, count.physical_visible, count.physical_total,
+        count.context_visible, count.context_total,
+    )).collect()
+}
+
+fn scenery_presentation_lines(world: &mut World) -> Vec<String> {
+    let scenery = {
+        let mut query = world.query::<(&UsfSceneryPresentation, &Visibility)>();
+        query.iter(world).map(|(presentation, visibility)| (
+            presentation.scale(), !matches!(*visibility, Visibility::Hidden)
+        )).collect::<Vec<_>>()
+    };
+    let mut counts = BTreeMap::<i8, (usize, usize)>::new();
+    for (scale, visible) in scenery {
+        let count = counts.entry(scale.exponent()).or_default();
+        count.0 += 1;
+        count.1 += usize::from(visible);
+    }
+    counts.into_iter().map(|(exponent, (total, visible))|
+        format!("scenery S{:+}: {}/{} visible", exponent, visible, total)
+    ).collect()
+}
+
+fn affinity_readiness_line(
+    world: &World,
+    navigation: NavigationAudit,
+    controlled_position: Option<UsfPosition>,
+    interaction_affinity: Option<UsfInteractionScaleAffinity>,
+) -> String {
+    let (Some(authority), Some(position), Some(affinity)) = (
+        navigation.primary_body, controlled_position, interaction_affinity,
+    ) else {
+        return "affinity readiness = <insufficient primary-body/control/canonical state>".to_string();
+    };
+    let target = affinity.scale();
+    let radius_native = affinity.coverage_radius_native();
+    let coverage = world.resource::<UsfScaleCoverageSnapshot>();
+    let near = |role| coverage.has_near_for_authority(
+        authority, target, &position, role, radius_native,
+    );
+    let mut counts = [0usize; 4];
+    for entry in coverage.iter() {
+        if entry.authority() != authority || entry.scale() != target { continue; }
+        counts[0] += 1;
+        let roles = entry.roles();
+        counts[1] += usize::from(roles.contains(UsfScaleRoleMask::REALIZATION));
+        counts[2] += usize::from(roles.contains(UsfScaleRoleMask::PRESENTATION));
+        counts[3] += usize::from(roles.contains(UsfScaleRoleMask::COLLISION));
+    }
+    format!(
+        "affinity readiness S{} r={:.3} native: near R={} P={} C={} | authority entries total={} R={} P={} C={}",
+        target, radius_native,
+        near(UsfScaleRoleMask::REALIZATION),
+        near(UsfScaleRoleMask::PRESENTATION),
+        near(UsfScaleRoleMask::COLLISION),
+        counts[0], counts[1], counts[2], counts[3],
+    )
 }
 
 pub(super) fn navtrace_command(

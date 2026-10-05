@@ -44,13 +44,21 @@ pub(super) fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
         return;
     };
 
+    draw_focus_header(ui, world, target);
+    draw_structure_items(ui, world, target);
+    draw_usf_relationships(ui, world, target);
+}
+
+fn draw_focus_header(ui: &mut egui::Ui, world: &World, target: FocusTarget) {
     ui.heading(focus_name(Some(target), world));
     ui.weak(format!("ECS {:?}", target.spatial_entity));
     if target.semantic_entity != target.spatial_entity {
         ui.weak(format!("Semantic {:?}", target.semantic_entity));
     }
     ui.add_space(4.0);
+}
 
+fn draw_structure_items(ui: &mut egui::Ui, world: &mut World, target: FocusTarget) {
     let selected_item = world.resource::<StructureSelection>().item_for(target);
     if ui
         .selectable_label(selected_item.is_none(), "Entity")
@@ -85,60 +93,59 @@ pub(super) fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
             }
         });
     }
+}
 
+fn draw_usf_relationships(ui: &mut egui::Ui, world: &mut World, target: FocusTarget) {
     let partitions = world
         .get::<UsfAuthorityPartitions>(target.semantic_entity)
         .map(|partitions| partitions.iter().collect::<Vec<_>>())
         .unwrap_or_default();
-    if target.spatial_entity != target.semantic_entity || !partitions.is_empty() {
-        ui.add_space(6.0);
-        ui.separator();
-        ui.strong("USF relationships");
+    if target.spatial_entity == target.semantic_entity && partitions.is_empty() {
+        return;
+    }
+    ui.add_space(6.0);
+    ui.separator();
+    ui.strong("USF relationships");
 
-        if target.spatial_entity != target.semantic_entity
-            && ui
-                .button(format!("Semantic entity  {:?}", target.semantic_entity))
-                .clicked()
+    if target.spatial_entity != target.semantic_entity
+        && ui
+            .button(format!("Semantic entity  {:?}", target.semantic_entity))
+            .clicked()
+    {
+        select_related_entity(world, target.semantic_entity);
+        return;
+    }
+    if let Some(peer) = world.get::<SpatialSplitPeer>(target.spatial_entity)
+        && ui
+            .button(format!("Split authority  {:?}", peer.authority))
+            .clicked()
+    {
+        select_related_entity(world, peer.authority);
+        return;
+    }
+    for partition in partitions {
+        let partition_name = entity_name(world, partition);
+        if ui
+            .button(format!(
+                "Authority partition  {partition_name}  {partition:?}"
+            ))
+            .clicked()
         {
-            select_related_entity(world, target.semantic_entity);
+            select_related_entity(world, partition);
             return;
         }
-
-        if let Some(peer) = world.get::<SpatialSplitPeer>(target.spatial_entity)
-            && ui
-                .button(format!("Split authority  {:?}", peer.authority))
-                .clicked()
-        {
-            select_related_entity(world, peer.authority);
-            return;
-        }
-
-        for partition in partitions {
-            let partition_name = entity_name(world, partition);
+        let realizations = world
+            .get::<UsfLogicalRealizations>(partition)
+            .map(|realizations| realizations.iter().collect::<Vec<_>>())
+            .unwrap_or_default();
+        for realization in realizations {
+            let name = entity_name(world, realization);
             if ui
-                .button(format!(
-                    "Authority partition  {partition_name}  {partition:?}"
-                ))
+                .button(format!("Logical realization  {name}  {realization:?}"))
                 .clicked()
             {
-                select_related_entity(world, partition);
+                select_related_entity(world, realization);
                 return;
-            }
-
-            let realizations = world
-                .get::<UsfLogicalRealizations>(partition)
-                .map(|realizations| realizations.iter().collect::<Vec<_>>())
-                .unwrap_or_default();
-
-            for realization in realizations {
-                let name = entity_name(world, realization);
-                if ui
-                    .button(format!("Logical realization  {name}  {realization:?}"))
-                    .clicked()
-                {
-                    select_related_entity(world, realization);
-                    return;
-                }
             }
         }
     }

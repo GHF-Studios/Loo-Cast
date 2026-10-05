@@ -9,7 +9,7 @@
 //! the source defaults so deployed games can materialize defaults + live trees.
 //! The runtime receives only explicit typed policy inputs.
 
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{collections::BTreeMap, path::Path};
 
 use bevy::prelude::*;
 use rhai::{AST, Engine, FuncArgs, Scope};
@@ -23,10 +23,7 @@ mod storage;
 mod ui;
 
 use host::bounded_engine;
-use storage::{
-    ScriptWorkspaceRoots, collect_rhai_sources, prepare_workspace_roots,
-    validate_relative_script_path,
-};
+use storage::{ScriptWorkspaceRoots, collect_rhai_sources, prepare_workspace_roots};
 pub(crate) use ui::draw_script_workspace;
 
 const DEFAULT_SCALAR_SOURCE: &str = r#"// Pure scalar host contract.
@@ -167,6 +164,70 @@ impl ScriptDocument {
     fn runtime_dirty(&self) -> bool {
         self.source != self.committed_source
     }
+
+    /// A candidate proves the current editor buffer only; editing invalidates it.
+    fn compile_candidate(&mut self, engine: &Engine) -> Result<Option<f64>, String> {
+        match compile_and_validate(engine, self.target, &self.source, self.preview_input) {
+            Ok((ast, preview)) => {
+                self.candidate_source = Some(self.source.clone());
+                self.candidate_ast = Some(ast);
+                self.preview_output = preview;
+                self.diagnostic = match preview {
+                    Some(value) => format!("Compiled successfully. Preview = {value:.6}"),
+                    None => "Compiled successfully.".to_string(),
+                };
+                Ok(preview)
+            }
+            Err(error) => {
+                self.invalidate_candidate();
+                self.preview_output = None;
+                self.diagnostic = error.clone();
+                Err(error)
+            }
+        }
+    }
+
+    /// Only a candidate for the exact current buffer may become runtime authority.
+    fn commit(&mut self, engine: &Engine) -> Result<u64, String> {
+        if self.candidate_source.as_deref() != Some(self.source.as_str())
+            || self.candidate_ast.is_none()
+        {
+            self.compile_candidate(engine)?;
+        }
+        let Some(ast) = self.candidate_ast.take() else {
+            return Err("compiled candidate disappeared before commit".to_string());
+        };
+        self.candidate_source = None;
+        self.committed_ast = ast;
+        self.committed_source.clone_from(&self.source);
+        self.revision = self.revision.saturating_add(1);
+        self.diagnostic = format!(
+            "Committed runtime revision {} for {}.",
+            self.revision, self.path
+        );
+        Ok(self.revision)
+    }
+
+    fn invalidate_candidate(&mut self) {
+        self.candidate_source = None;
+        self.candidate_ast = None;
+    }
+
+    fn revert_to_committed(&mut self) {
+        self.source.clone_from(&self.committed_source);
+        self.invalidate_candidate();
+        self.diagnostic = format!(
+            "Reverted editor buffer to runtime revision {}.",
+            self.revision
+        );
+    }
+
+    fn replace_with_saved(&mut self, source: String, location: &Path) {
+        self.source = source.clone();
+        self.saved_source = source;
+        self.invalidate_candidate();
+        self.diagnostic = format!("Reloaded live copy {}.", location.display());
+    }
 }
 
 fn compile_and_validate(
@@ -283,35 +344,6 @@ impl DeveloperScriptWorkbench {
         self.documents.get_mut(&self.active_path)
     }
 
-    pub(crate) fn revision(&self) -> u64 {
-        self.active().map_or(0, |document| document.revision)
-    }
-
-    pub(crate) fn live_enabled(&self) -> bool {
-        self.document_for_target(ScriptTarget::FreecamSpeed)
-            .is_some_and(|document| document.live_enabled)
-    }
-
-    pub(crate) fn set_live_enabled(&mut self, enabled: bool) {
-        if let Some(document) = self.document_for_target_mut(ScriptTarget::FreecamSpeed) {
-            document.live_enabled = enabled;
-        }
-    }
-
-    pub(crate) fn dirty(&self) -> bool {
-        self.active().is_some_and(ScriptDocument::runtime_dirty)
-    }
-
-    pub(crate) fn evaluate_committed(&self, input: f64) -> Result<f64, String> {
-        let document = self
-            .active()
-            .ok_or_else(|| "no active script document".to_string())?;
-        if document.target == ScriptTarget::None {
-            return Err("active script has no scalar host contract".to_string());
-        }
-        call_f64(&self.engine, &document.committed_ast, "transform", (input,))
-    }
-
     pub(crate) fn apply_live_scalar(&self, value: f64) -> f64 {
         let Some(document) = self.document_for_target(ScriptTarget::FreecamSpeed) else {
             return value;
@@ -325,12 +357,6 @@ impl DeveloperScriptWorkbench {
     fn document_for_target(&self, target: ScriptTarget) -> Option<&ScriptDocument> {
         self.documents
             .values()
-            .find(|document| document.target == target)
-    }
-
-    fn document_for_target_mut(&mut self, target: ScriptTarget) -> Option<&mut ScriptDocument> {
-        self.documents
-            .values_mut()
             .find(|document| document.target == target)
     }
 
@@ -380,190 +406,78 @@ impl DeveloperScriptWorkbench {
 
     fn compile_active(&mut self) -> Result<Option<f64>, String> {
         let path = self.active_path.clone();
-        let (target, source, preview_input) = {
-            let document = self
-                .documents
-                .get(&path)
-                .ok_or_else(|| "no active script document".to_string())?;
-            (
-                document.target,
-                document.source.clone(),
-                document.preview_input,
-            )
-        };
-
-        match compile_and_validate(&self.engine, target, &source, preview_input) {
-            Ok((ast, preview)) => {
-                let document = self
-                    .documents
-                    .get_mut(&path)
-                    .expect("active document exists");
-                document.candidate_source = Some(source);
-                document.candidate_ast = Some(ast);
-                document.preview_output = preview;
-                document.diagnostic = match preview {
-                    Some(value) => format!("Compiled successfully. Preview = {value:.6}"),
-                    None => "Compiled successfully.".to_string(),
-                };
-                Ok(preview)
-            }
-            Err(error) => {
-                let document = self
-                    .documents
-                    .get_mut(&path)
-                    .expect("active document exists");
-                document.candidate_source = None;
-                document.candidate_ast = None;
-                document.preview_output = None;
-                document.diagnostic = error.clone();
-                Err(error)
-            }
-        }
-    }
-
-    pub(crate) fn compile_draft(&mut self) -> Result<f64, String> {
-        Ok(self.compile_active()?.unwrap_or(0.0))
-    }
-
-    fn commit_active(&mut self) -> Result<u64, String> {
-        let path = self.active_path.clone();
-        let needs_compile = {
-            let document = self
-                .documents
-                .get(&path)
-                .ok_or_else(|| "no active script document".to_string())?;
-            document.candidate_source.as_deref() != Some(document.source.as_str())
-                || document.candidate_ast.is_none()
-        };
-        if needs_compile {
-            self.compile_active()?;
-        }
-
         let document = self
             .documents
             .get_mut(&path)
             .ok_or_else(|| "no active script document".to_string())?;
-        let Some(ast) = document.candidate_ast.take() else {
-            return Err("compiled candidate disappeared before commit".to_string());
-        };
-        document.candidate_source = None;
-        document.committed_ast = ast;
-        document.committed_source.clone_from(&document.source);
-        document.revision = document.revision.saturating_add(1);
-        document.diagnostic = format!(
-            "Committed runtime revision {} for {}.",
-            document.revision, document.path
-        );
-        Ok(document.revision)
+        document.compile_candidate(&self.engine)
     }
 
-    pub(crate) fn commit_draft(&mut self) -> Result<u64, String> {
-        self.commit_active()
+    fn commit_active(&mut self) -> Result<u64, String> {
+        let path = self.active_path.clone();
+        let document = self
+            .documents
+            .get_mut(&path)
+            .ok_or_else(|| "no active script document".to_string())?;
+        document.commit(&self.engine)
     }
 
     fn revert_active_to_committed(&mut self) {
         if let Some(document) = self.active_mut() {
-            document.source.clone_from(&document.committed_source);
-            document.candidate_source = None;
-            document.candidate_ast = None;
-            document.diagnostic = format!(
-                "Reverted editor buffer to runtime revision {}.",
-                document.revision
-            );
+            document.revert_to_committed();
         }
-    }
-
-    pub(crate) fn revert_draft(&mut self) {
-        self.revert_active_to_committed();
     }
 
     fn reload_active_from_saved(&mut self) {
         let path = self.active_path.clone();
-        let disk_path = self.roots.live_root.join(Path::new(&path));
-        match fs::read_to_string(&disk_path) {
-            Ok(source) => {
+        match self.roots.read_live(&path) {
+            Ok((source, location)) => {
                 if let Some(document) = self.active_mut() {
-                    document.source = source.clone();
-                    document.saved_source = source;
-                    document.candidate_source = None;
-                    document.candidate_ast = None;
-                    document.diagnostic = format!("Reloaded live copy {}.", disk_path.display());
+                    document.replace_with_saved(source, &location);
                 }
             }
             Err(error) => {
                 if let Some(document) = self.active_mut() {
-                    document.diagnostic = format!("reload {} failed: {error}", disk_path.display());
+                    document.diagnostic = error;
                 }
             }
         }
     }
 
     fn save_active(&mut self) -> Result<(), String> {
-        let root = self.roots.live_root.clone();
         let path = self.active_path.clone();
-        validate_relative_script_path(&path)?;
-        let source = self
+        let document = self
             .documents
             .get(&path)
-            .ok_or_else(|| "no active script document".to_string())?
-            .source
-            .clone();
-
-        let destination = root.join(Path::new(&path));
-        if let Some(parent) = destination.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("create script directory failed: {error}"))?;
-        }
-        fs::write(&destination, &source)
-            .map_err(|error| format!("save {} failed: {error}", destination.display()))?;
-
+            .ok_or_else(|| "no active script document".to_string())?;
+        let source = document.source.clone();
+        let location = self.roots.write_live(&path, &source)?;
         let document = self
             .documents
             .get_mut(&path)
             .expect("active document exists");
         document.saved_source = source;
-        document.diagnostic = format!("Saved live copy {}.", destination.display());
+        document.diagnostic = format!("Saved live copy {}.", location.display());
         Ok(())
     }
 
     fn reset_active_to_default(&mut self) -> Result<(), String> {
         let path = self.active_path.clone();
-        validate_relative_script_path(&path)?;
-
-        let default_path = self.roots.defaults_root.join(Path::new(&path));
-        let source = fs::read_to_string(&default_path).map_err(|error| {
-            format!(
-                "no shipped/default source for `{path}` at {}: {error}",
-                default_path.display()
-            )
-        })?;
-
-        let live_path = self.roots.live_root.join(Path::new(&path));
-        if let Some(parent) = live_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("create script directory failed: {error}"))?;
-        }
-        fs::write(&live_path, &source)
-            .map_err(|error| format!("reset {} failed: {error}", live_path.display()))?;
-
+        let source = self.roots.reset_live_to_default(&path)?;
         let document = self
             .documents
             .get_mut(&path)
             .ok_or_else(|| "no active script document".to_string())?;
         document.source = source.clone();
         document.saved_source = source;
-        document.candidate_source = None;
-        document.candidate_ast = None;
+        document.invalidate_candidate();
         document.diagnostic =
             "Reset LIVE file to shipped default. Commit separately to activate it.".to_string();
         Ok(())
     }
 
     fn active_has_default(&self) -> bool {
-        self.roots
-            .defaults_root
-            .join(Path::new(&self.active_path))
-            .is_file()
+        self.roots.has_default(&self.active_path)
     }
 }
 

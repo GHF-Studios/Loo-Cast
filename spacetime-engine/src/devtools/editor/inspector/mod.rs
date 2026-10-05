@@ -58,12 +58,10 @@ pub(super) fn draw_gizmos(ui: &mut egui::Ui, world: &mut World) {
 }
 
 fn draw_transform_gizmo_panel(ui: &mut egui::Ui, world: &mut World, target: FocusTarget) {
-    let entity = target.spatial_entity;
-    let Some(transform) = world.get::<Transform>(entity).copied() else {
+    let Some(transform) = world.get::<Transform>(target.spatial_entity).copied() else {
         ui.weak("No Transform gizmo applies to this focus.");
         return;
     };
-
     ui.heading("Transform");
     ui.weak(
         "Combined translate + rotate + scale viewport gizmo. Translate/Rotate honor World/Local; Scale remains local to match Transform.scale.",
@@ -74,6 +72,21 @@ fn draw_transform_gizmo_panel(ui: &mut egui::Ui, world: &mut World, target: Focu
     });
     ui.separator();
 
+    let editable = draw_transform_edit_authority(ui, world, target.spatial_entity);
+    draw_transform_values(ui, world, target, transform, editable);
+    ui.add_space(6.0);
+    ui.separator();
+    ui.label(
+        "Viewport: translation arrows + rotation rings + scale handles are active simultaneously.",
+    );
+    if !editable {
+        ui.weak("The viewport gizmo remains visible for observation, but dragging is read-only.");
+    }
+}
+
+/// Inspectability does not imply mutation authority. The opt-in applies only
+/// to unparented runtime Transforms; generated sources may still overwrite it.
+fn draw_transform_edit_authority(ui: &mut egui::Ui, world: &mut World, entity: Entity) -> bool {
     let parented = world.get::<ChildOf>(entity).is_some();
     let mut writable = world.get::<EditorTransformWritable>(entity).is_some();
     let response = ui.add_enabled(
@@ -87,66 +100,68 @@ fn draw_transform_gizmo_panel(ui: &mut egui::Ui, world: &mut World, target: Focu
             world.entity_mut(entity).remove::<EditorTransformWritable>();
         }
     }
-
     if parented {
-        ui.weak(
-            "Read-only generic gizmo: parented transforms need a parent-aware/domain authoring adapter before direct mutation is safe.",
-        );
+        ui.weak("Read-only generic gizmo: parented transforms need a parent-aware/domain authoring adapter before direct mutation is safe.");
     } else if !writable {
         ui.weak("Read-only. Inspectability does not grant mutation authority.");
     } else {
         ui.weak("Runtime-direct authority only; generated or authored sources may still overwrite this value.");
     }
-
     ui.add_space(6.0);
-    let editable = writable && !parented;
-    if editable {
-        let mut proposed = transform;
-        if TransformWidget.edit(ui, &mut proposed, &InspectWidgetContext::new("Transform")) {
-            let mut edits = Vec::new();
-            if proposed.translation != transform.translation {
-                edits.push((
-                    super::super::gizmo::TRANSLATION_FIELD,
-                    InspectValue::Vec3(proposed.translation),
-                ));
-            }
-            if proposed.rotation != transform.rotation {
-                let (rx, ry, rz) = proposed.rotation.to_euler(EulerRot::XYZ);
-                edits.push((
-                    super::super::gizmo::ROTATION_FIELD,
-                    InspectValue::Vec3(Vec3::new(
-                        rx.to_degrees(),
-                        ry.to_degrees(),
-                        rz.to_degrees(),
-                    )),
-                ));
-            }
-            if proposed.scale != transform.scale {
-                edits.push((
-                    super::super::gizmo::SCALE_FIELD,
-                    InspectValue::Vec3(proposed.scale),
-                ));
-            }
-            for (field, value) in edits {
-                world.write_message(InspectEditRequest {
-                    target,
-                    section: super::super::gizmo::TRANSFORM_SECTION,
-                    field,
-                    value,
-                });
-            }
-        }
-    } else {
-        TransformWidget.show(ui, &transform, &InspectWidgetContext::new("Transform"));
-    }
+    writable && !parented
+}
 
-    ui.add_space(6.0);
-    ui.separator();
-    ui.label(
-        "Viewport: translation arrows + rotation rings + scale handles are active simultaneously.",
-    );
+fn draw_transform_values(
+    ui: &mut egui::Ui,
+    world: &mut World,
+    target: FocusTarget,
+    transform: Transform,
+    editable: bool,
+) {
+    let context = InspectWidgetContext::new("Transform");
     if !editable {
-        ui.weak("The viewport gizmo remains visible for observation, but dragging is read-only.");
+        TransformWidget.show(ui, &transform, &context);
+        return;
+    }
+    let mut proposed = transform;
+    if TransformWidget.edit(ui, &mut proposed, &context) {
+        queue_transform_edits(world, target, transform, proposed);
+    }
+}
+
+fn queue_transform_edits(
+    world: &mut World,
+    target: FocusTarget,
+    current: Transform,
+    proposed: Transform,
+) {
+    let mut edits = Vec::new();
+    if proposed.translation != current.translation {
+        edits.push((
+            super::super::gizmo::TRANSLATION_FIELD,
+            InspectValue::Vec3(proposed.translation),
+        ));
+    }
+    if proposed.rotation != current.rotation {
+        let (rx, ry, rz) = proposed.rotation.to_euler(EulerRot::XYZ);
+        edits.push((
+            super::super::gizmo::ROTATION_FIELD,
+            InspectValue::Vec3(Vec3::new(rx.to_degrees(), ry.to_degrees(), rz.to_degrees())),
+        ));
+    }
+    if proposed.scale != current.scale {
+        edits.push((
+            super::super::gizmo::SCALE_FIELD,
+            InspectValue::Vec3(proposed.scale),
+        ));
+    }
+    for (field, value) in edits {
+        world.write_message(InspectEditRequest {
+            target,
+            section: super::super::gizmo::TRANSFORM_SECTION,
+            field,
+            value,
+        });
     }
 }
 

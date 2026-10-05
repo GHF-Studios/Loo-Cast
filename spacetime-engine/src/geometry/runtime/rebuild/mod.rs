@@ -44,89 +44,98 @@ pub(in crate::geometry) fn rebuild_authored_maps(
             }
         }
 
-        let material_handles: HashMap<_, _> = map
-            .materials
-            .iter()
-            .map(|definition| {
-                let handle = materials.add(StandardMaterial {
-                    base_color: Color::srgb(
-                        definition.color.0,
-                        definition.color.1,
-                        definition.color.2,
-                    ),
-                    metallic: definition.metallic,
-                    perceptual_roughness: definition.roughness,
-                    double_sided: true,
-                    cull_mode: None,
-                    ..default()
-                });
-                (definition.id.clone(), handle)
-            })
-            .collect();
-
+        let material_handles = materialize_map_materials(map, &mut materials);
         for node in compile_map(map) {
-            match node {
-                CompiledNode::Geometry(geometry) => spawn_geometry(
-                    &mut commands,
-                    source,
-                    geometry,
-                    &material_handles,
-                    &mut meshes,
-                ),
-                CompiledNode::Marker(marker) => {
-                    commands.spawn((
-                        Name::new(format!("Map Marker: {}", marker.id)),
-                        GeneratedFromMap { source },
-                        AuthoredMapMarker {
-                            id: marker.id,
-                            zone: marker.zone,
-                            kind: marker.kind,
-                            tags: marker.tags,
-                        },
-                        marker.transform,
-                    ));
-                }
-                CompiledNode::PointLight(light) => {
-                    commands.spawn((
-                        Name::new(format!("Map Light: {}", light.id)),
-                        GeneratedFromMap { source },
-                        AuthoredMapObject {
-                            id: light.id,
-                            zone: light.zone,
-                            tags: vec!["light".into()],
-                        },
-                        PointLight {
-                            color: light.color,
-                            intensity: light.intensity,
-                            range: light.range,
-                            shadow_maps_enabled: light.shadows,
-                            ..default()
-                        },
-                        Transform::from_translation(light.position),
-                    ));
-                }
-                CompiledNode::DirectionalLight(light) => {
-                    commands.spawn((
-                        Name::new(format!("Map Directional Light: {}", light.id)),
-                        GeneratedFromMap { source },
-                        AuthoredMapObject {
-                            id: light.id,
-                            zone: light.zone,
-                            tags: vec!["light".into(), "directional".into()],
-                        },
-                        DirectionalLight {
-                            color: light.color,
-                            illuminance: light.illuminance,
-                            shadow_maps_enabled: light.shadows,
-                            ..default()
-                        },
-                        Transform::from_rotation(light.rotation),
-                    ));
-                }
-            }
+            spawn_compiled_node(&mut commands, source, node, &material_handles, &mut meshes);
         }
 
         debug!("rebuilt authored map {:?}", map.name);
         scene.dirty = false;
+    }
+}
+
+/// Rebuild creates fresh disposable manifestations from the authored asset.
+/// Scene dirtiness clears only after all generated nodes have been queued.
+fn materialize_map_materials(
+    map: &AuthoredMap,
+    materials: &mut Assets<StandardMaterial>,
+) -> HashMap<String, Handle<StandardMaterial>> {
+    map.materials
+        .iter()
+        .map(|definition| {
+            let handle = materials.add(StandardMaterial {
+                base_color: Color::srgb(definition.color.0, definition.color.1, definition.color.2),
+                metallic: definition.metallic,
+                perceptual_roughness: definition.roughness,
+                double_sided: true,
+                cull_mode: None,
+                ..default()
+            });
+            (definition.id.clone(), handle)
+        })
+        .collect()
+}
+
+fn spawn_compiled_node(
+    commands: &mut Commands,
+    source: Entity,
+    node: CompiledNode,
+    material_handles: &HashMap<String, Handle<StandardMaterial>>,
+    meshes: &mut Assets<Mesh>,
+) {
+    match node {
+        CompiledNode::Geometry(geometry) => {
+            spawn_geometry(commands, source, geometry, material_handles, meshes)
+        }
+        CompiledNode::Marker(marker) => {
+            commands.spawn((
+                Name::new(format!("Map Marker: {}", marker.id)),
+                GeneratedFromMap { source },
+                AuthoredMapMarker {
+                    id: marker.id,
+                    zone: marker.zone,
+                    kind: marker.kind,
+                    tags: marker.tags,
+                },
+                marker.transform,
+            ));
+        }
+        CompiledNode::PointLight(light) => {
+            commands.spawn((
+                Name::new(format!("Map Light: {}", light.id)),
+                GeneratedFromMap { source },
+                AuthoredMapObject {
+                    id: light.id,
+                    zone: light.zone,
+                    tags: vec!["light".into()],
+                },
+                PointLight {
+                    color: light.color,
+                    intensity: light.intensity,
+                    range: light.range,
+                    shadow_maps_enabled: light.shadows,
+                    ..default()
+                },
+                Transform::from_translation(light.position),
+            ));
+        }
+        CompiledNode::DirectionalLight(light) => {
+            commands.spawn((
+                Name::new(format!("Map Directional Light: {}", light.id)),
+                GeneratedFromMap { source },
+                AuthoredMapObject {
+                    id: light.id,
+                    zone: light.zone,
+                    tags: vec!["light".into(), "directional".into()],
+                },
+                DirectionalLight {
+                    color: light.color,
+                    illuminance: light.illuminance,
+                    shadow_maps_enabled: light.shadows,
+                    ..default()
+                },
+                Transform::from_rotation(light.rotation),
+            ));
+        }
     }
 }

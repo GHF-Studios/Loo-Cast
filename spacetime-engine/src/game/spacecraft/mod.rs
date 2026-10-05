@@ -85,7 +85,9 @@ mod landing;
 mod orbit;
 mod spawn;
 
-use boarding::{enforce_embarked_player_hidden, handle_spacecraft_actions};
+use boarding::{
+    enforce_embarked_player_hidden, handle_landing_actions, handle_ship_entry, handle_ship_exit,
+};
 use landing::{SpacecraftLandingSolution, detect_landing};
 pub use orbit::SpacecraftOrbit;
 use orbit::sync_spacecraft_orbit;
@@ -100,7 +102,12 @@ impl Plugin for SpacecraftPlugin {
             .register_type::<SpacecraftOrbit>()
             .add_systems(
                 Update,
-                (spawn_reference_spacecraft, handle_spacecraft_actions)
+                (
+                    spawn_reference_spacecraft,
+                    handle_landing_actions,
+                    handle_ship_exit,
+                    handle_ship_entry,
+                )
                     .chain()
                     .in_set(ControlActionSet::Request)
                     .after(SpatialDemandSet::Collect),

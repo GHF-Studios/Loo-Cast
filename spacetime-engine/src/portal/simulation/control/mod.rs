@@ -10,7 +10,7 @@ use crate::{
     portal::{
         Portal, PortalActive, PortalCommand, PortalEndpoint, PortalPair,
         domain::PortalSupport,
-        simulation::placement::{coplanar_apertures_overlap, resolve_portal_placement},
+        simulation::placement::{PortalPlacement, coplanar_apertures_overlap, resolve_portal_placement},
     },
     physics::collision_topology::{CollisionClipSource, CollisionStencil},
 };
@@ -45,44 +45,12 @@ pub fn apply_portal_commands(
                 endpoint,
                 transform,
             } => {
-                // Physical portals are rigid transforms. Invalid scale is a
-                // malformed command, not presentation state to compensate for.
-                if (transform.scale - Vec3::ONE).length_squared() > 1e-6 {
-                    continue;
-                }
-
-                let target = pair.entity(*endpoint);
-                let half_size = {
+                let Some((target, placement)) = ({
                     let read = portals.p0();
-                    let Ok((_, portal, _, _, _)) = read.get(target) else {
-                        continue;
-                    };
-                    portal.half_size
-                };
-
-                let Some(placement) = resolve_portal_placement(*transform, half_size, &supports)
-                else {
+                    resolve_placement_command(*endpoint, *transform, &pair, &supports, &read)
+                }) else {
                     continue;
                 };
-
-                let overlaps_other = {
-                    let read = portals.p0();
-                    let other_entity = pair.entity(endpoint.other());
-                    read.get(other_entity).is_ok_and(
-                        |(_, other, other_active, other_transform, _)| {
-                            other_active.0
-                                && coplanar_apertures_overlap(
-                                    &placement.transform,
-                                    half_size,
-                                    other_transform,
-                                    other.half_size,
-                                )
-                        },
-                    )
-                };
-                if overlaps_other {
-                    continue;
-                }
 
                 {
                     let mut write = portals.p1();
@@ -146,4 +114,30 @@ pub fn apply_portal_commands(
             stencil.target = support.0;
         }
     }
+}
+
+/// Placement is validated against immutable support geometry and the opposite
+/// endpoint before any persistent portal or collision stencil is changed.
+fn resolve_placement_command(
+    endpoint: PortalEndpoint,
+    transform: Transform,
+    pair: &PortalPair,
+    supports: &Query<(Entity, &CollisionClipSource, &Transform), Without<Portal>>,
+    portals: &Query<(Entity, &Portal, &PortalActive, &Transform, &PortalSupport), With<Portal>>,
+) -> Option<(Entity, PortalPlacement)> {
+    // Physical portals are rigid transforms; scale is not presentation state.
+    if (transform.scale - Vec3::ONE).length_squared() > 1e-6 { return None; }
+    let target = pair.entity(endpoint);
+    let (_, portal, _, _, _) = portals.get(target).ok()?;
+    let half_size = portal.half_size;
+    let placement = resolve_portal_placement(transform, half_size, supports)?;
+    let other_entity = pair.entity(endpoint.other());
+    let overlaps_other = portals.get(other_entity).is_ok_and(
+        |(_, other, other_active, other_transform, _)| {
+            other_active.0 && coplanar_apertures_overlap(
+                &placement.transform, half_size, other_transform, other.half_size,
+            )
+        },
+    );
+    (!overlaps_other).then_some((target, placement))
 }
