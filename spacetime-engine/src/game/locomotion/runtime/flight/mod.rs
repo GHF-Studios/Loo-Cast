@@ -5,7 +5,9 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
-        navigation::{AdaptiveCruise, TravelEnvelope, TravelProfile, TravelState},
+        navigation::{
+            AdaptiveCruise, TravelAssistanceState, TravelEnvelope, TravelProfile, TravelState,
+        },
     },
     physics::{
         character::CharacterLocomotionFrame, gravity::GravitySample, slice::UsfPhysicsSlices,
@@ -34,8 +36,6 @@ pub(in crate::game::locomotion) fn flight_movement(
     ownership: UsfOwnershipQuery,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsSlices,
-    mut was_cruise_active: Local<bool>,
-    mut was_explicit_cruise: Local<bool>,
     subject: Single<
         (
             Entity,
@@ -53,6 +53,7 @@ pub(in crate::game::locomotion) fn flight_movement(
         &TravelProfile,
         &TravelEnvelope,
         &TravelState,
+        &TravelAssistanceState,
         &GravitySample,
         &mut AdaptiveCruise,
         Option<&Collider>,
@@ -77,6 +78,7 @@ pub(in crate::game::locomotion) fn flight_movement(
         profile,
         envelope,
         travel,
+        assistance,
         gravity,
         mut cruise,
         collider,
@@ -88,8 +90,7 @@ pub(in crate::game::locomotion) fn flight_movement(
 
     let kernel = locomotion.kernel();
     if matches!(kernel, MotionKernel::Character | MotionKernel::Disabled) {
-        *was_cruise_active = false;
-        *was_explicit_cruise = false;
+        cruise.was_active = false;
         return;
     }
 
@@ -110,6 +111,7 @@ pub(in crate::game::locomotion) fn flight_movement(
         profile,
         envelope,
         travel,
+        assistance,
         cruise: &mut cruise,
         motion: &motion,
         rotation: body.rotation,
@@ -117,8 +119,6 @@ pub(in crate::game::locomotion) fn flight_movement(
         gravity: gravity.acceleration_metres_per_second2(),
         delta_seconds: dt,
         delta_seconds_f32: time.delta_secs(),
-        was_cruise_active: &mut was_cruise_active,
-        was_explicit_cruise: &mut was_explicit_cruise,
     });
 
     motion.set_velocity_metres_per_second(next_velocity);

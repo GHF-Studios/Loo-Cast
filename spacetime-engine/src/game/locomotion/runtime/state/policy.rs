@@ -2,106 +2,20 @@
 
 use super::*;
 
-pub(super) fn nearest_body_clearance_and_radius(travel: &TravelState) -> Option<(f64, f64)> {
-    Some((
-        travel.nearest_body_clearance_scale0?,
-        travel.nearest_body_radius_scale0?,
-    ))
-}
-
 pub(super) fn regime_allowed(
     requested: LocomotionRegime,
-    previous: LocomotionRegime,
-    layer: SpatialScale,
-    detailed: SpatialScale,
-    travel: &TravelState,
-    profile: &TravelProfile,
     capabilities: LocomotionCapabilities,
 ) -> bool {
-    if !capabilities.supports_regime(requested) {
-        return false;
-    }
-    if requested == LocomotionRegime::OnFoot {
-        return layer == detailed;
-    }
-
-    let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
-        return requested == LocomotionRegime::Cruise && capabilities.cruise();
-    };
-
-    match requested {
-        LocomotionRegime::OnFoot => capabilities.character_enabled() && layer == detailed,
-        LocomotionRegime::LocalFlight => {
-            let limit = if previous == LocomotionRegime::LocalFlight {
-                profile.local_flight_release_clearance(radius)
-            } else {
-                profile.local_flight_capture_clearance(radius)
-            };
-            clearance <= limit
-        }
-        LocomotionRegime::PlanetaryFlight => {
-            let limit = if previous == LocomotionRegime::PlanetaryFlight
-                || previous == LocomotionRegime::LocalFlight
-            {
-                profile.planetary_release_clearance(radius)
-            } else {
-                profile.planetary_handoff_clearance(radius)
-            };
-            clearance <= limit
-        }
-        LocomotionRegime::Cruise => {
-            let limit = if previous == LocomotionRegime::Cruise {
-                profile.planetary_handoff_clearance(radius)
-            } else {
-                profile.planetary_release_clearance(radius)
-            };
-            clearance > limit
-        }
-    }
+    capabilities.supports_regime(requested)
 }
 
-pub(super) fn automatic_regime(
-    previous: LocomotionRegime,
-    layer: SpatialScale,
-    detailed: SpatialScale,
-    travel: &TravelState,
-    profile: &TravelProfile,
-    capabilities: LocomotionCapabilities,
-) -> LocomotionRegime {
-    if capabilities.character_enabled() && layer == detailed {
-        return LocomotionRegime::OnFoot;
-    }
-
-    let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
-        return if capabilities.cruise() {
-            LocomotionRegime::Cruise
-        } else {
-            LocomotionRegime::OnFoot
-        };
-    };
-
-    let planetary_limit = if previous == LocomotionRegime::Cruise {
-        profile.planetary_handoff_clearance(radius)
-    } else {
-        profile.planetary_release_clearance(radius)
-    };
-
-    if clearance > planetary_limit {
-        return LocomotionRegime::Cruise;
-    }
-
-    let local_limit = if previous == LocomotionRegime::LocalFlight {
-        profile.local_flight_release_clearance(radius)
-    } else {
-        profile.local_flight_capture_clearance(radius)
-    };
-
-    if capabilities.local_flight() && clearance <= local_limit {
+pub(super) fn automatic_regime(capabilities: LocomotionCapabilities) -> LocomotionRegime {
+    if capabilities.character_enabled() {
+        LocomotionRegime::OnFoot
+    } else if capabilities.local_flight() {
         LocomotionRegime::LocalFlight
     } else if capabilities.orbital_flight() {
         LocomotionRegime::PlanetaryFlight
-    } else if capabilities.cruise() {
-        LocomotionRegime::Cruise
     } else {
         LocomotionRegime::OnFoot
     }
@@ -113,7 +27,7 @@ pub(super) fn canonical_motion_authoritative(
     detailed: SpatialScale,
 ) -> bool {
     match kernel {
-        MotionKernel::Cruise | MotionKernel::OrbitalFlight => true,
+        MotionKernel::OrbitalFlight => true,
 
         // Runtime f32 charts cannot integrate ordinary SI motion once the
         // interaction Scale is sufficiently coarse. At S+35, for example,
@@ -142,15 +56,8 @@ pub(super) fn motion_contract(
     detailed: SpatialScale,
     capabilities: LocomotionCapabilities,
     thrusters_enabled: bool,
+    cruise_active: bool,
 ) -> (MotionKernel, CollisionPolicy, VelocitySemantics) {
-    if regime == LocomotionRegime::Cruise {
-        return (
-            MotionKernel::Cruise,
-            CollisionPolicy::Disabled,
-            VelocitySemantics::PreserveCanonical,
-        );
-    }
-
     if regime == LocomotionRegime::PlanetaryFlight && capabilities.orbital_flight() {
         return (
             MotionKernel::OrbitalFlight,
@@ -162,7 +69,9 @@ pub(super) fn motion_contract(
     if regime == LocomotionRegime::LocalFlight && capabilities.inertial_flight() {
         return (
             MotionKernel::InertialFlight,
-            if layer == detailed {
+            if cruise_active {
+                CollisionPolicy::Disabled
+            } else if layer == detailed {
                 CollisionPolicy::DetailedBody
             } else {
                 CollisionPolicy::ScaleProxy
@@ -206,11 +115,6 @@ pub(super) fn motion_contract(
 /// All facts used to choose a semantic regime; none is a render or view scale.
 pub(super) struct RegimeSelection<'a> {
     pub(super) entity: Entity,
-    pub(super) previous_regime: LocomotionRegime,
-    pub(super) layer: &'a UsfScaleLayer,
-    pub(super) detailed: &'a DetailedBodyScale,
-    pub(super) travel: &'a TravelState,
-    pub(super) profile: &'a TravelProfile,
     pub(super) capabilities: &'a LocomotionCapabilities,
     pub(super) regime_override: Option<&'a LocomotionRegimeOverride>,
 }
@@ -221,22 +125,10 @@ pub(super) fn select_regime(
 ) -> LocomotionRegime {
     let RegimeSelection {
         entity,
-        previous_regime,
-        layer,
-        detailed,
-        travel,
-        profile,
         capabilities,
         regime_override,
     } = selection;
-    let automatic = automatic_regime(
-        previous_regime,
-        layer.scale(),
-        detailed.0,
-        travel,
-        profile,
-        *capabilities,
-    );
+    let automatic = automatic_regime(*capabilities);
 
     let regime = if let Some(regime_override) = regime_override {
         let requested = regime_override.regime();
@@ -256,17 +148,7 @@ pub(super) fn select_regime(
     } else {
         match locomotion.request() {
             LocomotionRequest::Automatic => automatic,
-            LocomotionRequest::Regime(requested)
-                if regime_allowed(
-                    requested,
-                    previous_regime,
-                    layer.scale(),
-                    detailed.0,
-                    travel,
-                    profile,
-                    *capabilities,
-                ) =>
-            {
+            LocomotionRequest::Regime(requested) if regime_allowed(requested, *capabilities) => {
                 requested
             }
             LocomotionRequest::Regime(_) => {

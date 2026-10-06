@@ -1,6 +1,9 @@
 //! Subject-owned flight policy and read-only operational snapshots.
 
-use crate::{game::locomotion::LocomotionRegime, spatial::SpatialScale};
+use crate::{
+    game::{locomotion::LocomotionRegime, navigation::TravelAssistance},
+    spatial::SpatialScale,
+};
 use bevy::prelude::*;
 
 /// Player-/pilot-facing operational flight mode.
@@ -11,7 +14,6 @@ use bevy::prelude::*;
 pub enum FlightMode {
     Local,
     Planetary,
-    Cruise,
 }
 
 impl FlightMode {
@@ -20,7 +22,6 @@ impl FlightMode {
             LocomotionRegime::OnFoot => None,
             LocomotionRegime::LocalFlight => Some(Self::Local),
             LocomotionRegime::PlanetaryFlight => Some(Self::Planetary),
-            LocomotionRegime::Cruise => Some(Self::Cruise),
         }
     }
 
@@ -28,7 +29,6 @@ impl FlightMode {
         match self {
             Self::Local => "LOCAL FLIGHT",
             Self::Planetary => "PLANETARY FLIGHT",
-            Self::Cruise => "CRUISE",
         }
     }
 }
@@ -190,6 +190,7 @@ impl FlightSafetyState {
 pub struct FlightTelemetry {
     pub(super) active: bool,
     pub(super) mode: Option<FlightMode>,
+    pub(super) assistance: TravelAssistance,
     pub(super) contact: FlightContactState,
     pub(super) landing_available: bool,
     pub(super) safety: FlightSafetyLevel,
@@ -216,6 +217,7 @@ impl Default for FlightTelemetry {
         Self {
             active: false,
             mode: None,
+            assistance: TravelAssistance::Manual,
             contact: FlightContactState::Airborne,
             landing_available: false,
             safety: FlightSafetyLevel::Nominal,
@@ -246,6 +248,10 @@ impl FlightTelemetry {
 
     pub const fn mode(self) -> Option<FlightMode> {
         self.mode
+    }
+
+    pub const fn assistance(self) -> TravelAssistance {
+        self.assistance
     }
 
     pub const fn contact(self) -> FlightContactState {
@@ -327,6 +333,8 @@ impl FlightTelemetry {
     pub const fn display_mode_label(self) -> &'static str {
         if self.contact.is_landed() {
             "LANDED"
+        } else if matches!(self.assistance, TravelAssistance::Cruise) {
+            "CRUISE"
         } else {
             match self.mode {
                 Some(mode) => mode.label(),

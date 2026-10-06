@@ -3,13 +3,15 @@
 use super::super::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
     DetailedBodyScale, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
-    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, MotionKernel,
-    ScaleInteractionProxy, VelocitySemantics,
+    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason,
+    MotionKernel, ScaleInteractionProxy, VelocitySemantics,
 };
 use crate::{
     game::{
         control::LocalControlSubject,
-        navigation::{TravelProfile, TravelState},
+        navigation::{
+            TravelAssistance, TravelAssistanceState, TravelAssistanceTransitionReason, TravelState,
+        },
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,

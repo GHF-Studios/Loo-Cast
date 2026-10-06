@@ -13,7 +13,7 @@ use crate::game::{
         ControlledSubjectLocomotion, LocomotionCapabilities, LocomotionRegime, LocomotionRequest,
         MotionKernel,
     },
-    navigation::TravelState,
+    navigation::{TravelAssistance, TravelAssistanceState, TravelState},
     player::{CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings},
 };
 
@@ -42,6 +42,7 @@ pub(super) fn update_context_actions(
             &TravelState,
             &ControlledSubjectLocomotion,
             &LocomotionCapabilities,
+            &TravelAssistanceState,
         ),
         With<LocalControlSubject>,
     >,
@@ -58,7 +59,7 @@ pub(super) fn update_context_actions(
         return;
     }
 
-    let (travel, locomotion, capabilities) = player.into_inner();
+    let (travel, locomotion, capabilities, assistance) = player.into_inner();
     let next = context_action_text(
         &bindings,
         &hotbar,
@@ -67,6 +68,7 @@ pub(super) fn update_context_actions(
         travel,
         locomotion,
         capabilities,
+        assistance,
     );
     if text.0 != next {
         text.0 = next;
@@ -82,11 +84,19 @@ fn context_action_text(
     travel: &TravelState,
     locomotion: &ControlledSubjectLocomotion,
     capabilities: &LocomotionCapabilities,
+    assistance: &TravelAssistanceState,
 ) -> String {
     let mut lines = Vec::<String>::with_capacity(12);
     append_item_actions(&mut lines, hotbar, catalog, bindings);
     append_movement_actions(&mut lines, locomotion, bindings);
-    append_travel_actions(&mut lines, travel, locomotion, capabilities, bindings);
+    append_travel_actions(
+        &mut lines,
+        travel,
+        locomotion,
+        capabilities,
+        assistance,
+        bindings,
+    );
     append_view_actions(&mut lines, camera, bindings);
     const MAX_LINES: usize = 12;
     lines.truncate(MAX_LINES);
@@ -144,13 +154,6 @@ fn append_movement_actions(
             lines.push(format!("{movement:<10}Orbital thrust"));
             lines.push(format!("{vertical:<10}Radial thrust"));
         }
-        MotionKernel::Cruise => {
-            lines.push(format!(
-                "{}/{}      Throttle",
-                bindings.label(PlayerAction::MoveForward),
-                bindings.label(PlayerAction::MoveBackward),
-            ));
-        }
         MotionKernel::Disabled => {}
     }
 }
@@ -160,23 +163,22 @@ fn append_travel_actions(
     travel: &TravelState,
     locomotion: &ControlledSubjectLocomotion,
     capabilities: &LocomotionCapabilities,
+    assistance: &TravelAssistanceState,
     bindings: &PlayerInputBindings,
 ) {
-    let cruising = locomotion.kernel() == MotionKernel::Cruise;
+    let cruising = assistance.mode() == TravelAssistance::Cruise;
     if capabilities.cruise() {
         if cruising {
-            if travel.planetary_handoff_available {
-                lines.push(format!(
-                    "{:<10}Drop to planetary",
-                    bindings.label(PlayerAction::ToggleCruise),
-                ));
-            } else {
-                lines.push(format!(
-                    "{:<10}Disengage cruise",
-                    bindings.label(PlayerAction::ToggleCruise),
-                ));
-            }
-        } else if !travel.critical_dropout {
+            lines.push(format!(
+                "{}/{}      Throttle",
+                bindings.label(PlayerAction::MoveForward),
+                bindings.label(PlayerAction::MoveBackward),
+            ));
+            lines.push(format!(
+                "{:<10}Disengage cruise",
+                bindings.label(PlayerAction::ToggleCruise),
+            ));
+        } else if travel.cruise_entry_available {
             lines.push(format!(
                 "{:<10}Engage cruise",
                 bindings.label(PlayerAction::ToggleCruise),

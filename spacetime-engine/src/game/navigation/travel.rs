@@ -19,6 +19,7 @@ pub struct CruiseTravelProfile {
     pub lookahead_seconds: f64,
     pub throttle_rate_per_second: f32,
     pub speed_response: f64,
+    pub reentry_clearance_multiplier: f64,
     pub medium_minimum_resistance: f64,
     pub maximum_medium_entry_horizon_seconds: f64,
     pub default_medium_entry_horizon_seconds: f64,
@@ -31,13 +32,8 @@ pub struct PlanetaryTravelProfile {
     pub handoff_radius_fraction: f64,
     pub handoff_minimum_metres: f64,
     pub handoff_maximum_metres: f64,
-    pub release_multiplier: f64,
     pub capture_speed_minimum_metres_per_second: f64,
     pub capture_speed_maximum_metres_per_second: f64,
-    pub local_capture_radius_fraction: f64,
-    pub local_capture_minimum_metres: f64,
-    pub local_capture_maximum_metres: f64,
-    pub local_release_multiplier: f64,
 }
 
 #[derive(Reflect, Debug, Clone, Copy)]
@@ -96,6 +92,7 @@ impl TravelProfile {
                 lookahead_seconds: 8.0,
                 throttle_rate_per_second: 0.45,
                 speed_response: 1.4,
+                reentry_clearance_multiplier: 1.75,
                 medium_minimum_resistance: 0.01,
                 maximum_medium_entry_horizon_seconds: 4.0,
                 default_medium_entry_horizon_seconds: 12.0,
@@ -106,13 +103,8 @@ impl TravelProfile {
                 handoff_radius_fraction: 0.12,
                 handoff_minimum_metres: 20_000.0,
                 handoff_maximum_metres: 750_000.0,
-                release_multiplier: 1.75,
                 capture_speed_minimum_metres_per_second: 250.0,
                 capture_speed_maximum_metres_per_second: 2_500.0,
-                local_capture_radius_fraction: 0.02,
-                local_capture_minimum_metres: 10_000.0,
-                local_capture_maximum_metres: 75_000.0,
-                local_release_multiplier: 2.0,
             },
             approach: ApproachTravelProfile {
                 activation_radii: 256.0,
@@ -142,21 +134,6 @@ impl TravelProfile {
             self.planetary.handoff_minimum_metres,
             self.planetary.handoff_maximum_metres,
         )
-    }
-
-    pub fn planetary_release_clearance(self, radius_metres: f64) -> f64 {
-        self.planetary_handoff_clearance(radius_metres) * self.planetary.release_multiplier
-    }
-
-    pub fn local_flight_capture_clearance(self, radius_metres: f64) -> f64 {
-        (radius_metres * self.planetary.local_capture_radius_fraction).clamp(
-            self.planetary.local_capture_minimum_metres,
-            self.planetary.local_capture_maximum_metres,
-        )
-    }
-
-    pub fn local_flight_release_clearance(self, radius_metres: f64) -> f64 {
-        self.local_flight_capture_clearance(radius_metres) * self.planetary.local_release_multiplier
     }
 
     pub fn planetary_capture_speed(self, radius_metres: f64) -> f64 {
@@ -256,6 +233,7 @@ pub struct TravelState {
     pub planetary_handoff_available: bool,
     pub planetary_context: bool,
     pub critical_dropout: bool,
+    pub cruise_entry_available: bool,
 }
 
 impl Default for TravelState {
@@ -267,6 +245,7 @@ impl Default for TravelState {
             planetary_handoff_available: false,
             planetary_context: false,
             critical_dropout: false,
+            cruise_entry_available: true,
         }
     }
 }
@@ -347,10 +326,53 @@ impl PrimaryBodyContext {
     }
 }
 
-/// Runtime state for the Cruise motion kernel.
+#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum TravelAssistance {
+    #[default]
+    Manual,
+    Cruise,
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TravelAssistanceTransitionReason {
+    PilotRequest,
+    PilotDisengaged,
+    CriticalApproach,
+}
+
+/// Pilot-selected travel assistance. The underlying locomotion regime and
+/// canonical motion state continue through engagement and dropout.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct TravelAssistanceState {
+    mode: TravelAssistance,
+    last_transition: Option<TravelAssistanceTransitionReason>,
+}
+
+impl TravelAssistanceState {
+    pub const fn mode(self) -> TravelAssistance {
+        self.mode
+    }
+    pub const fn last_transition(self) -> Option<TravelAssistanceTransitionReason> {
+        self.last_transition
+    }
+
+    pub fn engage_cruise(&mut self) {
+        self.mode = TravelAssistance::Cruise;
+        self.last_transition = Some(TravelAssistanceTransitionReason::PilotRequest);
+    }
+
+    pub fn disengage(&mut self, reason: TravelAssistanceTransitionReason) {
+        self.mode = TravelAssistance::Manual;
+        self.last_transition = Some(reason);
+    }
+}
+
+/// Runtime state for explicit Cruise travel assistance.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct AdaptiveCruise {
+    pub was_active: bool,
     pub throttle: f32,
     pub speed_scale0: f64,
     pub speed_cap_scale0: f64,
@@ -362,6 +384,7 @@ pub struct AdaptiveCruise {
 impl Default for AdaptiveCruise {
     fn default() -> Self {
         Self {
+            was_active: false,
             throttle: 0.0,
             speed_scale0: 0.0,
             speed_cap_scale0: 0.0,

@@ -24,7 +24,8 @@ pub use capability::{
 pub use flight::{FlightAttitudeCommand, FlightControlIntent};
 pub use state::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
-    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, MotionKernel, VelocitySemantics,
+    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason,
+    MotionKernel, VelocitySemantics,
 };
 
 /// Stable generic locomotion runtime extension points.
@@ -42,6 +43,7 @@ impl Plugin for LocomotionPlugin {
         app.register_type::<LocomotionRegime>()
             .register_type::<LocomotionRequest>()
             .register_type::<LocomotionRegimeOverride>()
+            .register_type::<LocomotionTransitionReason>()
             .register_type::<MotionKernel>()
             .register_type::<CollisionPolicy>()
             .register_type::<VelocitySemantics>()

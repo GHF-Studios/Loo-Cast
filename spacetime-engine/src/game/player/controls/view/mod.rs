@@ -31,10 +31,10 @@ pub(in crate::game::player) fn look(
 pub(in crate::game::player) fn zoom_spatial_view(
     input: Res<PlayerInputFrame>,
     presentation: Res<PrimaryViewPresentation>,
-    locomotion: Single<&ControlledSubjectLocomotion, With<LocalControlSubject>>,
+    assistance: Single<&TravelAssistanceState, With<LocalControlSubject>>,
     mut state: Single<&mut NavigationPresentationState, With<UsfViewRenderAnchor>>,
 ) {
-    if locomotion.regime() == LocomotionRegime::Cruise
+    if assistance.mode() == TravelAssistance::Cruise
         || presentation.is_embedded()
         || !input.gameplay_active()
         || input.scroll_y() == 0.0

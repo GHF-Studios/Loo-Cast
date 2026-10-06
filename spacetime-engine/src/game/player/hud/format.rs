@@ -7,18 +7,21 @@ use super::*;
 pub(super) fn format_left_metrics(telemetry: &FlightTelemetry, pace: &TravelPace) -> String {
     let speed = format_speed(telemetry.speed_metres_per_second());
     let pace_text = format!("2^{:+.0}  x{:.3}", pace.log2_multiplier(), pace.multiplier);
-    let actuator_status = match telemetry.mode() {
-        Some(FlightMode::Local) => format!(
-            "THR {} • RCS {}",
-            if telemetry.thrusters_enabled() {
-                "ON"
-            } else {
-                "OFF"
-            },
-            if telemetry.rcs_enabled() { "ON" } else { "OFF" },
-        ),
-        Some(FlightMode::Cruise) => format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0),
-        _ => "THR -- • RCS --".to_string(),
+    let actuator_status = if telemetry.assistance() == TravelAssistance::Cruise {
+        format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0)
+    } else {
+        match telemetry.mode() {
+            Some(FlightMode::Local) => format!(
+                "THR {} • RCS {}",
+                if telemetry.thrusters_enabled() {
+                    "ON"
+                } else {
+                    "OFF"
+                },
+                if telemetry.rcs_enabled() { "ON" } else { "OFF" },
+            ),
+            _ => "THR -- • RCS --".to_string(),
+        }
     };
     format!(
         "{}\nSPD  {}\nPACE {}\n{}",
@@ -66,7 +69,7 @@ pub(super) fn format_alert(
     telemetry: &FlightTelemetry,
     bindings: &PlayerInputBindings,
 ) -> Option<String> {
-    let cruising = telemetry.mode() == Some(FlightMode::Cruise);
+    let cruising = telemetry.assistance() == TravelAssistance::Cruise;
     if telemetry.contact().is_landed() {
         Some(format!(
             "[{}] TAKE OFF   [{}] EXIT SHIP",
@@ -85,9 +88,9 @@ pub(super) fn format_alert(
         Some("SURFACE COLLISION LOADING".to_string())
     } else if telemetry.dropout_required() {
         Some("CRITICAL DROPOUT".to_string())
-    } else if cruising && telemetry.planetary_handoff_available() {
+    } else if cruising {
         Some(format!(
-            "[{}] PLANETARY FLIGHT AVAILABLE",
+            "[{}] DISENGAGE CRUISE",
             bindings.label(PlayerAction::ToggleCruise)
         ))
     } else {

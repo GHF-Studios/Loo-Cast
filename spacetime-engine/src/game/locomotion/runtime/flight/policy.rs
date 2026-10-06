@@ -2,10 +2,12 @@
 
 use super::cruise::{CruiseStep, step_cruise};
 use crate::game::locomotion::{
-    ControlledSubjectLocomotion, FlightAttitudeCommand, FlightControlIntent, LocomotionRegime,
-    LocomotionRequest, MotionKernel,
+    ControlledSubjectLocomotion, FlightAttitudeCommand, FlightControlIntent, MotionKernel,
 };
-use crate::game::navigation::{AdaptiveCruise, TravelEnvelope, TravelProfile, TravelState};
+use crate::game::navigation::{
+    AdaptiveCruise, TravelAssistance, TravelAssistanceState, TravelEnvelope, TravelProfile,
+    TravelState,
+};
 use crate::spatial::UsfCanonicalMotion;
 use bevy::{math::DVec3, prelude::*};
 
@@ -133,6 +135,7 @@ pub(super) struct FlightVelocityStep<'a> {
     pub(super) profile: &'a TravelProfile,
     pub(super) envelope: &'a TravelEnvelope,
     pub(super) travel: &'a TravelState,
+    pub(super) assistance: &'a TravelAssistanceState,
     pub(super) cruise: &'a mut AdaptiveCruise,
     pub(super) motion: &'a UsfCanonicalMotion,
     pub(super) rotation: Quat,
@@ -140,8 +143,6 @@ pub(super) struct FlightVelocityStep<'a> {
     pub(super) gravity: DVec3,
     pub(super) delta_seconds: f64,
     pub(super) delta_seconds_f32: f32,
-    pub(super) was_cruise_active: &'a mut bool,
-    pub(super) was_explicit_cruise: &'a mut bool,
 }
 
 pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
@@ -152,6 +153,7 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
         profile,
         envelope,
         travel,
+        assistance,
         cruise,
         motion,
         rotation,
@@ -159,17 +161,30 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
         gravity,
         delta_seconds,
         delta_seconds_f32,
-        was_cruise_active,
-        was_explicit_cruise,
     } = step;
     let dt = delta_seconds;
     let wish = flight_wish(intent, rotation, up);
     let pace = f64::from(intent.pace_multiplier().max(0.0));
     let boost = boost_multiplier(intent, profile);
 
-    if kernel != MotionKernel::Cruise {
-        *was_cruise_active = false;
-        *was_explicit_cruise = false;
+    if assistance.mode() != TravelAssistance::Cruise {
+        cruise.was_active = false;
+    } else {
+        let just_engaged = !cruise.was_active;
+        cruise.was_active = true;
+        return step_cruise(CruiseStep {
+            state: cruise,
+            envelope,
+            travel,
+            profile,
+            intent,
+            current_velocity: motion.velocity_metres_per_second(),
+            current_speed: motion.speed_metres_per_second(),
+            rotation,
+            pace,
+            delta_seconds: delta_seconds_f32,
+            just_engaged,
+        });
     }
 
     match kernel {
@@ -208,28 +223,6 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
             ) * pace
                 * boost;
             motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
-        }
-        MotionKernel::Cruise => {
-            let explicit =
-                locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::Cruise);
-            let just_engaged = !*was_cruise_active;
-            let just_explicitly_engaged = explicit && !*was_explicit_cruise;
-            *was_cruise_active = true;
-            *was_explicit_cruise = explicit;
-            step_cruise(CruiseStep {
-                state: cruise,
-                envelope,
-                travel,
-                profile,
-                intent,
-                current_velocity: motion.velocity_metres_per_second(),
-                current_speed: motion.speed_metres_per_second(),
-                rotation,
-                pace,
-                delta_seconds: delta_seconds_f32,
-                just_engaged,
-                just_explicitly_engaged,
-            })
         }
         MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
     }

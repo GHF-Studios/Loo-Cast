@@ -11,10 +11,10 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
             &UsfScaleLayer,
             &DetailedBodyScale,
             &TravelState,
-            &TravelProfile,
             &LocomotionCapabilities,
             &LocomotionEnabled,
             &LocomotionInhibition,
+            &mut TravelAssistanceState,
             Option<&LocomotionRegimeOverride>,
             &mut ControlledSubjectLocomotion,
             &mut UsfCanonicalMotion,
@@ -27,10 +27,10 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         layer,
         detailed,
         travel,
-        profile,
         capabilities,
         enabled,
         inhibition,
+        mut assistance,
         regime_override,
         mut locomotion,
         mut motion,
@@ -38,6 +38,12 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
 
     let previous_regime = locomotion.regime();
     let previous_kernel = locomotion.kernel();
+
+    if assistance.mode() == TravelAssistance::Cruise
+        && (travel.critical_dropout || !capabilities.cruise())
+    {
+        assistance.disengage(TravelAssistanceTransitionReason::CriticalApproach);
+    }
 
     if !enabled.0 || inhibition.is_inhibited() {
         let collision_policy = locomotion.collision_policy();
@@ -53,6 +59,8 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
                 regime: locomotion.regime(),
                 previous_kernel,
                 kernel: locomotion.kernel(),
+                reason: LocomotionTransitionReason::Inhibited,
+                velocity_semantics: locomotion.velocity_semantics(),
             });
         }
         motion.set_canonical_authority(false);
@@ -62,11 +70,6 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
     let regime = select_regime(
         RegimeSelection {
             entity,
-            previous_regime,
-            layer,
-            detailed,
-            travel,
-            profile,
             capabilities,
             regime_override,
         },
@@ -79,22 +82,31 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         detailed.0,
         *capabilities,
         locomotion.thrusters_enabled(),
+        assistance.mode() == TravelAssistance::Cruise,
     );
 
     let changed = locomotion.resolve(regime, kernel, collision_policy, velocity_semantics);
-    motion.set_canonical_authority(canonical_motion_authoritative(
-        kernel,
-        layer.scale(),
-        detailed.0,
-    ));
+    motion.set_canonical_authority(
+        assistance.mode() == TravelAssistance::Cruise
+            || canonical_motion_authoritative(kernel, layer.scale(), detailed.0),
+    );
 
     if changed {
+        let reason = if regime_override.is_some() {
+            LocomotionTransitionReason::DeveloperOverride
+        } else if matches!(locomotion.request(), LocomotionRequest::Regime(_)) {
+            LocomotionTransitionReason::ExplicitRequest
+        } else {
+            LocomotionTransitionReason::AutomaticPolicy
+        };
         transitions.write(ControlledSubjectLocomotionChanged {
             entity,
             previous_regime,
             regime: locomotion.regime(),
             previous_kernel,
             kernel: locomotion.kernel(),
+            reason,
+            velocity_semantics: locomotion.velocity_semantics(),
         });
     }
 }

@@ -29,8 +29,8 @@ use crate::{
             LocomotionInhibitionReason, LocomotionRegime, LocomotionSet, ScaleInteractionProxy,
         },
         navigation::{
-            AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
-            TravelPace, TravelProfile, TravelState,
+            AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelAssistanceState,
+            TravelEnvelope, TravelPace, TravelProfile, TravelState,
         },
         player::{Player, PlayerAction, PlayerInputFrame, ViewCameraProfile},
         surface::SurfaceContext,

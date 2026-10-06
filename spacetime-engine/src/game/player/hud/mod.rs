@@ -15,7 +15,7 @@ use crate::{
     game::{
         control::LocalControlSubject,
         flight::{FlightMode, FlightTelemetry},
-        navigation::TravelPace,
+        navigation::{TravelAssistance, TravelPace},
     },
     ui::UiLayer,
 };

@@ -23,7 +23,6 @@ pub(super) fn register(app: &mut App) {
                 "on_foot",
                 "local_flight",
                 "planetary_flight",
-                "cruise",
             ]),
         },
         get_debug_locomotion_regime,
@@ -37,7 +36,6 @@ fn debug_regime_label(regime: LocomotionRegime) -> &'static str {
         LocomotionRegime::OnFoot => "on_foot",
         LocomotionRegime::LocalFlight => "local_flight",
         LocomotionRegime::PlanetaryFlight => "planetary_flight",
-        LocomotionRegime::Cruise => "cruise",
     }
 }
 
@@ -48,10 +46,9 @@ fn parse_debug_regime(raw: &str) -> Result<Option<LocomotionRegime>, String> {
         "on_foot" | "onfoot" | "foot" => Some(LocomotionRegime::OnFoot),
         "local_flight" | "local" => Some(LocomotionRegime::LocalFlight),
         "planetary_flight" | "planetary" | "orbital" => Some(LocomotionRegime::PlanetaryFlight),
-        "cruise" => Some(LocomotionRegime::Cruise),
         _ => {
             return Err(format!(
-                "debug.locomotion.regime must be automatic, on_foot, local_flight, planetary_flight or cruise; got `{raw}`"
+                "debug.locomotion.regime must be automatic, on_foot, local_flight or planetary_flight; got `{raw}`"
             ));
         }
     })

@@ -11,7 +11,6 @@ pub enum LocomotionRegime {
     OnFoot,
     LocalFlight,
     PlanetaryFlight,
-    Cruise,
 }
 
 impl LocomotionRegime {
@@ -20,7 +19,6 @@ impl LocomotionRegime {
             Self::OnFoot => "ON FOOT",
             Self::LocalFlight => "LOCAL FLIGHT",
             Self::PlanetaryFlight => "PLANETARY FLIGHT",
-            Self::Cruise => "CRUISE",
         }
     }
 }
@@ -63,7 +61,6 @@ pub enum MotionKernel {
     InertialFlight,
     OrbitalFlight,
     ScaleNavigation,
-    Cruise,
     Disabled,
 }
 
@@ -79,7 +76,6 @@ impl MotionKernel {
                 | Self::InertialFlight
                 | Self::OrbitalFlight
                 | Self::ScaleNavigation
-                | Self::Cruise
         )
     }
 }
@@ -198,6 +194,14 @@ impl ControlledSubjectLocomotion {
 }
 
 /// Observable resolved locomotion transition.
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocomotionTransitionReason {
+    AutomaticPolicy,
+    ExplicitRequest,
+    DeveloperOverride,
+    Inhibited,
+}
+
 #[derive(Message, Debug, Clone, Copy)]
 pub struct ControlledSubjectLocomotionChanged {
     pub entity: Entity,
@@ -205,4 +209,6 @@ pub struct ControlledSubjectLocomotionChanged {
     pub regime: LocomotionRegime,
     pub previous_kernel: MotionKernel,
     pub kernel: MotionKernel,
+    pub reason: LocomotionTransitionReason,
+    pub velocity_semantics: VelocitySemantics,
 }

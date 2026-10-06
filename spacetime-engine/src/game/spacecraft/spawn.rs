@@ -182,6 +182,7 @@ fn spawn_ship_manifestation(
                 FlightSafetyState::default(),
                 FlightTelemetry::default(),
                 TraversalPolicy::Physical,
+                TravelAssistanceState::default(),
             ),
             (
                 PortalTraveler::new(body_transform.translation),

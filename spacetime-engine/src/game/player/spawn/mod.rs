@@ -12,8 +12,8 @@ use crate::{
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, NavigationPresentationProfile,
-            NavigationPresentationState, PrimaryBodyContext, TravelEnvelope, TravelPace,
-            TravelProfile, TravelState,
+            NavigationPresentationState, PrimaryBodyContext, TravelAssistanceState, TravelEnvelope,
+            TravelPace, TravelProfile, TravelState,
         },
         surface::SurfaceContext,
     },
@@ -137,6 +137,7 @@ fn spawn_player_manifestation(
             ),
             (
                 TravelState::default(),
+                TravelAssistanceState::default(),
                 PrimaryBodyContext::default(),
                 SurfaceContext::default(),
                 UsfTravelNeighborhood::default(),

@@ -2,10 +2,7 @@
 
 use super::*;
 
-fn reset_control_state(
-    input: &mut CharacterMovementInput,
-    ground: &mut CharacterGroundState,
-) {
+fn reset_control_state(input: &mut CharacterMovementInput, ground: &mut CharacterGroundState) {
     input.clear();
     ground.clear_contact();
 }
@@ -118,7 +115,8 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
     subject: Single<
         (
             &TravelState,
-            &mut ControlledSubjectLocomotion,
+            &LocomotionCapabilities,
+            &mut TravelAssistanceState,
             &mut AdaptiveCruise,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -130,27 +128,27 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (travel, mut locomotion, mut cruise, mut input, mut ground) = subject.into_inner();
+    let (travel, capabilities, mut assistance, mut cruise, mut input, mut ground) =
+        subject.into_inner();
     if dead.into_inner().is_some() {
         return;
     }
 
-    let disabling =
-        locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::Cruise);
+    let disabling = assistance.mode() == TravelAssistance::Cruise;
 
     if disabling {
-        locomotion.request_automatic();
+        assistance.disengage(TravelAssistanceTransitionReason::PilotDisengaged);
     } else {
-        if travel.critical_dropout {
+        if !travel.cruise_entry_available || !capabilities.cruise() {
             return;
         }
-        locomotion.request_regime(LocomotionRegime::Cruise);
+        assistance.engage_cruise();
     }
 
-    locomotion.set_thrusters_enabled(false);
-    locomotion.set_rcs_enabled(false);
-    cruise.throttle = 0.0;
-    cruise.speed_scale0 = 0.0;
+    if disabling {
+        cruise.throttle = 0.0;
+        cruise.speed_scale0 = 0.0;
+    }
     reset_control_state(&mut input, &mut ground);
 }
 

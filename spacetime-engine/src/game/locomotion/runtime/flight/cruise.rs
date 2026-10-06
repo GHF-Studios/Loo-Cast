@@ -21,7 +21,6 @@ pub(super) struct CruiseStep<'a> {
     pub(super) pace: f64,
     pub(super) delta_seconds: f32,
     pub(super) just_engaged: bool,
-    pub(super) just_explicitly_engaged: bool,
 }
 
 pub(super) fn step_cruise(step: CruiseStep<'_>) -> DVec3 {
@@ -37,22 +36,17 @@ pub(super) fn step_cruise(step: CruiseStep<'_>) -> DVec3 {
         pace,
         delta_seconds,
         just_engaged,
-        just_explicitly_engaged,
     } = step;
     state.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
     state.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
     state.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
     state.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
 
-    if just_explicitly_engaged {
-        state.throttle = throttle_for_speed(
-            envelope.cruise_default_speed_metres_per_second,
-            envelope.cruise_max_speed_metres_per_second,
-        );
-        state.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
-    } else if just_engaged {
-        state.throttle = 0.0;
+    if just_engaged {
+        state.throttle =
+            throttle_for_speed(current_speed, envelope.cruise_max_speed_metres_per_second);
         state.speed_scale0 = current_speed;
+        return current_velocity;
     }
 
     state.throttle = (state.throttle

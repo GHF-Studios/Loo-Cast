@@ -2,8 +2,11 @@
 
 use super::super::{
     control::LocalControlSubject,
-    locomotion::{ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest},
-    navigation::{AdaptiveCruise, TravelPace},
+    locomotion::LocomotionCapabilities,
+    navigation::{
+        AdaptiveCruise, TravelAssistance, TravelAssistanceState, TravelAssistanceTransitionReason,
+        TravelPace, TravelState,
+    },
 };
 use super::primary_view_context;
 use crate::{
@@ -113,16 +116,19 @@ pub(super) fn cruise_command(
         return ConsoleCommandResult::error("usage: cruise [on|off]");
     }
 
-    let mut query = world.query_filtered::<
-        (&mut ControlledSubjectLocomotion, &mut AdaptiveCruise),
-        With<LocalControlSubject>,
-    >();
-    let Some((mut locomotion, mut cruise)) = query.iter_mut(world).next() else {
+    let mut query = world.query_filtered::<(
+        &LocomotionCapabilities,
+        &TravelState,
+        &mut TravelAssistanceState,
+        &mut AdaptiveCruise,
+    ), With<LocalControlSubject>>();
+    let Some((capabilities, travel, mut assistance, mut cruise)) = query.iter_mut(world).next()
+    else {
         return ConsoleCommandResult::error("player locomotion state is unavailable");
     };
 
     let active = match invocation.args().first().map(String::as_str) {
-        None => locomotion.request() != LocomotionRequest::Regime(LocomotionRegime::Cruise),
+        None => assistance.mode() != TravelAssistance::Cruise,
         Some(value) if value.eq_ignore_ascii_case("on") => true,
         Some(value) if value.eq_ignore_ascii_case("off") => false,
         Some(value) => {
@@ -133,13 +139,19 @@ pub(super) fn cruise_command(
     };
 
     if active {
-        locomotion.request_regime(LocomotionRegime::Cruise);
-        locomotion.set_thrusters_enabled(false);
+        if !capabilities.cruise() || !travel.cruise_entry_available {
+            return ConsoleCommandResult::error(
+                "Cruise is unavailable for this subject or approach",
+            );
+        }
+        assistance.engage_cruise();
     } else {
-        locomotion.request_automatic();
+        assistance.disengage(TravelAssistanceTransitionReason::PilotDisengaged);
     }
-    cruise.throttle = 0.0;
-    cruise.speed_scale0 = 0.0;
+    if !active {
+        cruise.throttle = 0.0;
+        cruise.speed_scale0 = 0.0;
+    }
 
     ConsoleCommandResult::success_and_return_to_gameplay(if active {
         "adaptive Cruise enabled — W/S throttle, mouse steers"

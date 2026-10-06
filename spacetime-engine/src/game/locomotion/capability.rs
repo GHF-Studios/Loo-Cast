@@ -19,7 +19,6 @@ impl LocomotionCapabilities {
             LocomotionRegime::OnFoot => self.character,
             LocomotionRegime::LocalFlight => self.local_flight,
             LocomotionRegime::PlanetaryFlight => self.orbital_flight,
-            LocomotionRegime::Cruise => self.cruise,
         }
     }
 

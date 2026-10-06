@@ -52,6 +52,8 @@ pub(in crate::game::navigation) fn sync_travel_state(
     state.planetary_handoff_available = clearance <= handoff;
     state.planetary_context = measurement.relative_proximity() <= profile.approach.activation_radii;
     state.critical_dropout = clearance <= handoff;
+    state.cruise_entry_available =
+        clearance > handoff * profile.cruise.reentry_clearance_multiplier;
 
     *primary = PrimaryBodyContext::resolved(
         entity,

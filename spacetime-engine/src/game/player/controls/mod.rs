@@ -11,11 +11,12 @@ use crate::{
         control::{LocalControlSubject, LocalViewTarget},
         locomotion::{
             CharacterStance, ControlledSubjectLocomotion, FlightAttitudeCommand,
-            FlightControlIntent, LocomotionRegime,
-            LocomotionRequest, MotionKernel,
+            FlightControlIntent, LocomotionCapabilities, LocomotionRegime, LocomotionRequest,
+            MotionKernel,
         },
         navigation::{
-            AdaptiveCruise, NavigationPresentationState, TravelPace, TravelState,
+            AdaptiveCruise, NavigationPresentationState, TravelAssistance, TravelAssistanceState,
+            TravelAssistanceTransitionReason, TravelPace, TravelState,
         },
     },
     physics::character::{
@@ -39,7 +40,5 @@ pub(super) use modes::{
     toggle_adaptive_cruise, toggle_local_flight, toggle_local_flight_rcs,
     toggle_local_flight_thrusters, toggle_spatial_demand,
 };
-pub(super) use movement::{
-    adjust_flight_travel_pace, movement, sample_flight_control_intent,
-};
+pub(super) use movement::{adjust_flight_travel_pace, movement, sample_flight_control_intent};
 pub(super) use view::{look, zoom_spatial_view};

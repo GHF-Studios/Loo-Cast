@@ -5,7 +5,10 @@ use crate::{
     game::{
         control::LocalControlSubject,
         locomotion::{ControlledSubjectLocomotion, DetailedBodyScale},
-        navigation::{AdaptiveCruise, PrimaryBodyContext, TravelState},
+        navigation::{
+            AdaptiveCruise, PrimaryBodyContext, TravelAssistance, TravelAssistanceState,
+            TravelState,
+        },
         surface::SurfaceContext,
     },
     physics::gravity::GravitySample,
@@ -21,6 +24,7 @@ pub(super) fn sync_flight_telemetry(
             &UsfScaleLayer,
             &UsfCanonicalMotion,
             &AdaptiveCruise,
+            &TravelAssistanceState,
             &TravelState,
             &GravitySample,
             &PrimaryBodyContext,
@@ -39,6 +43,7 @@ pub(super) fn sync_flight_telemetry(
         layer,
         motion,
         cruise,
+        assistance,
         travel,
         gravity,
         primary,
@@ -56,11 +61,12 @@ pub(super) fn sync_flight_telemetry(
 
         telemetry.active = mode.is_some() || contact.is_landed();
         telemetry.mode = mode;
+        telemetry.assistance = assistance.mode();
         telemetry.contact = contact;
         telemetry.landing_available = landing.available();
         telemetry.safety = safety.level();
         telemetry.speed_metres_per_second = motion.speed_metres_per_second();
-        telemetry.throttle = if mode == Some(FlightMode::Cruise) {
+        telemetry.throttle = if assistance.mode() == TravelAssistance::Cruise {
             cruise.throttle
         } else {
             0.0
