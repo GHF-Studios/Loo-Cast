@@ -2,11 +2,13 @@
 
 use super::super::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
-    DetailedBodyScale, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
-    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason,
+    DetailedBodyScale, DeveloperMotionOverride, FlightControlIntent, LocomotionCapabilities,
+    LocomotionEnabled, LocomotionInhibition, LocomotionRegime, LocomotionRegimeOverride,
+    LocomotionRequest, LocomotionTransitionReason, MotionExecution, MotionHandoffSnapshot,
     MotionKernel, ScaleInteractionProxy, VelocitySemantics,
 };
 use crate::{
+    ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
         navigation::{
@@ -17,9 +19,9 @@ use crate::{
         DetailedBodyCollision, PhysicalBoxHull,
         character::{CharacterGroundState, CharacterMotor, CharacterMovementInput},
     },
-    spatial::{SpatialScale, UsfCanonicalMotion, UsfScaleLayer},
+    spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer},
 };
-use avian3d::prelude::Collider;
+use avian3d::prelude::{Collider, LinearVelocity};
 use bevy::prelude::*;
 
 mod policy;

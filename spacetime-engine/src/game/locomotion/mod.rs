@@ -14,6 +14,7 @@ use crate::{
 mod runtime;
 
 mod capability;
+mod execution;
 mod flight;
 mod state;
 
@@ -21,11 +22,13 @@ pub use capability::{
     CharacterStance, DetailedBodyScale, LocomotionCapabilities, LocomotionEnabled,
     LocomotionInhibition, LocomotionInhibitionReason, ScaleInteractionProxy,
 };
-pub use flight::{FlightAttitudeCommand, FlightControlIntent};
+pub use execution::{
+    CollisionPolicy, DeveloperMotionOverride, MotionExecution, MotionKernel, VelocitySemantics,
+};
+pub use flight::{FlightActuation, FlightAttitudeCommand, FlightControlIntent};
 pub use state::{
-    CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
-    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason,
-    MotionKernel, VelocitySemantics,
+    ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, LocomotionRegime,
+    LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason, MotionHandoffSnapshot,
 };
 
 /// Stable generic locomotion runtime extension points.
@@ -45,6 +48,8 @@ impl Plugin for LocomotionPlugin {
             .register_type::<LocomotionRegimeOverride>()
             .register_type::<LocomotionTransitionReason>()
             .register_type::<MotionKernel>()
+            .register_type::<MotionExecution>()
+            .register_type::<DeveloperMotionOverride>()
             .register_type::<CollisionPolicy>()
             .register_type::<VelocitySemantics>()
             .register_type::<ControlledSubjectLocomotion>()
@@ -55,6 +60,7 @@ impl Plugin for LocomotionPlugin {
             .register_type::<CharacterStance>()
             .register_type::<FlightAttitudeCommand>()
             .register_type::<FlightControlIntent>()
+            .register_type::<FlightActuation>()
             .register_type::<ScaleInteractionProxy>()
             .register_type::<DetailedBodyScale>()
             .add_message::<ControlledSubjectLocomotionChanged>()

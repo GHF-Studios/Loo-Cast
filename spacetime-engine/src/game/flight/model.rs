@@ -6,28 +6,100 @@ use crate::{
 };
 use bevy::prelude::*;
 
+/// Interpretation of a human pilot's look state for physical attitude.
+/// AI and autopilot controllers may write `FlightControlIntent` directly.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[reflect(Component)]
+pub enum PilotAttitudeLaw {
+    #[default]
+    Hold,
+    FollowView,
+}
+
+impl PilotAttitudeLaw {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Hold => "HOLD",
+            Self::FollowView => "FOLLOW VIEW",
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum AttitudeAutopilotMode {
+    #[default]
+    Off,
+    Hold,
+    Prograde,
+}
+
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct AttitudeAutopilot {
+    mode: AttitudeAutopilotMode,
+    hold_target: Quat,
+}
+
+impl AttitudeAutopilot {
+    pub const fn mode(self) -> AttitudeAutopilotMode {
+        self.mode
+    }
+    pub fn disengage(&mut self) {
+        self.mode = AttitudeAutopilotMode::Off;
+    }
+    pub fn hold(&mut self, orientation: Quat) {
+        self.hold_target = orientation.normalize();
+        self.mode = AttitudeAutopilotMode::Hold;
+    }
+    pub fn point_prograde(&mut self) {
+        self.mode = AttitudeAutopilotMode::Prograde;
+    }
+    pub const fn hold_target(self) -> Quat {
+        self.hold_target
+    }
+}
+
 /// Player-/pilot-facing operational flight mode.
 ///
 /// This is deliberately NOT a motion-kernel enum. One mode may be realized by
 /// different numerical kernels as interaction precision and environment change.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlightMode {
-    Local,
+    Space,
     Planetary,
 }
 
 impl FlightMode {
-    pub const fn from_locomotion(regime: LocomotionRegime) -> Option<Self> {
+    pub fn from_context(
+        regime: LocomotionRegime,
+        previous: Option<Self>,
+        surface_clearance_metres: Option<f64>,
+        body_radius_metres: f64,
+    ) -> Option<Self> {
         match regime {
             LocomotionRegime::OnFoot => None,
-            LocomotionRegime::LocalFlight => Some(Self::Local),
-            LocomotionRegime::PlanetaryFlight => Some(Self::Planetary),
+            LocomotionRegime::SpacecraftFlight => Some(
+                if body_radius_metres > 0.0
+                    && surface_clearance_metres.is_some_and(|clearance| {
+                        let limit = if previous == Some(Self::Planetary) {
+                            4.0
+                        } else {
+                            2.0
+                        };
+                        clearance <= body_radius_metres * limit
+                    })
+                {
+                    Self::Planetary
+                } else {
+                    Self::Space
+                },
+            ),
         }
     }
 
     pub const fn label(self) -> &'static str {
         match self {
-            Self::Local => "LOCAL FLIGHT",
+            Self::Space => "SPACE FLIGHT",
             Self::Planetary => "PLANETARY FLIGHT",
         }
     }

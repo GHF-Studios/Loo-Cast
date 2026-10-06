@@ -12,7 +12,8 @@ use crate::{
         control::LocalControlSubject,
         flight::FlightContactState,
         locomotion::{
-            ControlledSubjectLocomotion, LocomotionInhibition, LocomotionInhibitionReason,
+            ControlledSubjectLocomotion, FlightActuation, LocomotionInhibition,
+            LocomotionInhibitionReason,
         },
     },
     physics::{
@@ -129,6 +130,7 @@ pub(super) fn prepare_controlled_subject(
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
+            &mut FlightActuation,
             Option<&mut FlightContactState>,
             Option<&mut LocomotionInhibition>,
             &mut CharacterControlFrame,
@@ -148,6 +150,7 @@ pub(super) fn prepare_controlled_subject(
         mut velocity,
         mut motion,
         mut locomotion,
+        mut actuation,
         mut flight_contact,
         mut inhibition,
         mut control,
@@ -248,8 +251,8 @@ pub(super) fn prepare_controlled_subject(
     // Safe fixture spacecraft begin clear of terrain and immediately usable.
     if let Some(contact) = flight_contact.as_deref_mut() {
         contact.launch();
-        locomotion.set_thrusters_enabled(true);
-        locomotion.set_rcs_enabled(true);
+        actuation.set_thrusters_enabled(true);
+        actuation.set_rcs_enabled(true);
     }
     if let Some(inhibition) = inhibition.as_deref_mut() {
         inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);

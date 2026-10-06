@@ -2,7 +2,8 @@
 
 use super::cruise::{CruiseStep, step_cruise};
 use crate::game::locomotion::{
-    ControlledSubjectLocomotion, FlightAttitudeCommand, FlightControlIntent, MotionKernel,
+    FlightActuation, FlightAttitudeCommand, FlightControlIntent, LocomotionCapabilities,
+    MotionKernel,
 };
 use crate::game::navigation::{
     AdaptiveCruise, TravelAssistance, TravelAssistanceState, TravelEnvelope, TravelProfile,
@@ -15,10 +16,12 @@ pub(super) fn vec3_to_dvec3(value: Vec3) -> DVec3 {
     DVec3::new(f64::from(value.x), f64::from(value.y), f64::from(value.z))
 }
 
-fn flight_wish(intent: &FlightControlIntent, attitude: Quat, physical_up: Vec3) -> DVec3 {
+fn flight_wish(intent: &FlightControlIntent, attitude: Quat) -> DVec3 {
     let axes = intent.translation_axes();
     vec3_to_dvec3(
-        (attitude * Vec3::X * axes.x + attitude * Vec3::NEG_Z * axes.z + physical_up * axes.y)
+        (attitude * Vec3::X * axes.x
+            + attitude * Vec3::NEG_Z * axes.z
+            + attitude * Vec3::Y * axes.y)
             .normalize_or_zero(),
     )
 }
@@ -87,14 +90,6 @@ fn integrate_local_inertial_velocity(
     let thrusting =
         thrusters_enabled && thrust_acceleration > 0.0 && wish.length_squared() > 1.0e-18;
 
-    // Gravity remains canonical sampled field state. RCS only changes this
-    // subject's local-flight response to that field; it never mutates gravity.
-    let gravity_acceleration = if rcs_enabled {
-        DVec3::ZERO
-    } else {
-        gravity_acceleration
-    };
-
     let mut next_velocity = current_velocity + gravity_acceleration * dt_seconds;
     if thrusting {
         next_velocity += wish * thrust_acceleration * dt_seconds;
@@ -130,7 +125,8 @@ fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f6
 /// collision remain the caller's responsibility after this step.
 pub(super) struct FlightVelocityStep<'a> {
     pub(super) kernel: MotionKernel,
-    pub(super) locomotion: &'a ControlledSubjectLocomotion,
+    pub(super) actuation: &'a FlightActuation,
+    pub(super) capabilities: &'a LocomotionCapabilities,
     pub(super) intent: &'a FlightControlIntent,
     pub(super) profile: &'a TravelProfile,
     pub(super) envelope: &'a TravelEnvelope,
@@ -139,7 +135,6 @@ pub(super) struct FlightVelocityStep<'a> {
     pub(super) cruise: &'a mut AdaptiveCruise,
     pub(super) motion: &'a UsfCanonicalMotion,
     pub(super) rotation: Quat,
-    pub(super) up: Vec3,
     pub(super) gravity: DVec3,
     pub(super) delta_seconds: f64,
     pub(super) delta_seconds_f32: f32,
@@ -148,7 +143,8 @@ pub(super) struct FlightVelocityStep<'a> {
 pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
     let FlightVelocityStep {
         kernel,
-        locomotion,
+        actuation,
+        capabilities,
         intent,
         profile,
         envelope,
@@ -157,13 +153,12 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
         cruise,
         motion,
         rotation,
-        up,
         gravity,
         delta_seconds,
         delta_seconds_f32,
     } = step;
     let dt = delta_seconds;
-    let wish = flight_wish(intent, rotation, up);
+    let wish = flight_wish(intent, rotation);
     let pace = f64::from(intent.pace_multiplier().max(0.0));
     let boost = boost_multiplier(intent, profile);
 
@@ -188,16 +183,6 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
     }
 
     match kernel {
-        MotionKernel::ThrusterFlight => {
-            wish * envelope.manual_speed_metres_per_second * pace * boost
-        }
-        MotionKernel::ScaleNavigation => {
-            let up = vec3_to_dvec3(up).normalize_or_zero();
-            let current = motion.velocity_metres_per_second();
-            wish * envelope.manual_speed_metres_per_second * pace * boost
-                + up * current.dot(up)
-                + gravity * dt
-        }
         MotionKernel::InertialFlight => integrate_local_inertial_velocity(
             motion.velocity_metres_per_second(),
             wish,
@@ -211,19 +196,9 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
             ) * pace
                 * boost,
             f64::from(profile.flight.rcs_braking_acceleration_metres_per_second2),
-            locomotion.thrusters_enabled(),
-            locomotion.rcs_enabled(),
+            capabilities.main_propulsion() && actuation.thrusters_enabled(),
+            capabilities.reaction_control() && actuation.rcs_enabled(),
         ),
-        MotionKernel::OrbitalFlight => {
-            let thrust = f64::from(
-                profile
-                    .flight
-                    .orbital_acceleration_metres_per_second2
-                    .max(0.0),
-            ) * pace
-                * boost;
-            motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
-        }
         MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
     }
 }

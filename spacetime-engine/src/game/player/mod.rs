@@ -8,43 +8,34 @@
 mod camera;
 mod components;
 mod controls;
+pub mod cursor;
 mod hud;
 mod input;
 mod lifecycle;
-mod spawn;
-pub mod cursor;
 mod model;
+mod spawn;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera, ViewCameraProfile};
-pub(crate) use camera::{
-    DebugFreecam, FreecamControlPolicy, FreecamProjectionPolicy,
-};
+pub(crate) use camera::{DebugFreecam, FreecamControlPolicy, FreecamProjectionPolicy};
 pub use components::{Player, PlayerAim, PlayerController, PlayerDead};
 
 pub(crate) use input::{
-    BINDABLE_INPUT_NAMES, PLAYER_BIND_TARGETS, PlayerAction, PlayerInputBindings,
-    PlayerInputFrame,
+    BINDABLE_INPUT_NAMES, PLAYER_BIND_TARGETS, PlayerAction, PlayerInputBindings, PlayerInputFrame,
 };
 
 use avian3d::prelude::{
     ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
     LinearVelocity, RigidBody,
 };
-use bevy::{
-    app::RunFixedMainLoop,
-    camera::visibility::RenderLayers,
-    prelude::*,
-};
+use bevy::{app::RunFixedMainLoop, camera::visibility::RenderLayers, prelude::*};
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
-        UsfOwnershipQuery,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf, UsfOwnershipQuery,
         UsfPresentationProjectionOf, UsfPresentationView, UsfPresentationViewOf,
     },
     input_focus::{InputFocus, InputFocusSet},
-    portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
     physics::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
@@ -53,10 +44,10 @@ use crate::{
         },
         topology::{KinematicQueryExclusions, SpatialSplitPeer},
     },
+    portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale, UsfInteractionProjection,
-        UsfPosition, UsfScaleLayer,
-        UsfSpatialAnchor, UsfTravelNeighborhood, UsfViewAnchor,
+        UsfPosition, UsfScaleLayer, UsfSpatialAnchor, UsfTravelNeighborhood, UsfViewAnchor,
         UsfViewContext, UsfViewRenderAnchor,
     },
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
@@ -135,9 +126,9 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 RunFixedMainLoop,
                 (
-                    controls::toggle_local_flight,
-                    controls::toggle_local_flight_thrusters,
-                    controls::toggle_local_flight_rcs,
+                    controls::toggle_attitude_law,
+                    controls::toggle_thrusters,
+                    controls::toggle_rcs,
                     controls::toggle_adaptive_cruise,
                 )
                     .chain()

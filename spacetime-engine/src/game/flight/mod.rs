@@ -4,16 +4,17 @@
 //! state; the runtime only copies already-resolved simulation state into it.
 
 use crate::game::{GameSet, PresentationSet};
-use bevy::prelude::*;
+use bevy::{app::RunFixedMainLoop, prelude::*};
 
 mod model;
 mod runtime;
 
 pub use model::*;
-use runtime::sync_flight_telemetry;
+use runtime::{apply_attitude_autopilot, sync_flight_telemetry};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlightSet {
+    Control,
     Telemetry,
 }
 
@@ -22,6 +23,9 @@ pub struct FlightPlugin;
 impl Plugin for FlightPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<FlightMode>()
+            .register_type::<PilotAttitudeLaw>()
+            .register_type::<AttitudeAutopilotMode>()
+            .register_type::<AttitudeAutopilot>()
             .register_type::<FlightContactState>()
             .register_type::<FlightLandingOpportunity>()
             .register_type::<TraversalPolicy>()
@@ -34,6 +38,10 @@ impl Plugin for FlightPlugin {
                 FlightSet::Telemetry
                     .in_set(GameSet::Presentation)
                     .before(PresentationSet::PrimaryView),
+            )
+            .add_systems(
+                RunFixedMainLoop,
+                apply_attitude_autopilot.in_set(FlightSet::Control),
             )
             .add_systems(Update, sync_flight_telemetry.in_set(FlightSet::Telemetry));
     }

@@ -11,13 +11,12 @@ use bevy::prelude::*;
 use crate::{
     game::{
         control::LocalControlSubject,
-        locomotion::ControlledSubjectLocomotion,
+        locomotion::{ControlledSubjectLocomotion, MotionExecution},
     },
     spatial::{
-        SpatialScale, UsfInteractionScaleAffinity, UsfPosition,
-        UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfScaleRoleMask,
-        UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
+        SpatialScale, UsfInteractionScaleAffinity, UsfPosition, UsfPrimaryInteractionSlice,
+        UsfRuntimeChartState, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
+        UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -140,8 +139,7 @@ impl NavigationFlightRecorder {
             .last_discrete
             .as_ref()
             .is_none_or(|previous| previous != &discrete);
-        let periodic =
-            sample.elapsed_seconds - self.last_sample_seconds >= SAMPLE_INTERVAL_SECONDS;
+        let periodic = sample.elapsed_seconds - self.last_sample_seconds >= SAMPLE_INTERVAL_SECONDS;
 
         if !discrete_changed && !periodic {
             return;
@@ -190,18 +188,14 @@ impl NavigationFlightRecorder {
                     .map(|delta| delta.length())
             });
 
-            let movement = delta_metres.map_or_else(
-                || "d=?".to_string(),
-                |delta| format!("d={delta:.3}m"),
-            );
-            let request = sample.requested_interaction.map_or_else(
-                || "-".to_string(),
-                |scale| format!("S{scale}"),
-            );
-            let clearance = sample.clearance_metres.map_or_else(
-                || "-".to_string(),
-                |value| format!("{value:.3}m"),
-            );
+            let movement =
+                delta_metres.map_or_else(|| "d=?".to_string(), |delta| format!("d={delta:.3}m"));
+            let request = sample
+                .requested_interaction
+                .map_or_else(|| "-".to_string(), |scale| format!("S{scale}"));
+            let clearance = sample
+                .clearance_metres
+                .map_or_else(|| "-".to_string(), |value| format!("{value:.3}m"));
             let gate = sample.coverage_gate.map_or("-", CoverageGate::label);
 
             lines.push(format!(
@@ -247,6 +241,7 @@ pub(super) fn record_navigation_flight(
             &UsfInteractionScaleAffinity,
             &ApproachRefinementState,
             &ControlledSubjectLocomotion,
+            &MotionExecution,
         ),
         With<LocalControlSubject>,
     >,
@@ -256,7 +251,7 @@ pub(super) fn record_navigation_flight(
         return;
     }
 
-    let (transform, layer, affinity, approach, locomotion) = subject.into_inner();
+    let (transform, layer, affinity, approach, locomotion, execution) = subject.into_inner();
 
     let interaction_affinity = affinity.scale();
     let realization_target = if approach.active {
@@ -270,7 +265,7 @@ pub(super) fn record_navigation_flight(
     // discard the result inside `record()`.
     let elapsed_seconds = time.elapsed().as_secs_f64();
     let regime = format!("{:?}", locomotion.regime());
-    let kernel = format!("{:?}", locomotion.kernel());
+    let kernel = format!("{:?}", execution.kernel());
     let trigger_changed = recorder.samples.back().is_none_or(|previous| {
         previous.current_interaction != interaction.scale()
             || previous.requested_interaction != interaction.requested_scale()
@@ -280,8 +275,7 @@ pub(super) fn record_navigation_flight(
             || previous.regime != regime
             || previous.kernel != kernel
     });
-    let periodic =
-        elapsed_seconds - recorder.last_sample_seconds >= SAMPLE_INTERVAL_SECONDS;
+    let periodic = elapsed_seconds - recorder.last_sample_seconds >= SAMPLE_INTERVAL_SECONDS;
     if !trigger_changed && !periodic {
         return;
     }

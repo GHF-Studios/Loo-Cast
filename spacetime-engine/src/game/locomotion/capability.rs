@@ -7,55 +7,90 @@ use super::*;
 #[reflect(Component)]
 pub struct LocomotionCapabilities {
     character: bool,
-    local_flight: bool,
     inertial_flight: bool,
-    orbital_flight: bool,
     cruise: bool,
+    main_propulsion: bool,
+    reaction_control: bool,
+    landing: bool,
 }
 
 impl LocomotionCapabilities {
     pub const fn supports_regime(self, regime: LocomotionRegime) -> bool {
         match regime {
             LocomotionRegime::OnFoot => self.character,
-            LocomotionRegime::LocalFlight => self.local_flight,
-            LocomotionRegime::PlanetaryFlight => self.orbital_flight,
+            LocomotionRegime::SpacecraftFlight => self.inertial_flight,
         }
     }
 
     pub const fn character() -> Self {
         Self {
             character: true,
-            local_flight: false,
             inertial_flight: false,
-            orbital_flight: false,
             cruise: false,
+            main_propulsion: false,
+            reaction_control: false,
+            landing: false,
         }
     }
 
     pub const fn spacecraft() -> Self {
         Self {
             character: false,
-            local_flight: true,
             inertial_flight: true,
-            orbital_flight: true,
             cruise: true,
+            main_propulsion: true,
+            reaction_control: true,
+            landing: true,
         }
+    }
+
+    pub const fn with_character(mut self, enabled: bool) -> Self {
+        self.character = enabled;
+        self
+    }
+
+    pub const fn with_inertial_flight(mut self, enabled: bool) -> Self {
+        self.inertial_flight = enabled;
+        self
+    }
+
+    pub const fn with_cruise(mut self, enabled: bool) -> Self {
+        self.cruise = enabled;
+        self
+    }
+
+    pub const fn with_main_propulsion(mut self, enabled: bool) -> Self {
+        self.main_propulsion = enabled;
+        self
+    }
+
+    pub const fn with_reaction_control(mut self, enabled: bool) -> Self {
+        self.reaction_control = enabled;
+        self
+    }
+
+    pub const fn with_landing(mut self, enabled: bool) -> Self {
+        self.landing = enabled;
+        self
     }
 
     pub const fn character_enabled(self) -> bool {
         self.character
     }
-    pub const fn local_flight(self) -> bool {
-        self.local_flight
-    }
     pub const fn inertial_flight(self) -> bool {
         self.inertial_flight
     }
-    pub const fn orbital_flight(self) -> bool {
-        self.orbital_flight
-    }
     pub const fn cruise(self) -> bool {
-        self.cruise
+        self.cruise && self.inertial_flight
+    }
+    pub const fn main_propulsion(self) -> bool {
+        self.main_propulsion && self.inertial_flight
+    }
+    pub const fn reaction_control(self) -> bool {
+        self.reaction_control && self.inertial_flight
+    }
+    pub const fn landing(self) -> bool {
+        self.landing && self.inertial_flight
     }
 }
 

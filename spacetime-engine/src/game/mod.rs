@@ -1,20 +1,20 @@
 //! Loo Cast game composition built on Spacetime Engine domains.
 
 pub mod combat;
-pub mod control;
-pub mod flight;
-pub mod locomotion;
-pub mod navigation;
-pub mod orbit;
-pub mod spacecraft;
-pub mod surface;
 mod console_commands;
+pub mod control;
 mod devtools;
+pub mod flight;
 pub mod health;
 pub mod inventory;
 pub mod item;
+pub mod locomotion;
+pub mod navigation;
+pub mod orbit;
 pub mod player;
 pub mod playground;
+pub mod spacecraft;
+pub mod surface;
 mod world;
 
 use bevy::{
@@ -68,109 +68,108 @@ impl Plugin for LooCastPlugin {
         console_commands::configure(app);
 
         app.configure_sets(
-                RunFixedMainLoop,
-                (
-                    control::ControlSet::Sample,
-                    orbit::OrbitalSet::Advance,
-                    crate::physics::gravity::GravitySet::Sample,
-                    navigation::NavigationSet::Observe,
-                    control::ControlSet::Request,
-                    navigation::NavigationSet::Plan,
-                    locomotion::LocomotionSet::Resolve,
-                    locomotion::LocomotionSet::Realize,
-                    crate::physics::character::CharacterEnvironmentSet::ResolveReferenceFrame,
-                    control::ControlSet::CharacterIntent,
-                    navigation::NavigationSet::Publish,
-                )
-                    .chain()
-                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
-            );
+            RunFixedMainLoop,
+            (
+                control::ControlSet::Sample,
+                flight::FlightSet::Control,
+                orbit::OrbitalSet::Advance,
+                crate::physics::gravity::GravitySet::Sample,
+                navigation::NavigationSet::Observe,
+                control::ControlSet::Request,
+                navigation::NavigationSet::Plan,
+                locomotion::LocomotionSet::Resolve,
+                locomotion::LocomotionSet::Realize,
+                crate::physics::character::CharacterEnvironmentSet::ResolveReferenceFrame,
+                control::ControlSet::CharacterIntent,
+                navigation::NavigationSet::Publish,
+            )
+                .chain()
+                .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+        );
 
         app.configure_sets(
-                Update,
-                (
-                    GameSet::Input,
-                    GameSet::Action,
-                    GameSet::Simulation,
-                    GameSet::Consequence,
-                    GameSet::Cleanup,
-                    GameSet::Presentation,
-                )
-                    .chain(),
+            Update,
+            (
+                GameSet::Input,
+                GameSet::Action,
+                GameSet::Simulation,
+                GameSet::Consequence,
+                GameSet::Cleanup,
+                GameSet::Presentation,
             )
-            .configure_sets(
-                Update,
-                (InputSet::Interface, InputSet::Cursor, InputSet::Gameplay)
-                    .chain()
-                    .in_set(GameSet::Input),
+                .chain(),
+        )
+        .configure_sets(
+            Update,
+            (InputSet::Interface, InputSet::Cursor, InputSet::Gameplay)
+                .chain()
+                .in_set(GameSet::Input),
+        )
+        .configure_sets(
+            Update,
+            (
+                SimulationSet::Motion,
+                SimulationSet::Topology,
+                SimulationSet::Collision,
+                SimulationSet::Phenomena,
             )
-            .configure_sets(
-                Update,
-                (
-                    SimulationSet::Motion,
-                    SimulationSet::Topology,
-                    SimulationSet::Collision,
-                    SimulationSet::Phenomena,
-                )
-                    .chain()
-                    .in_set(GameSet::Simulation),
+                .chain()
+                .in_set(GameSet::Simulation),
+        )
+        .configure_sets(
+            Update,
+            (PresentationSet::PrimaryView, PresentationSet::DerivedViews)
+                .chain()
+                .in_set(GameSet::Presentation),
+        )
+        .configure_sets(
+            Update,
+            crate::portal::PortalUpdateSet::Topology.in_set(SimulationSet::Topology),
+        )
+        .configure_sets(
+            Update,
+            crate::portal::PortalUpdateSet::DerivedViews.in_set(PresentationSet::DerivedViews),
+        )
+        .configure_sets(
+            Update,
+            crate::portal::PortalUpdateSet::Presentation.in_set(GameSet::Presentation),
+        )
+        .configure_sets(
+            Update,
+            (
+                crate::thermal::ThermalSet::SpatialInput,
+                crate::thermal::ThermalSet::Lumped,
+                crate::thermal::ThermalSet::SpatialOutput,
             )
-            .configure_sets(
-                Update,
-                (PresentationSet::PrimaryView, PresentationSet::DerivedViews)
-                    .chain()
-                    .in_set(GameSet::Presentation),
-            )
-            .configure_sets(
-                Update,
-                crate::portal::PortalUpdateSet::Topology.in_set(SimulationSet::Topology),
-            )
-            .configure_sets(
-                Update,
-                crate::portal::PortalUpdateSet::DerivedViews
-                    .in_set(PresentationSet::DerivedViews),
-            )
-            .configure_sets(
-                Update,
-                crate::portal::PortalUpdateSet::Presentation.in_set(GameSet::Presentation),
-            )
-            .configure_sets(
-                Update,
-                (
-                    crate::thermal::ThermalSet::SpatialInput,
-                    crate::thermal::ThermalSet::Lumped,
-                    crate::thermal::ThermalSet::SpatialOutput,
-                )
-                    .chain()
-                    .in_set(SimulationSet::Phenomena),
-            )
-            .configure_sets(
-                Update,
-                crate::thermal::ThermalPresentationSet::Derived
-                    .in_set(GameSet::Presentation),
-            )
-            .add_plugins((
-                inventory::InventoryPlugin,
-                item::ItemPlugin,
-                health::HealthPlugin,
-                combat::CombatPlugin,
-                crate::procedural_assets::ProceduralAssetsPlugin,
-                crate::spatial::UsfSpatialPlugin,
-                control::ControlPlugin,
-            ))
-            .add_plugins((
-                locomotion::LocomotionPlugin,
-                orbit::OrbitPlugin,
-                navigation::NavigationPlugin,
-                surface::SurfacePlugin,
-                flight::FlightPlugin,
-                player::PlayerPlugin,
-                spacecraft::SpacecraftPlugin,
-                crate::portal::PortalPlugin,
-                crate::thermal::ThermalCorePlugin,
-                crate::thermal::ThermalPresentationPlugin,
-                world::GameWorldPlugin,
-                playground::PlaygroundPlugin,
-            ));
+                .chain()
+                .in_set(SimulationSet::Phenomena),
+        )
+        .configure_sets(
+            Update,
+            crate::thermal::ThermalPresentationSet::Derived.in_set(GameSet::Presentation),
+        )
+        .add_plugins((
+            inventory::InventoryPlugin,
+            item::ItemPlugin,
+            health::HealthPlugin,
+            combat::CombatPlugin,
+            crate::procedural_assets::ProceduralAssetsPlugin,
+            crate::spatial::UsfSpatialPlugin,
+            control::ControlPlugin,
+        ))
+        .add_plugins((
+            locomotion::LocomotionPlugin,
+            orbit::OrbitPlugin,
+            navigation::NavigationPlugin,
+            surface::SurfacePlugin,
+            flight::FlightPlugin,
+            player::PlayerPlugin,
+            spacecraft::SpacecraftPlugin,
+            crate::portal::PortalPlugin,
+            crate::thermal::ThermalCorePlugin,
+            crate::thermal::ThermalPresentationPlugin,
+            world::GameWorldPlugin,
+            playground::PlaygroundPlugin,
+        ));
     }
 }

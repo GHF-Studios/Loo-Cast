@@ -3,7 +3,7 @@
 use crate::game::{
     control::LocalControlSubject,
     locomotion::{
-        ControlledSubjectLocomotion, FlightControlIntent, LocomotionEnabled,
+        ControlledSubjectLocomotion, FlightActuation, FlightControlIntent, LocomotionEnabled,
     },
 };
 
@@ -26,6 +26,7 @@ pub(super) fn handle_player_death(
             Entity,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
+            &mut FlightActuation,
             &mut FlightControlIntent,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -52,6 +53,7 @@ pub(super) fn handle_player_death(
         subject_entity,
         mut enabled,
         mut locomotion,
+        mut actuation,
         mut flight_intent,
         mut input,
         mut ground,
@@ -61,7 +63,7 @@ pub(super) fn handle_player_death(
 
     enabled.0 = false;
     locomotion.request_automatic();
-    locomotion.set_thrusters_enabled(false);
+    actuation.set_thrusters_enabled(false);
     flight_intent.clear();
     input.clear();
     ground.clear_contact();

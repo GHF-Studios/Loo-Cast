@@ -20,13 +20,14 @@ use crate::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
         },
         flight::{
-            FlightContactState, FlightLandingOpportunity, FlightSafetyProfile, FlightSafetyState,
-            FlightTelemetry, TraversalPolicy,
+            AttitudeAutopilot, FlightContactState, FlightLandingOpportunity, FlightSafetyProfile,
+            FlightSafetyState, FlightTelemetry, PilotAttitudeLaw, TraversalPolicy,
         },
         locomotion::{
-            ControlledSubjectLocomotion, DetailedBodyScale, FlightControlIntent,
+            ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation, FlightControlIntent,
             LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
-            LocomotionInhibitionReason, LocomotionRegime, LocomotionSet, ScaleInteractionProxy,
+            LocomotionInhibitionReason, LocomotionRegime, LocomotionSet, MotionExecution,
+            ScaleInteractionProxy,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelAssistanceState,

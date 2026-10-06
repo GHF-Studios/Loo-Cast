@@ -50,7 +50,6 @@ pub(in crate::game::navigation) fn sync_travel_state(
     state.nearest_body_radius_scale0 = Some(radius);
     state.planetary_handoff_clearance_scale0 = Some(handoff);
     state.planetary_handoff_available = clearance <= handoff;
-    state.planetary_context = measurement.relative_proximity() <= profile.approach.activation_radii;
     state.critical_dropout = clearance <= handoff;
     state.cruise_entry_available =
         clearance > handoff * profile.cruise.reentry_clearance_multiplier;

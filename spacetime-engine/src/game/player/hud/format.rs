@@ -11,7 +11,7 @@ pub(super) fn format_left_metrics(telemetry: &FlightTelemetry, pace: &TravelPace
         format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0)
     } else {
         match telemetry.mode() {
-            Some(FlightMode::Local) => format!(
+            Some(FlightMode::Space | FlightMode::Planetary) => format!(
                 "THR {} • RCS {}",
                 if telemetry.thrusters_enabled() {
                     "ON"
@@ -81,7 +81,7 @@ pub(super) fn format_alert(
             "[{}] LAND",
             bindings.label(PlayerAction::ToggleLanding),
         ))
-    } else if telemetry.mode() == Some(FlightMode::Local)
+    } else if telemetry.mode() == Some(FlightMode::Planetary)
         && telemetry.detailed_interaction()
         && !telemetry.surface_collision_ready()
     {

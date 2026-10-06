@@ -19,6 +19,7 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
+            &mut FlightActuation,
             &mut TravelPace,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
@@ -72,6 +73,7 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
             mut player_demand,
             mut player_enabled,
             mut player_locomotion,
+            mut player_actuation,
             mut player_pace,
             mut player_control,
             mut player_frame,
@@ -142,8 +144,8 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
         // normal walking.
         *player_pace = TravelPace::default();
         player_locomotion.request_automatic();
-        player_locomotion.set_thrusters_enabled(false);
-        player_locomotion.set_rcs_enabled(false);
+        player_actuation.set_thrusters_enabled(false);
+        player_actuation.set_rcs_enabled(false);
 
         ship_demand.set_enabled(false);
 

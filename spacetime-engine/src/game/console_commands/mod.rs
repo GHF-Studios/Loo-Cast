@@ -111,6 +111,42 @@ pub(super) fn configure(app: &mut App) {
     )
     .register_console_command(
         ConsoleCommandSpec {
+            name: "attitude",
+            aliases: &["sas"],
+            usage: "attitude [hold|view]",
+            summary: "Choose whether the ship holds attitude or follows the pilot view.",
+        },
+        travel::attitude_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "autopilot",
+            aliases: &["ap"],
+            usage: "autopilot [off|hold|prograde]",
+            summary: "Select an attitude controller while retaining manual translation.",
+        },
+        travel::autopilot_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "motionstack",
+            aliases: &["modality"],
+            usage: "motionstack",
+            summary: "Inspect each live motion layer and its measured context.",
+        },
+        travel::motion_stack_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "motionoverride",
+            aliases: &["motiondev"],
+            usage: "motionoverride <collision|gravity> <on|off>",
+            summary: "Explicit developer override for controlled ship collision or gravity.",
+        },
+        travel::motion_override_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
             name: "teleport",
             aliases: &["tp", "goto"],
             usage: "teleport <landmark> | teleport <scale> <x> <y> <z>",

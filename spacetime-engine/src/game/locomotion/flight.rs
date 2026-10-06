@@ -2,6 +2,30 @@
 
 use super::*;
 
+/// Available ship actuators and their pilot-selected enable state. Solver
+/// policy reads this state; changing it never changes locomotion identity.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct FlightActuation {
+    thrusters_enabled: bool,
+    rcs_enabled: bool,
+}
+
+impl FlightActuation {
+    pub const fn thrusters_enabled(self) -> bool {
+        self.thrusters_enabled
+    }
+    pub const fn rcs_enabled(self) -> bool {
+        self.rcs_enabled
+    }
+    pub fn set_thrusters_enabled(&mut self, enabled: bool) {
+        self.thrusters_enabled = enabled;
+    }
+    pub fn set_rcs_enabled(&mut self, enabled: bool) {
+        self.rcs_enabled = enabled;
+    }
+}
+
 /// Device/controller-agnostic rotational flight command.
 ///
 /// Manual controllers usually provide local angular velocity; autopilot/AI may
@@ -62,6 +86,10 @@ impl FlightControlIntent {
         self.attitude = FlightAttitudeCommand::Hold;
         self.boost = false;
         self.active = false;
+    }
+
+    pub fn set_attitude(&mut self, attitude: FlightAttitudeCommand) {
+        self.attitude = attitude;
     }
 
     pub const fn translation_axes(self) -> Vec3 {

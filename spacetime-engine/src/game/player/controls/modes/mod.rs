@@ -7,56 +7,45 @@ fn reset_control_state(input: &mut CharacterMovementInput, ground: &mut Characte
     ground.clear_contact();
 }
 
-fn local_flight_active_or_requested(locomotion: &ControlledSubjectLocomotion) -> bool {
-    locomotion.regime() == LocomotionRegime::LocalFlight
-        || locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::LocalFlight)
+fn spacecraft_flight_active(locomotion: &ControlledSubjectLocomotion) -> bool {
+    locomotion.regime() == LocomotionRegime::SpacecraftFlight
 }
 
-/// `V` toggles an explicit Local Flight request.
-pub(in crate::game::player) fn toggle_local_flight(
+/// `V` selects whether the ship holds attitude or follows the pilot's view.
+pub(in crate::game::player) fn toggle_attitude_law(
     input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
-        (
-            &mut ControlledSubjectLocomotion,
-            &mut CharacterMovementInput,
-            &mut CharacterGroundState,
-        ),
+        (&ControlledSubjectLocomotion, &mut PilotAttitudeLaw),
         With<LocalControlSubject>,
     >,
 ) {
-    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleLocalFlight) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleAttitudeLaw) {
         return;
     }
 
-    let (mut locomotion, mut input, mut ground) = subject.into_inner();
-    if dead.into_inner().is_some() {
+    let (locomotion, mut law) = subject.into_inner();
+    if dead.into_inner().is_some() || !spacecraft_flight_active(&locomotion) {
         return;
     }
-
-    if locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::LocalFlight) {
-        locomotion.request_automatic();
-        locomotion.set_thrusters_enabled(false);
-        locomotion.set_rcs_enabled(false);
-    } else {
-        locomotion.request_regime(LocomotionRegime::LocalFlight);
-        locomotion.set_thrusters_enabled(true);
-        locomotion.set_rcs_enabled(true);
-    }
-
-    reset_control_state(&mut input, &mut ground);
+    *law = match *law {
+        PilotAttitudeLaw::Hold => PilotAttitudeLaw::FollowView,
+        PilotAttitudeLaw::FollowView => PilotAttitudeLaw::Hold,
+    };
 }
 
-/// `X` toggles the main translational thrusters in Local Flight.
+/// `X` toggles the main translational thrusters in spacecraft flight.
 ///
 /// Actuator state belongs to the controlled subject, not to the current
 /// detailed/coarse Scale Slice representation.
-pub(in crate::game::player) fn toggle_local_flight_thrusters(
+pub(in crate::game::player) fn toggle_thrusters(
     input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
         (
-            &mut ControlledSubjectLocomotion,
+            &ControlledSubjectLocomotion,
+            &LocomotionCapabilities,
+            &mut FlightActuation,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
@@ -67,27 +56,28 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
         return;
     }
 
-    let (mut locomotion, mut input, mut ground) = subject.into_inner();
-    if dead.into_inner().is_some() || !local_flight_active_or_requested(&locomotion) {
+    let (locomotion, capabilities, mut actuation, mut input, mut ground) = subject.into_inner();
+    if dead.into_inner().is_some()
+        || !spacecraft_flight_active(&locomotion)
+        || !capabilities.main_propulsion()
+    {
         return;
     }
 
-    let enabled = !locomotion.thrusters_enabled();
-    locomotion.set_thrusters_enabled(enabled);
+    let enabled = !actuation.thrusters_enabled();
+    actuation.set_thrusters_enabled(enabled);
     reset_control_state(&mut input, &mut ground);
 }
 
-/// `Z` toggles local-flight RCS stabilization.
-///
-/// RCS is an actuator/response policy: while enabled, local inertial flight
-/// ignores sampled gravity for this craft and applies bounded thrust damping
-/// whenever main translational thrust is not actively commanded.
-pub(in crate::game::player) fn toggle_local_flight_rcs(
+/// `Z` toggles bounded RCS stabilization without changing gravity.
+pub(in crate::game::player) fn toggle_rcs(
     input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
         (
-            &mut ControlledSubjectLocomotion,
+            &ControlledSubjectLocomotion,
+            &LocomotionCapabilities,
+            &mut FlightActuation,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
@@ -98,13 +88,16 @@ pub(in crate::game::player) fn toggle_local_flight_rcs(
         return;
     }
 
-    let (mut locomotion, mut input, mut ground) = subject.into_inner();
-    if dead.into_inner().is_some() || !local_flight_active_or_requested(&locomotion) {
+    let (locomotion, capabilities, mut actuation, mut input, mut ground) = subject.into_inner();
+    if dead.into_inner().is_some()
+        || !spacecraft_flight_active(&locomotion)
+        || !capabilities.reaction_control()
+    {
         return;
     }
 
-    let enabled = !locomotion.rcs_enabled();
-    locomotion.set_rcs_enabled(enabled);
+    let enabled = !actuation.rcs_enabled();
+    actuation.set_rcs_enabled(enabled);
     reset_control_state(&mut input, &mut ground);
 }
 

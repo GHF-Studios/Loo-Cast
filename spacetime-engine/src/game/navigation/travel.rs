@@ -47,9 +47,8 @@ pub struct ApproachTravelProfile {
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct FlightDynamicsProfile {
     pub local_acceleration_metres_per_second2: f32,
-    /// Maximum translational braking acceleration available to local-flight RCS damping.
+    /// Maximum translational braking acceleration available to ship RCS damping.
     pub rcs_braking_acceleration_metres_per_second2: f32,
-    pub orbital_acceleration_metres_per_second2: f32,
     pub boost_multiplier: f32,
     /// Maximum manual local-axis pitch rate.
     pub pitch_rate_radians_per_second: f32,
@@ -115,7 +114,6 @@ impl TravelProfile {
             flight: FlightDynamicsProfile {
                 local_acceleration_metres_per_second2: 35.0,
                 rcs_braking_acceleration_metres_per_second2: 25.0,
-                orbital_acceleration_metres_per_second2: 20.0,
                 boost_multiplier: 4.0,
                 pitch_rate_radians_per_second: 1.4,
                 yaw_rate_radians_per_second: 1.1,
@@ -231,7 +229,6 @@ pub struct TravelState {
     pub nearest_body_radius_scale0: Option<f64>,
     pub planetary_handoff_clearance_scale0: Option<f64>,
     pub planetary_handoff_available: bool,
-    pub planetary_context: bool,
     pub critical_dropout: bool,
     pub cruise_entry_available: bool,
 }
@@ -243,7 +240,6 @@ impl Default for TravelState {
             nearest_body_radius_scale0: None,
             planetary_handoff_clearance_scale0: None,
             planetary_handoff_available: false,
-            planetary_context: false,
             critical_dropout: false,
             cruise_entry_available: true,
         }

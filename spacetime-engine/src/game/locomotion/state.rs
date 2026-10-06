@@ -1,6 +1,8 @@
 //! Controlled-subject locomotion request and resolved motion state.
 
 use super::*;
+use crate::spatial::{UsfMotionAuthority, UsfPosition};
+use bevy::math::DVec3;
 
 /// High-level locomotion regime of a controlled semantic subject.
 ///
@@ -9,16 +11,14 @@ use super::*;
 pub enum LocomotionRegime {
     #[default]
     OnFoot,
-    LocalFlight,
-    PlanetaryFlight,
+    SpacecraftFlight,
 }
 
 impl LocomotionRegime {
     pub const fn label(self) -> &'static str {
         match self {
             Self::OnFoot => "ON FOOT",
-            Self::LocalFlight => "LOCAL FLIGHT",
-            Self::PlanetaryFlight => "PLANETARY FLIGHT",
+            Self::SpacecraftFlight => "SPACECRAFT FLIGHT",
         }
     }
 }
@@ -52,63 +52,12 @@ impl LocomotionRegimeOverride {
     }
 }
 
-/// Exactly one motion kernel may author controlled-subject motion per tick.
-#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum MotionKernel {
-    #[default]
-    Character,
-    ThrusterFlight,
-    InertialFlight,
-    OrbitalFlight,
-    ScaleNavigation,
-    Disabled,
-}
-
-impl MotionKernel {
-    /// Whether this kernel consumes generic flight-control intent.
-    ///
-    /// View/look intent must not become physical attitude merely because the
-    /// subject is represented in a different Scale Slice.
-    pub const fn consumes_flight_control_intent(self) -> bool {
-        matches!(
-            self,
-            Self::ThrusterFlight
-                | Self::InertialFlight
-                | Self::OrbitalFlight
-                | Self::ScaleNavigation
-        )
-    }
-}
-
-/// Collision realization required by the resolved locomotion state.
-#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum CollisionPolicy {
-    #[default]
-    DetailedBody,
-    ScaleProxy,
-    Disabled,
-}
-
-/// How physical velocity crosses an interaction-chart handoff.
-#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum VelocitySemantics {
-    PreserveNative,
-    #[default]
-    PreserveCanonical,
-    Zero,
-}
-
-/// Authoritative locomotion state machine for one controlled subject.
+/// Requested and resolved locomotion style of one controlled subject.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct ControlledSubjectLocomotion {
     request: LocomotionRequest,
     regime: LocomotionRegime,
-    kernel: MotionKernel,
-    collision_policy: CollisionPolicy,
-    velocity_semantics: VelocitySemantics,
-    thrusters_enabled: bool,
-    rcs_enabled: bool,
 }
 
 impl Default for ControlledSubjectLocomotion {
@@ -116,11 +65,6 @@ impl Default for ControlledSubjectLocomotion {
         Self {
             request: LocomotionRequest::Automatic,
             regime: LocomotionRegime::OnFoot,
-            kernel: MotionKernel::Character,
-            collision_policy: CollisionPolicy::DetailedBody,
-            velocity_semantics: VelocitySemantics::PreserveCanonical,
-            thrusters_enabled: false,
-            rcs_enabled: false,
         }
     }
 }
@@ -134,26 +78,6 @@ impl ControlledSubjectLocomotion {
         self.regime
     }
 
-    pub const fn kernel(&self) -> MotionKernel {
-        self.kernel
-    }
-
-    pub const fn collision_policy(&self) -> CollisionPolicy {
-        self.collision_policy
-    }
-
-    pub const fn velocity_semantics(&self) -> VelocitySemantics {
-        self.velocity_semantics
-    }
-
-    pub const fn thrusters_enabled(&self) -> bool {
-        self.thrusters_enabled
-    }
-
-    pub const fn rcs_enabled(&self) -> bool {
-        self.rcs_enabled
-    }
-
     pub fn request_automatic(&mut self) {
         self.request = LocomotionRequest::Automatic;
     }
@@ -162,33 +86,9 @@ impl ControlledSubjectLocomotion {
         self.request = LocomotionRequest::Regime(regime);
     }
 
-    pub fn set_thrusters_enabled(&mut self, enabled: bool) {
-        self.thrusters_enabled = enabled;
-    }
-
-    pub fn set_rcs_enabled(&mut self, enabled: bool) {
-        self.rcs_enabled = enabled;
-    }
-
-    pub(crate) fn resolve(
-        &mut self,
-        regime: LocomotionRegime,
-        kernel: MotionKernel,
-        collision_policy: CollisionPolicy,
-        velocity_semantics: VelocitySemantics,
-    ) -> bool {
-        let changed = self.regime != regime
-            || self.kernel != kernel
-            || self.collision_policy != collision_policy
-            || self.velocity_semantics != velocity_semantics;
-
-        if changed {
-            self.regime = regime;
-            self.kernel = kernel;
-            self.collision_policy = collision_policy;
-            self.velocity_semantics = velocity_semantics;
-        }
-
+    pub(crate) fn resolve(&mut self, regime: LocomotionRegime) -> bool {
+        let changed = self.regime != regime;
+        self.regime = regime;
         changed
     }
 }
@@ -198,6 +98,7 @@ impl ControlledSubjectLocomotion {
 pub enum LocomotionTransitionReason {
     AutomaticPolicy,
     ExplicitRequest,
+    NavigationAssistance,
     DeveloperOverride,
     Inhibited,
 }
@@ -211,4 +112,18 @@ pub struct ControlledSubjectLocomotionChanged {
     pub kernel: MotionKernel,
     pub reason: LocomotionTransitionReason,
     pub velocity_semantics: VelocitySemantics,
+    pub previous_authority: UsfMotionAuthority,
+    pub authority: UsfMotionAuthority,
+    pub before: MotionHandoffSnapshot,
+}
+
+/// Canonical and controller state before a solver/regime handoff. The transition
+/// velocity semantics say whether a hold stops motion or preserves this state.
+#[derive(Debug, Clone, Copy)]
+pub struct MotionHandoffSnapshot {
+    pub position: Option<UsfPosition>,
+    pub velocity_metres_per_second: DVec3,
+    pub angular_velocity_radians_per_second: DVec3,
+    pub orientation: Quat,
+    pub control_intent: FlightControlIntent,
 }

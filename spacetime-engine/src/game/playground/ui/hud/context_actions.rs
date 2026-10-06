@@ -7,11 +7,12 @@ use bevy::prelude::*;
 
 use crate::game::{
     control::LocalControlSubject,
+    flight::{AttitudeAutopilot, AttitudeAutopilotMode, PilotAttitudeLaw},
     inventory::Hotbar,
     item::{ItemAction, ItemCatalog},
     locomotion::{
-        ControlledSubjectLocomotion, LocomotionCapabilities, LocomotionRegime, LocomotionRequest,
-        MotionKernel,
+        ControlledSubjectLocomotion, FlightActuation, LocomotionCapabilities, LocomotionRegime,
+        MotionExecution, MotionKernel,
     },
     navigation::{TravelAssistance, TravelAssistanceState, TravelState},
     player::{CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings},
@@ -41,8 +42,12 @@ pub(super) fn update_context_actions(
         (
             &TravelState,
             &ControlledSubjectLocomotion,
+            &MotionExecution,
+            &FlightActuation,
             &LocomotionCapabilities,
             &TravelAssistanceState,
+            &PilotAttitudeLaw,
+            &AttitudeAutopilot,
         ),
         With<LocalControlSubject>,
     >,
@@ -59,7 +64,16 @@ pub(super) fn update_context_actions(
         return;
     }
 
-    let (travel, locomotion, capabilities, assistance) = player.into_inner();
+    let (
+        travel,
+        locomotion,
+        execution,
+        actuation,
+        capabilities,
+        assistance,
+        attitude_law,
+        autopilot,
+    ) = player.into_inner();
     let next = context_action_text(
         &bindings,
         &hotbar,
@@ -67,8 +81,12 @@ pub(super) fn update_context_actions(
         &camera,
         travel,
         locomotion,
+        execution,
+        actuation,
         capabilities,
         assistance,
+        attitude_law,
+        autopilot,
     );
     if text.0 != next {
         text.0 = next;
@@ -83,18 +101,27 @@ fn context_action_text(
     camera: &PlayerCamera,
     travel: &TravelState,
     locomotion: &ControlledSubjectLocomotion,
+    execution: &MotionExecution,
+    actuation: &FlightActuation,
     capabilities: &LocomotionCapabilities,
     assistance: &TravelAssistanceState,
+    attitude_law: &PilotAttitudeLaw,
+    autopilot: &AttitudeAutopilot,
 ) -> String {
     let mut lines = Vec::<String>::with_capacity(12);
+    if autopilot.mode() != AttitudeAutopilotMode::Off {
+        lines.push(format!("AUTOPILOT {:?}", autopilot.mode()));
+    }
     append_item_actions(&mut lines, hotbar, catalog, bindings);
-    append_movement_actions(&mut lines, locomotion, bindings);
+    append_movement_actions(&mut lines, execution, bindings);
     append_travel_actions(
         &mut lines,
         travel,
         locomotion,
+        actuation,
         capabilities,
         assistance,
+        attitude_law,
         bindings,
     );
     append_view_actions(&mut lines, camera, bindings);
@@ -121,7 +148,7 @@ fn append_item_actions(
 
 fn append_movement_actions(
     lines: &mut Vec<String>,
-    locomotion: &ControlledSubjectLocomotion,
+    execution: &MotionExecution,
     bindings: &PlayerInputBindings,
 ) {
     let movement = bindings.movement_cluster_label();
@@ -130,7 +157,7 @@ fn append_movement_actions(
         bindings.label(PlayerAction::Ascend),
         bindings.label(PlayerAction::Descend),
     );
-    match locomotion.kernel() {
+    match execution.kernel() {
         MotionKernel::Character => {
             lines.push(format!("{movement:<10}Move"));
             lines.push(format!("{:<10}Jump", bindings.label(PlayerAction::Jump)));
@@ -143,16 +170,10 @@ fn append_movement_actions(
                 bindings.label(PlayerAction::Crouch)
             ));
         }
-        MotionKernel::ThrusterFlight
-        | MotionKernel::InertialFlight
-        | MotionKernel::ScaleNavigation => {
+        MotionKernel::InertialFlight => {
             lines.push(format!("{movement:<10}Flight"));
             lines.push(format!("{vertical:<10}Vertical"));
             lines.push(format!("{:<10}Boost", bindings.label(PlayerAction::Boost)));
-        }
-        MotionKernel::OrbitalFlight => {
-            lines.push(format!("{movement:<10}Orbital thrust"));
-            lines.push(format!("{vertical:<10}Radial thrust"));
         }
         MotionKernel::Disabled => {}
     }
@@ -162,8 +183,10 @@ fn append_travel_actions(
     lines: &mut Vec<String>,
     travel: &TravelState,
     locomotion: &ControlledSubjectLocomotion,
+    actuation: &FlightActuation,
     capabilities: &LocomotionCapabilities,
     assistance: &TravelAssistanceState,
+    attitude_law: &PilotAttitudeLaw,
     bindings: &PlayerInputBindings,
 ) {
     let cruising = assistance.mode() == TravelAssistance::Cruise;
@@ -186,39 +209,27 @@ fn append_travel_actions(
         }
     }
 
-    if capabilities.local_flight() {
-        let explicit_local_flight =
-            locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
+    if capabilities.inertial_flight() && locomotion.regime() == LocomotionRegime::SpacecraftFlight {
         lines.push(format!(
-            "{:<10}{}",
-            bindings.label(PlayerAction::ToggleLocalFlight),
-            if explicit_local_flight {
-                "Release local mode"
-            } else {
-                "Local flight"
-            },
+            "{:<10}Attitude {}",
+            bindings.label(PlayerAction::ToggleAttitudeLaw),
+            attitude_law.label(),
         ));
 
-        if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
-            lines.push(format!(
-                "{:<10}Thrusters {}",
-                bindings.label(PlayerAction::ToggleThrusters),
-                if locomotion.thrusters_enabled() {
-                    "off"
-                } else {
-                    "on"
-                }
-            ));
-            lines.push(format!(
-                "{:<10}RCS {}",
-                bindings.label(PlayerAction::ToggleRcs),
-                if locomotion.rcs_enabled() {
-                    "off"
-                } else {
-                    "on"
-                }
-            ));
-        }
+        lines.push(format!(
+            "{:<10}Thrusters {}",
+            bindings.label(PlayerAction::ToggleThrusters),
+            if actuation.thrusters_enabled() {
+                "off"
+            } else {
+                "on"
+            }
+        ));
+        lines.push(format!(
+            "{:<10}RCS {}",
+            bindings.label(PlayerAction::ToggleRcs),
+            if actuation.rcs_enabled() { "off" } else { "on" }
+        ));
     }
 }
 

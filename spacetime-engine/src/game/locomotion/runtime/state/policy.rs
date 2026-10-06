@@ -12,10 +12,8 @@ pub(super) fn regime_allowed(
 pub(super) fn automatic_regime(capabilities: LocomotionCapabilities) -> LocomotionRegime {
     if capabilities.character_enabled() {
         LocomotionRegime::OnFoot
-    } else if capabilities.local_flight() {
-        LocomotionRegime::LocalFlight
-    } else if capabilities.orbital_flight() {
-        LocomotionRegime::PlanetaryFlight
+    } else if capabilities.inertial_flight() {
+        LocomotionRegime::SpacecraftFlight
     } else {
         LocomotionRegime::OnFoot
     }
@@ -27,8 +25,6 @@ pub(super) fn canonical_motion_authoritative(
     detailed: SpatialScale,
 ) -> bool {
     match kernel {
-        MotionKernel::OrbitalFlight => true,
-
         // Runtime f32 charts cannot integrate ordinary SI motion once the
         // interaction Scale is sufficiently coarse. At S+35, for example,
         // 100 m/s is ~1e-33 native units/s: adding a fixed-tick displacement
@@ -37,9 +33,7 @@ pub(super) fn canonical_motion_authoritative(
         // Detailed interaction keeps runtime collision authority. Coarser
         // flight/navigation must integrate canonical SI position and project
         // the result back into the bounded chart.
-        MotionKernel::InertialFlight
-        | MotionKernel::ThrusterFlight
-        | MotionKernel::ScaleNavigation => layer != detailed,
+        MotionKernel::InertialFlight => layer != detailed,
 
         MotionKernel::Character | MotionKernel::Disabled => false,
     }
@@ -55,18 +49,9 @@ pub(super) fn motion_contract(
     layer: SpatialScale,
     detailed: SpatialScale,
     capabilities: LocomotionCapabilities,
-    thrusters_enabled: bool,
     cruise_active: bool,
 ) -> (MotionKernel, CollisionPolicy, VelocitySemantics) {
-    if regime == LocomotionRegime::PlanetaryFlight && capabilities.orbital_flight() {
-        return (
-            MotionKernel::OrbitalFlight,
-            CollisionPolicy::Disabled,
-            VelocitySemantics::PreserveCanonical,
-        );
-    }
-
-    if regime == LocomotionRegime::LocalFlight && capabilities.inertial_flight() {
+    if regime == LocomotionRegime::SpacecraftFlight && capabilities.inertial_flight() {
         return (
             MotionKernel::InertialFlight,
             if cruise_active {
@@ -92,23 +77,10 @@ pub(super) fn motion_contract(
         );
     }
 
-    if layer == detailed {
-        let kernel = if regime == LocomotionRegime::LocalFlight && thrusters_enabled {
-            MotionKernel::ThrusterFlight
-        } else {
-            MotionKernel::Character
-        };
-        return (
-            kernel,
-            CollisionPolicy::DetailedBody,
-            VelocitySemantics::PreserveCanonical,
-        );
-    }
-
     (
-        MotionKernel::ScaleNavigation,
-        CollisionPolicy::ScaleProxy,
-        VelocitySemantics::PreserveCanonical,
+        MotionKernel::Disabled,
+        CollisionPolicy::Disabled,
+        VelocitySemantics::Zero,
     )
 }
 
@@ -159,4 +131,85 @@ pub(super) fn select_regime(
     };
 
     regime
+}
+
+pub(super) struct MotionPolicyInputs<'a> {
+    pub entity: Entity,
+    pub layer: SpatialScale,
+    pub detailed: SpatialScale,
+    pub capabilities: LocomotionCapabilities,
+    pub enabled: bool,
+    pub inhibited: bool,
+    pub cruise_active: bool,
+    pub regime_override: Option<&'a LocomotionRegimeOverride>,
+    pub developer_motion: Option<&'a DeveloperMotionOverride>,
+    pub current_collision: CollisionPolicy,
+}
+
+pub(super) struct MotionPolicyDecision {
+    pub regime: LocomotionRegime,
+    pub kernel: MotionKernel,
+    pub collision: CollisionPolicy,
+    pub velocity: VelocitySemantics,
+    pub canonical_authority: bool,
+    pub reason: LocomotionTransitionReason,
+}
+
+pub(super) fn decide_motion_policy(
+    inputs: MotionPolicyInputs<'_>,
+    locomotion: &mut ControlledSubjectLocomotion,
+) -> MotionPolicyDecision {
+    if !inputs.enabled || inputs.inhibited {
+        return MotionPolicyDecision {
+            regime: locomotion.regime(),
+            kernel: MotionKernel::Disabled,
+            collision: inputs.current_collision,
+            velocity: VelocitySemantics::Zero,
+            canonical_authority: false,
+            reason: LocomotionTransitionReason::Inhibited,
+        };
+    }
+
+    let regime = select_regime(
+        RegimeSelection {
+            entity: inputs.entity,
+            capabilities: &inputs.capabilities,
+            regime_override: inputs.regime_override,
+        },
+        locomotion,
+    );
+    let (kernel, mut collision, velocity) = motion_contract(
+        regime,
+        inputs.layer,
+        inputs.detailed,
+        inputs.capabilities,
+        inputs.cruise_active,
+    );
+    if kernel == MotionKernel::InertialFlight
+        && inputs
+            .developer_motion
+            .is_some_and(|override_| override_.ignore_collision())
+    {
+        collision = CollisionPolicy::Disabled;
+    }
+    let reason = if inputs.regime_override.is_some() || inputs.developer_motion.is_some() {
+        LocomotionTransitionReason::DeveloperOverride
+    } else if matches!(locomotion.request(), LocomotionRequest::Regime(_)) {
+        LocomotionTransitionReason::ExplicitRequest
+    } else {
+        LocomotionTransitionReason::AutomaticPolicy
+    };
+    MotionPolicyDecision {
+        regime,
+        kernel,
+        collision,
+        velocity,
+        canonical_authority: inputs.cruise_active
+            || (kernel == MotionKernel::InertialFlight
+                && inputs
+                    .developer_motion
+                    .is_some_and(|override_| override_.ignore_collision()))
+            || canonical_motion_authoritative(kernel, inputs.layer, inputs.detailed),
+        reason,
+    }
 }

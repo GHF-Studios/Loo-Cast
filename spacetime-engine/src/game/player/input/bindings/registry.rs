@@ -16,7 +16,7 @@ pub(crate) const PLAYER_BIND_TARGETS: &[&str] = &[
     "+use",
     "reload",
     "erase_object",
-    "toggle_local_flight",
+    "toggle_attitude_law",
     "toggle_thrusters",
     "toggle_rcs",
     "toggle_cruise",
@@ -52,7 +52,9 @@ pub(super) fn bind_target_actions(target: &str) -> Option<(&'static str, &'stati
         "+use" => Some(("+use", &[A::Interact])),
         "reload" => Some(("reload", &[A::ItemReload])),
         "erase_object" => Some(("erase_object", &[A::EraseObject])),
-        "toggle_local_flight" => Some(("toggle_local_flight", &[A::ToggleLocalFlight])),
+        "toggle_attitude_law" | "toggle_local_flight" => {
+            Some(("toggle_attitude_law", &[A::ToggleAttitudeLaw]))
+        }
         "toggle_thrusters" => Some(("toggle_thrusters", &[A::ToggleThrusters])),
         "toggle_rcs" => Some(("toggle_rcs", &[A::ToggleRcs])),
         "toggle_cruise" => Some(("toggle_cruise", &[A::ToggleCruise])),
@@ -84,7 +86,7 @@ pub(super) const DEFAULT_PLAYER_BINDINGS: &[(&str, &str)] = &[
     ("rctrl", "+duck"),
     ("lshift", "+speed"),
     ("rshift", "+speed"),
-    ("v", "toggle_local_flight"),
+    ("v", "toggle_attitude_law"),
     ("x", "toggle_thrusters"),
     ("z", "toggle_rcs"),
     ("c", "toggle_cruise"),

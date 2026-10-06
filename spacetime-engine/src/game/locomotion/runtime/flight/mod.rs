@@ -1,6 +1,9 @@
 //! Controlled flight orchestration: policy, collision, and semantic commit.
 
-use super::super::{ControlledSubjectLocomotion, FlightControlIntent, MotionKernel};
+use super::super::{
+    DeveloperMotionOverride, FlightActuation, FlightControlIntent, LocomotionCapabilities,
+    MotionExecution, MotionKernel,
+};
 use crate::{
     ecs::UsfOwnershipQuery,
     game::{
@@ -10,8 +13,7 @@ use crate::{
         },
     },
     physics::{
-        character::CharacterLocomotionFrame, gravity::GravitySample, slice::UsfPhysicsSlices,
-        topology::KinematicQueryExclusions,
+        gravity::GravitySample, slice::UsfPhysicsSlices, topology::KinematicQueryExclusions,
     },
     spatial::{UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState, UsfScaleLayer},
 };
@@ -41,27 +43,29 @@ pub(in crate::game::locomotion) fn flight_movement(
             Entity,
             &mut Transform,
             &UsfScaleLayer,
-            &ControlledSubjectLocomotion,
+            &MotionExecution,
+            &FlightActuation,
             &mut UsfCanonicalMotion,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
     mut policy: Query<(
-        &CharacterLocomotionFrame,
         &FlightControlIntent,
         &TravelProfile,
         &TravelEnvelope,
         &TravelState,
         &TravelAssistanceState,
+        &LocomotionCapabilities,
         &GravitySample,
+        Option<&DeveloperMotionOverride>,
         &mut AdaptiveCruise,
         Option<&Collider>,
         Option<&KinematicQueryExclusions>,
     )>,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
-    let (entity, mut body, layer, locomotion, mut motion, mut linear_velocity) =
+    let (entity, mut body, layer, execution, actuation, mut motion, mut linear_velocity) =
         subject.into_inner();
 
     let Some(semantic_entity) = ownership.semantic_of(entity) else {
@@ -73,13 +77,14 @@ pub(in crate::game::locomotion) fn flight_movement(
     };
 
     let Ok((
-        locomotion_frame,
         intent,
         profile,
         envelope,
         travel,
         assistance,
+        capabilities,
         gravity,
+        developer_motion,
         mut cruise,
         collider,
         exclusions,
@@ -88,7 +93,7 @@ pub(in crate::game::locomotion) fn flight_movement(
         return;
     };
 
-    let kernel = locomotion.kernel();
+    let kernel = execution.kernel();
     if matches!(kernel, MotionKernel::Character | MotionKernel::Disabled) {
         cruise.was_active = false;
         return;
@@ -100,13 +105,33 @@ pub(in crate::game::locomotion) fn flight_movement(
     }
 
     if intent.active() {
+        let previous_rotation = body.rotation;
         body.rotation =
             integrate_flight_attitude(body.rotation, intent.attitude(), profile, time.delta_secs());
+        let mut delta = (body.rotation * previous_rotation.conjugate()).normalize();
+        if delta.w < 0.0 {
+            delta = -delta;
+        }
+        let (axis, angle) = delta.to_axis_angle();
+        let angular_velocity = if angle.is_finite() && angle > 1.0e-6 {
+            let rate = f64::from(angle) / dt;
+            bevy::math::DVec3::new(
+                f64::from(axis.x) * rate,
+                f64::from(axis.y) * rate,
+                f64::from(axis.z) * rate,
+            )
+        } else {
+            bevy::math::DVec3::ZERO
+        };
+        motion.set_angular_velocity_radians_per_second(angular_velocity);
+    } else {
+        motion.set_angular_velocity_radians_per_second(bevy::math::DVec3::ZERO);
     }
 
     let next_velocity = step_flight_velocity(FlightVelocityStep {
         kernel,
-        locomotion,
+        actuation,
+        capabilities,
         intent,
         profile,
         envelope,
@@ -115,8 +140,11 @@ pub(in crate::game::locomotion) fn flight_movement(
         cruise: &mut cruise,
         motion: &motion,
         rotation: body.rotation,
-        up: locomotion_frame.up(),
-        gravity: gravity.acceleration_metres_per_second2(),
+        gravity: if developer_motion.is_some_and(|override_| override_.ignore_gravity()) {
+            bevy::math::DVec3::ZERO
+        } else {
+            gravity.acceleration_metres_per_second2()
+        },
         delta_seconds: dt,
         delta_seconds_f32: time.delta_secs(),
     });
@@ -164,12 +192,7 @@ pub(in crate::game::locomotion) fn flight_movement(
     );
 
     debug_assert!(
-        matches!(
-            kernel,
-            MotionKernel::InertialFlight
-                | MotionKernel::ThrusterFlight
-                | MotionKernel::ScaleNavigation
-        ),
+        matches!(kernel, MotionKernel::InertialFlight),
         "runtime-authoritative flight must use a collision-capable local motion kernel"
     );
 }

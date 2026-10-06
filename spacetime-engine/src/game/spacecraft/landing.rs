@@ -38,6 +38,7 @@ pub(super) fn detect_landing(
             Option<&KinematicQueryExclusions>,
             &UsfCanonicalMotion,
             &ControlledSubjectLocomotion,
+            &LocomotionCapabilities,
             &FlightSafetyProfile,
             &FlightContactState,
             &mut FlightLandingOpportunity,
@@ -61,6 +62,7 @@ pub(super) fn detect_landing(
         exclusions,
         motion,
         locomotion,
+        capabilities,
         safety,
         contact,
         mut opportunity,
@@ -75,7 +77,8 @@ pub(super) fn detect_landing(
 
     if contact.is_landed()
         || layer.scale() != detailed.0
-        || locomotion.regime() != LocomotionRegime::LocalFlight
+        || locomotion.regime() != LocomotionRegime::SpacecraftFlight
+        || !capabilities.landing()
         || motion.speed_metres_per_second() > safety.preferred_contact_speed_metres_per_second()
     {
         return;
@@ -137,6 +140,7 @@ pub(super) fn handle_landing_actions(
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
             &mut ControlledSubjectLocomotion,
+            &mut FlightActuation,
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
             &mut LocomotionInhibition,
@@ -158,6 +162,7 @@ pub(super) fn handle_landing_actions(
         ship_layer,
         ship_frame,
         mut ship_locomotion,
+        mut ship_actuation,
         mut ship_velocity,
         mut ship_motion,
         mut ship_inhibition,
@@ -198,8 +203,8 @@ pub(super) fn handle_landing_actions(
         ship_contact.land();
         ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
         ship_locomotion.request_automatic();
-        ship_locomotion.set_thrusters_enabled(false);
-        ship_locomotion.set_rcs_enabled(false);
+        ship_actuation.set_thrusters_enabled(false);
+        ship_actuation.set_rcs_enabled(false);
         return;
     }
 
@@ -209,9 +214,9 @@ pub(super) fn handle_landing_actions(
     {
         ship_contact.launch();
         ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
-        ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
-        ship_locomotion.set_thrusters_enabled(true);
-        ship_locomotion.set_rcs_enabled(true);
+        ship_locomotion.request_regime(LocomotionRegime::SpacecraftFlight);
+        ship_actuation.set_thrusters_enabled(true);
+        ship_actuation.set_rcs_enabled(true);
         ship_velocity.0 = ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);
         ship_motion.set_from_native_velocity(ship_layer.scale(), ship_velocity.0);
         return;

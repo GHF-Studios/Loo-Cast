@@ -9,9 +9,10 @@ use bevy::prelude::*;
 use crate::{
     game::{
         control::{LocalControlSubject, LocalViewTarget},
+        flight::PilotAttitudeLaw,
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, FlightAttitudeCommand,
-            FlightControlIntent, LocomotionCapabilities, LocomotionRegime, LocomotionRequest,
+            CharacterStance, ControlledSubjectLocomotion, FlightActuation, FlightAttitudeCommand,
+            FlightControlIntent, LocomotionCapabilities, LocomotionRegime, MotionExecution,
             MotionKernel,
         },
         navigation::{
@@ -37,8 +38,8 @@ mod movement;
 mod view;
 
 pub(super) use modes::{
-    toggle_adaptive_cruise, toggle_local_flight, toggle_local_flight_rcs,
-    toggle_local_flight_thrusters, toggle_spatial_demand,
+    toggle_adaptive_cruise, toggle_attitude_law, toggle_rcs, toggle_spatial_demand,
+    toggle_thrusters,
 };
 pub(super) use movement::{adjust_flight_travel_pace, movement, sample_flight_control_intent};
 pub(super) use view::{look, zoom_spatial_view};

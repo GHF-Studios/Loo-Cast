@@ -18,9 +18,7 @@ use crate::{
 
 use crate::game::control::LocalControlSubject;
 
-use crate::game::locomotion::{
-    CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, MotionKernel,
-};
+use crate::game::locomotion::{CharacterStance, DetailedBodyScale, MotionExecution, MotionKernel};
 
 use super::{
     Player, PlayerDead,
@@ -43,7 +41,7 @@ pub fn update_stance(
                 &UsfScaleLayer,
                 &DetailedBodyScale,
                 &mut CharacterStance,
-                &ControlledSubjectLocomotion,
+                &MotionExecution,
                 Option<&PlayerDead>,
                 &mut PortalTraveler,
                 &mut PhysicalBoxHull,
@@ -61,9 +59,9 @@ pub fn update_stance(
 
     let (character_kernel, dead, crouched, detailed_slice) = {
         let player = params.p2();
-        let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) = player.into_inner();
+        let (_, _, _, layer, detailed, stance, execution, dead, _, _, _) = player.into_inner();
         (
-            locomotion.kernel() == MotionKernel::Character && layer.scale() == detailed.0,
+            execution.kernel() == MotionKernel::Character && layer.scale() == detailed.0,
             dead.is_some(),
             stance.crouched,
             layer.scale() == detailed.0,

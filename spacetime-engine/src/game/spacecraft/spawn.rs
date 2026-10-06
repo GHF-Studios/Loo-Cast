@@ -113,8 +113,9 @@ fn spawn_ship_manifestation(
 ) -> Entity {
     let mut locomotion = ControlledSubjectLocomotion::default();
     locomotion.request_automatic();
-    locomotion.set_thrusters_enabled(true);
-    locomotion.set_rcs_enabled(true);
+    let mut actuation = FlightActuation::default();
+    actuation.set_thrusters_enabled(true);
+    actuation.set_rcs_enabled(true);
 
     // Human body S0 -> small spacecraft S+1. Spawn placement may initially use
     // the player's current chart; control transfer explicitly recharts it.
@@ -181,8 +182,12 @@ fn spawn_ship_manifestation(
                 FlightSafetyProfile::spacecraft(),
                 FlightSafetyState::default(),
                 FlightTelemetry::default(),
+                PilotAttitudeLaw::FollowView,
+                AttitudeAutopilot::default(),
                 TraversalPolicy::Physical,
                 TravelAssistanceState::default(),
+                MotionExecution::default(),
+                actuation,
             ),
             (
                 PortalTraveler::new(body_transform.translation),

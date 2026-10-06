@@ -2,7 +2,7 @@
 
 use super::super::{
     control::LocalControlSubject,
-    locomotion::ControlledSubjectLocomotion,
+    locomotion::{ControlledSubjectLocomotion, MotionExecution},
     navigation::{NavigationAudit, NavigationFlightRecorder},
     world::UniverseLandmarkIndex,
 };

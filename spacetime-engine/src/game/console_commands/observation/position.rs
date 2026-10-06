@@ -35,6 +35,7 @@ pub(in crate::game::console_commands) fn where_command(
     let locomotion = world
         .get::<ControlledSubjectLocomotion>(controlled_entity)
         .copied();
+    let execution = world.get::<MotionExecution>(controlled_entity).copied();
     let probe = *world.resource::<UsfPresentationProbe>();
     let coverage_status = semantic_position.map_or_else(
         || "coverage = <canonical position unavailable>".to_string(),
@@ -73,14 +74,14 @@ pub(in crate::game::console_commands) fn where_command(
                 None => format!("interaction = S{}", interaction.scale()),
             }
         },
-        locomotion.map_or_else(
+        locomotion.zip(execution).map_or_else(
             || "locomotion = <unavailable>".to_string(),
-            |state| {
+            |(state, execution)| {
                 format!(
                     "locomotion = {:?} / {:?} / {:?}",
                     state.regime(),
-                    state.kernel(),
-                    state.collision_policy(),
+                    execution.kernel(),
+                    execution.collision_policy(),
                 )
             },
         ),

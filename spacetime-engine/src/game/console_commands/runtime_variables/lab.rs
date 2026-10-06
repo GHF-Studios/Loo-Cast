@@ -18,12 +18,7 @@ pub(super) fn register(app: &mut App) {
             value_type: RuntimeVariableValueType::Enum,
             units: None,
             authority: RuntimeVariableAuthority::LocalDeveloperControl,
-            domain: RuntimeVariableDomain::Choices(&[
-                "automatic",
-                "on_foot",
-                "local_flight",
-                "planetary_flight",
-            ]),
+            domain: RuntimeVariableDomain::Choices(&["automatic", "on_foot", "spacecraft_flight"]),
         },
         get_debug_locomotion_regime,
         set_debug_locomotion_regime,
@@ -34,8 +29,7 @@ pub(super) fn register(app: &mut App) {
 fn debug_regime_label(regime: LocomotionRegime) -> &'static str {
     match regime {
         LocomotionRegime::OnFoot => "on_foot",
-        LocomotionRegime::LocalFlight => "local_flight",
-        LocomotionRegime::PlanetaryFlight => "planetary_flight",
+        LocomotionRegime::SpacecraftFlight => "spacecraft_flight",
     }
 }
 
@@ -44,11 +38,10 @@ fn parse_debug_regime(raw: &str) -> Result<Option<LocomotionRegime>, String> {
     Ok(match normalized.as_str() {
         "automatic" | "auto" | "none" | "off" => None,
         "on_foot" | "onfoot" | "foot" => Some(LocomotionRegime::OnFoot),
-        "local_flight" | "local" => Some(LocomotionRegime::LocalFlight),
-        "planetary_flight" | "planetary" | "orbital" => Some(LocomotionRegime::PlanetaryFlight),
+        "spacecraft_flight" | "flight" => Some(LocomotionRegime::SpacecraftFlight),
         _ => {
             return Err(format!(
-                "debug.locomotion.regime must be automatic, on_foot, local_flight or planetary_flight; got `{raw}`"
+                "debug.locomotion.regime must be automatic, on_foot or spacecraft_flight; got `{raw}`"
             ));
         }
     })

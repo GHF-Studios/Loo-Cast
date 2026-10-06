@@ -10,10 +10,7 @@ use super::*;
 /// never leak into ordinary character walking.
 pub(in crate::game::player) fn adjust_flight_travel_pace(
     input: Res<PlayerInputFrame>,
-    controlled_vehicle: Query<
-        (),
-        (With<LocalControlSubject>, Without<Player>),
-    >,
+    controlled_vehicle: Query<(), (With<LocalControlSubject>, Without<Player>)>,
     mut pace: Single<&mut TravelPace, With<Player>>,
 ) {
     if controlled_vehicle.is_empty()
@@ -36,21 +33,20 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     controller: Single<(&TravelPace, &PlayerAim, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (
-            &ControlledSubjectLocomotion,
+            &MotionExecution,
             &CharacterControlFrame,
-            Option<&Player>,
+            &PilotAttitudeLaw,
             &mut FlightControlIntent,
         ),
         With<LocalControlSubject>,
     >,
 ) {
     let (pace, aim, dead) = controller.into_inner();
-    let (locomotion, control, controlled_player_body, mut intent) =
-        subject.into_inner();
+    let (execution, control, law, mut intent) = subject.into_inner();
 
     if dead.is_some()
         || !input.gameplay_active()
-        || !locomotion.kernel().consumes_flight_control_intent()
+        || !execution.kernel().consumes_flight_control_intent()
     {
         intent.clear();
         return;
@@ -68,12 +64,11 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     // orientation* as an ordinary target attitude. This yields a useful
     // provisional "ship follows where I look" model while preserving the
     // generic FlightAttitudeCommand boundary for later 6-DOF/autopilot UX.
-    let attitude = if controlled_player_body.is_some() {
-        FlightAttitudeCommand::Hold
-    } else {
-        FlightAttitudeCommand::TargetOrientation(
+    let attitude = match law {
+        PilotAttitudeLaw::Hold => FlightAttitudeCommand::Hold,
+        PilotAttitudeLaw::FollowView => FlightAttitudeCommand::TargetOrientation(
             (control.rotation() * aim.local_rotation()).normalize(),
-        )
+        ),
     };
 
     intent.set(
@@ -102,7 +97,7 @@ pub(in crate::game::player) fn movement(
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
             Option<&CharacterStance>,
-            &ControlledSubjectLocomotion,
+            &MotionExecution,
             &CharacterMovementConfig,
             &mut CharacterMovementInput,
         ),
@@ -110,13 +105,12 @@ pub(in crate::game::player) fn movement(
     >,
 ) {
     let (controller, aim, travel_speed, dead) = controller.into_inner();
-    let (frame, control, stance, locomotion, movement_config, mut input) =
-        subject.into_inner();
+    let (frame, control, stance, execution, movement_config, mut input) = subject.into_inner();
     let crouched = stance.is_some_and(|stance| stance.crouched);
 
     if dead.is_some()
         || !controls.gameplay_active()
-        || locomotion.kernel() != MotionKernel::Character
+        || execution.kernel() != MotionKernel::Character
     {
         input.clear();
         return;
@@ -131,18 +125,15 @@ pub(in crate::game::player) fn movement(
     } else {
         1.0
     };
-    let base_speed =
-        travel_speed.character_units_per_second(movement_config.max_ground_speed);
+    let base_speed = travel_speed.character_units_per_second(movement_config.max_ground_speed);
     let speed_multiplier = if movement_config.max_ground_speed > f32::EPSILON {
         stance_multiplier * base_speed / movement_config.max_ground_speed
     } else {
         0.0
     };
 
-    let horizontal =
-        controls.digital_axis(PlayerAction::MoveLeft, PlayerAction::MoveRight);
-    let forward =
-        controls.digital_axis(PlayerAction::MoveBackward, PlayerAction::MoveForward);
+    let horizontal = controls.digital_axis(PlayerAction::MoveLeft, PlayerAction::MoveRight);
+    let forward = controls.digital_axis(PlayerAction::MoveBackward, PlayerAction::MoveForward);
 
     let axis = Vec2::new(horizontal, forward).clamp_length_max(1.0);
     let up = frame.up();

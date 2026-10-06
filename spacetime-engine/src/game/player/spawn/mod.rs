@@ -5,10 +5,11 @@ use super::*;
 use crate::{
     game::{
         control::{LocalControlSubject, LocalController, LocalViewTarget},
-        flight::{FlightTelemetry, TraversalPolicy},
+        flight::{AttitudeAutopilot, FlightTelemetry, PilotAttitudeLaw, TraversalPolicy},
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, FlightControlIntent,
-            LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition, ScaleInteractionProxy,
+            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation,
+            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
+            MotionExecution, ScaleInteractionProxy,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, NavigationPresentationProfile,
@@ -138,6 +139,10 @@ fn spawn_player_manifestation(
             (
                 TravelState::default(),
                 TravelAssistanceState::default(),
+                MotionExecution::default(),
+                FlightActuation::default(),
+                PilotAttitudeLaw::Hold,
+                AttitudeAutopilot::default(),
                 PrimaryBodyContext::default(),
                 SurfaceContext::default(),
                 UsfTravelNeighborhood::default(),

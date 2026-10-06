@@ -5,6 +5,9 @@ use super::*;
 
 pub(in crate::game::locomotion) fn resolve_locomotion_state(
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
+    ownership: UsfOwnershipQuery,
+    semantic_positions: Query<&UsfPosition>,
+    handoff_inputs: Query<(&Transform, &FlightControlIntent)>,
     subject: Single<
         (
             Entity,
@@ -14,10 +17,13 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
             &LocomotionCapabilities,
             &LocomotionEnabled,
             &LocomotionInhibition,
+            Option<&DeveloperMotionOverride>,
             &mut TravelAssistanceState,
             Option<&LocomotionRegimeOverride>,
             &mut ControlledSubjectLocomotion,
+            &mut MotionExecution,
             &mut UsfCanonicalMotion,
+            &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
@@ -30,14 +36,32 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         capabilities,
         enabled,
         inhibition,
+        developer_motion,
         mut assistance,
         regime_override,
         mut locomotion,
+        mut execution,
         mut motion,
+        mut runtime_velocity,
     ) = subject.into_inner();
 
     let previous_regime = locomotion.regime();
-    let previous_kernel = locomotion.kernel();
+    let previous_kernel = execution.kernel();
+    let previous_collision = execution.collision_policy();
+    let previous_authority = motion.authority();
+    let (body, intent) = handoff_inputs
+        .get(entity)
+        .expect("controlled motion handoff inputs");
+    let before = MotionHandoffSnapshot {
+        position: ownership
+            .semantic_of(entity)
+            .and_then(|semantic| semantic_positions.get(semantic).ok())
+            .copied(),
+        velocity_metres_per_second: motion.velocity_metres_per_second(),
+        angular_velocity_radians_per_second: motion.angular_velocity_radians_per_second(),
+        orientation: body.rotation,
+        control_intent: *intent,
+    };
 
     if assistance.mode() == TravelAssistance::Cruise
         && (travel.critical_dropout || !capabilities.cruise())
@@ -45,68 +69,61 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         assistance.disengage(TravelAssistanceTransitionReason::CriticalApproach);
     }
 
-    if !enabled.0 || inhibition.is_inhibited() {
-        let collision_policy = locomotion.collision_policy();
-        if locomotion.resolve(
-            previous_regime,
-            MotionKernel::Disabled,
-            collision_policy,
-            VelocitySemantics::Zero,
-        ) {
-            transitions.write(ControlledSubjectLocomotionChanged {
-                entity,
-                previous_regime,
-                regime: locomotion.regime(),
-                previous_kernel,
-                kernel: locomotion.kernel(),
-                reason: LocomotionTransitionReason::Inhibited,
-                velocity_semantics: locomotion.velocity_semantics(),
-            });
-        }
-        motion.set_canonical_authority(false);
-        return;
-    }
-
-    let regime = select_regime(
-        RegimeSelection {
+    let decision = decide_motion_policy(
+        MotionPolicyInputs {
             entity,
-            capabilities,
+            layer: layer.scale(),
+            detailed: detailed.0,
+            capabilities: *capabilities,
+            enabled: enabled.0,
+            inhibited: inhibition.is_inhibited(),
+            cruise_active: assistance.mode() == TravelAssistance::Cruise,
             regime_override,
+            developer_motion,
+            current_collision: execution.collision_policy(),
         },
         &mut locomotion,
     );
+    match decision.velocity {
+        VelocitySemantics::Zero => {
+            motion.stop();
+            motion.set_angular_velocity_radians_per_second(bevy::math::DVec3::ZERO);
+            runtime_velocity.0 = Vec3::ZERO;
+        }
+        VelocitySemantics::PreserveCanonical => {
+            if !motion.canonical_authority() && decision.canonical_authority {
+                motion.set_from_native_velocity(layer.scale(), runtime_velocity.0);
+            } else if motion.canonical_authority() && !decision.canonical_authority {
+                runtime_velocity.0 = motion.native_velocity(layer.scale());
+            }
+        }
+    }
+    let regime_changed = locomotion.resolve(decision.regime);
+    let execution_changed =
+        execution.resolve(decision.kernel, decision.collision, decision.velocity);
+    motion.set_canonical_authority(decision.canonical_authority);
 
-    let (kernel, collision_policy, velocity_semantics) = motion_contract(
-        regime,
-        layer.scale(),
-        detailed.0,
-        *capabilities,
-        locomotion.thrusters_enabled(),
-        assistance.mode() == TravelAssistance::Cruise,
-    );
-
-    let changed = locomotion.resolve(regime, kernel, collision_policy, velocity_semantics);
-    motion.set_canonical_authority(
-        assistance.mode() == TravelAssistance::Cruise
-            || canonical_motion_authoritative(kernel, layer.scale(), detailed.0),
-    );
-
-    if changed {
-        let reason = if regime_override.is_some() {
-            LocomotionTransitionReason::DeveloperOverride
-        } else if matches!(locomotion.request(), LocomotionRequest::Regime(_)) {
-            LocomotionTransitionReason::ExplicitRequest
+    if regime_changed || execution_changed || previous_authority != motion.authority() {
+        let reason = if decision.reason == LocomotionTransitionReason::AutomaticPolicy
+            && decision.kernel == MotionKernel::InertialFlight
+            && (assistance.mode() == TravelAssistance::Cruise
+                || (previous_collision == CollisionPolicy::Disabled && developer_motion.is_none()))
+        {
+            LocomotionTransitionReason::NavigationAssistance
         } else {
-            LocomotionTransitionReason::AutomaticPolicy
+            decision.reason
         };
         transitions.write(ControlledSubjectLocomotionChanged {
             entity,
             previous_regime,
             regime: locomotion.regime(),
             previous_kernel,
-            kernel: locomotion.kernel(),
+            kernel: execution.kernel(),
             reason,
-            velocity_semantics: locomotion.velocity_semantics(),
+            velocity_semantics: execution.velocity_semantics(),
+            previous_authority,
+            authority: motion.authority(),
+            before,
         });
     }
 }
@@ -119,7 +136,7 @@ pub(in crate::game::locomotion) fn sync_locomotion_runtime(
             Ref<UsfScaleLayer>,
             &PhysicalBoxHull,
             Option<&ScaleInteractionProxy>,
-            &ControlledSubjectLocomotion,
+            &MotionExecution,
             &LocomotionEnabled,
             Option<&CharacterMotor>,
             Option<&Collider>,
@@ -135,7 +152,7 @@ pub(in crate::game::locomotion) fn sync_locomotion_runtime(
         layer,
         hull,
         proxy,
-        locomotion,
+        execution,
         enabled,
         motor,
         collider,
@@ -156,7 +173,7 @@ pub(in crate::game::locomotion) fn sync_locomotion_runtime(
         ground.clear_for_rechart();
     }
 
-    match locomotion.collision_policy() {
+    match execution.collision_policy() {
         CollisionPolicy::Disabled => {
             if collider.is_some() || detailed_collision.is_some() {
                 commands
@@ -183,7 +200,7 @@ pub(in crate::game::locomotion) fn sync_locomotion_runtime(
         }
     }
 
-    let wants_character_motor = locomotion.kernel() == MotionKernel::Character;
+    let wants_character_motor = execution.kernel() == MotionKernel::Character;
     if wants_character_motor && motor.is_none() {
         commands.entity(entity).insert(CharacterMotor);
     } else if !wants_character_motor && motor.is_some() {

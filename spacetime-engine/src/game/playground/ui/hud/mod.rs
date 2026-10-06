@@ -7,7 +7,7 @@ use crate::{
         GameSet,
         control::LocalControlSubject,
         health::Health,
-        locomotion::{ControlledSubjectLocomotion, MotionKernel},
+        locomotion::{MotionExecution, MotionKernel},
         surface::SurfaceContext,
     },
     physics::character::CharacterGroundState,
@@ -199,7 +199,7 @@ fn update_player_status(
     player: Single<
         (
             Entity,
-            &ControlledSubjectLocomotion,
+            &MotionExecution,
             &UsfCanonicalMotion,
             &SurfaceContext,
             &CharacterGroundState,
@@ -218,14 +218,14 @@ fn update_player_status(
     }
     *next_update = now + 0.10;
 
-    let (realization, locomotion, motion, surface, ground) = player.into_inner();
+    let (realization, execution, motion, surface, ground) = player.into_inner();
     let semantic_entity = ownership.semantic_of(realization);
 
     let Some((children, mut root)) = roots.iter_mut().next() else {
         return;
     };
 
-    if locomotion.kernel() != MotionKernel::Character {
+    if execution.kernel() != MotionKernel::Character {
         if root.display != Display::None {
             root.display = Display::None;
         }
