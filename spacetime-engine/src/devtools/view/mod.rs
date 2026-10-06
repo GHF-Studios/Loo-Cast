@@ -1,3 +1,5 @@
+//! Store the developer view state used by tooling and inspection.
+
 use bevy::prelude::*;
 
 use crate::view::ViewRay;

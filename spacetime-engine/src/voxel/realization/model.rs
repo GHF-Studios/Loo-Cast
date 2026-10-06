@@ -62,7 +62,7 @@ impl VoxelRealizationScope {
 }
 
 /// Semantic celestial realization identity. This target can exist before its
-/// scale-local `VoxelWorld`.
+/// scale-local `VoxelScaleRealization`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::voxel) struct VoxelRealizationTarget {
     authority: Entity,
@@ -85,7 +85,7 @@ impl VoxelRealizationTarget {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) enum VoxelRealizationIntentTarget {
-    ExistingWorld(Entity),
+    ExistingRealization(Entity),
     Celestial(VoxelRealizationTarget),
 }
 
@@ -117,7 +117,7 @@ impl VoxelRealizationIntentSnapshot {
     pub(super) fn sort_for_publication(&mut self) {
         self.intents.sort_by_key(|intent| {
             let (kind, owner, scale) = match intent.target {
-                VoxelRealizationIntentTarget::ExistingWorld(world) => {
+                VoxelRealizationIntentTarget::ExistingRealization(world) => {
                     (0_u8, world.to_bits(), intent.scope.scale().exponent())
                 }
                 VoxelRealizationIntentTarget::Celestial(target) => (
@@ -150,7 +150,7 @@ impl VoxelRealizationIntentSnapshot {
             .iter()
             .filter_map(|intent| match intent.target {
                 VoxelRealizationIntentTarget::Celestial(target) => Some(target),
-                VoxelRealizationIntentTarget::ExistingWorld(_) => None,
+                VoxelRealizationIntentTarget::ExistingRealization(_) => None,
             })
     }
 
@@ -176,7 +176,7 @@ impl VoxelRealizationIntentSnapshot {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct VoxelRealizationDemand {
-    pub(super) target_world: Entity,
+    pub(super) target_realization: Entity,
     pub(super) scope: SpatialDemandScope,
     pub(super) roles: UsfScaleRoleMask,
     pub(super) view_source: Option<Entity>,
@@ -200,7 +200,7 @@ impl VoxelRealizationDemandSnapshot {
     pub(super) fn sort_for_publication(&mut self) {
         self.demands.sort_by_key(|demand| {
             (
-                demand.target_world.to_bits(),
+                demand.target_realization.to_bits(),
                 demand.scope.source().to_bits(),
                 Reverse(demand.scope.scale().exponent()),
                 demand.roles.bits(),
@@ -217,17 +217,18 @@ impl VoxelRealizationDemandSnapshot {
 
     pub(in crate::voxel) fn requests_for(
         &self,
-        world: Entity,
+        realization: Entity,
     ) -> impl Iterator<Item = VoxelRealizationScope> + '_ {
-        // Demands are sorted by target_world during publication. Binary-search
+        // Demands are sorted by target_realization during publication. Binary-search
         // the world's contiguous run instead of rescanning every demand once
-        // for every resident VoxelWorld.
-        let world_bits = world.to_bits();
+        // for every resident VoxelScaleRealization.
+        let realization_bits = realization.to_bits();
         let start = self
             .demands
-            .partition_point(|demand| demand.target_world.to_bits() < world_bits);
-        let end =
-            self.demands[start..].partition_point(|demand| demand.target_world == world) + start;
+            .partition_point(|demand| demand.target_realization.to_bits() < realization_bits);
+        let end = self.demands[start..]
+            .partition_point(|demand| demand.target_realization == realization)
+            + start;
 
         self.demands[start..end]
             .iter()
@@ -242,7 +243,7 @@ impl VoxelRealizationDemandSnapshot {
 
     pub(super) fn push(
         &mut self,
-        target_world: Entity,
+        target_realization: Entity,
         scope: SpatialDemandScope,
         roles: UsfScaleRoleMask,
         view_source: Option<Entity>,
@@ -250,7 +251,7 @@ impl VoxelRealizationDemandSnapshot {
         priority_focus: Option<UsfPosition>,
     ) {
         self.demands.push(VoxelRealizationDemand {
-            target_world,
+            target_realization,
             scope,
             roles,
             view_source,

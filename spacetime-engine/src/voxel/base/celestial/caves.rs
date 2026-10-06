@@ -122,10 +122,8 @@ fn noise_may_enter_abs_band_over_aabb(
     seed: u32,
     offset: Vec3,
 ) -> bool {
-    let center_noise =
-        value_noise_3d(center_metres / wavelength_metres + offset, seed);
-    let variation =
-        VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
+    let center_noise = value_noise_3d(center_metres / wavelength_metres + offset, seed);
+    let variation = VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
     f64::from(center_noise.abs()) <= f64::from(width) + variation
 }
 
@@ -138,10 +136,8 @@ fn noise_may_fall_below_over_aabb(
     seed: u32,
     offset: Vec3,
 ) -> bool {
-    let center_noise =
-        value_noise_3d(center_metres / wavelength_metres + offset, seed);
-    let variation =
-        VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
+    let center_noise = value_noise_3d(center_metres / wavelength_metres + offset, seed);
+    let variation = VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
     f64::from(center_noise) - variation <= f64::from(threshold)
 }
 
@@ -164,52 +160,43 @@ pub(super) fn rocky_cave_void_may_intersect_aabb(
 
     // Cave evaluation casts body-local metres to f32 before noise. Inflate the
     // geometric radius enough to conservatively cover that quantization too.
-    let maximum_coordinate = (
-        center_local_metres.abs().max_element()
-            + half_extent_metres.max_element()
-    )
-        .max(1.0);
-    let f32_rounding_margin =
-        maximum_coordinate * f64::from(f32::EPSILON) * 4.0;
-    let radius_metres =
-        half_extent_metres.length() + f32_rounding_margin;
+    let maximum_coordinate =
+        (center_local_metres.abs().max_element() + half_extent_metres.max_element()).max(1.0);
+    let f32_rounding_margin = maximum_coordinate * f64::from(f32::EPSILON) * 4.0;
+    let radius_metres = half_extent_metres.length() + f32_rounding_margin;
     let center = local_f32(center_local_metres);
 
-    let major_possible =
-        noise_may_enter_abs_band_over_aabb(
-            center,
-            radius_metres,
-            520.0,
-            0.23,
-            seed ^ 0x4341_5645,
-            Vec3::new(13.7, -5.1, 8.9),
-        )
-        && noise_may_enter_abs_band_over_aabb(
-            center,
-            radius_metres,
-            390.0,
-            0.21,
-            seed ^ 0x5455_4E4C,
-            Vec3::new(-7.4, 19.2, -11.6),
-        );
+    let major_possible = noise_may_enter_abs_band_over_aabb(
+        center,
+        radius_metres,
+        520.0,
+        0.23,
+        seed ^ 0x4341_5645,
+        Vec3::new(13.7, -5.1, 8.9),
+    ) && noise_may_enter_abs_band_over_aabb(
+        center,
+        radius_metres,
+        390.0,
+        0.21,
+        seed ^ 0x5455_4E4C,
+        Vec3::new(-7.4, 19.2, -11.6),
+    );
 
-    let branching_possible =
-        noise_may_enter_abs_band_over_aabb(
-            center,
-            radius_metres,
-            240.0,
-            0.20,
-            seed ^ 0x4252_414E,
-            Vec3::new(-21.3, 4.8, 15.2),
-        )
-        && noise_may_enter_abs_band_over_aabb(
-            center,
-            radius_metres,
-            310.0,
-            0.18,
-            seed ^ 0x4348_4D42,
-            Vec3::new(6.6, -17.9, 2.7),
-        );
+    let branching_possible = noise_may_enter_abs_band_over_aabb(
+        center,
+        radius_metres,
+        240.0,
+        0.20,
+        seed ^ 0x4252_414E,
+        Vec3::new(-21.3, 4.8, 15.2),
+    ) && noise_may_enter_abs_band_over_aabb(
+        center,
+        radius_metres,
+        310.0,
+        0.18,
+        seed ^ 0x4348_4D42,
+        Vec3::new(6.6, -17.9, 2.7),
+    );
 
     let chamber_possible = noise_may_fall_below_over_aabb(
         center,

@@ -1,3 +1,5 @@
+//! Describe the camera path through a recursive portal view.
+
 use bevy::prelude::*;
 
 use crate::portal::domain::PortalFace;

@@ -4,7 +4,7 @@ use std::any::Any;
 
 use crate::spatial::{SpatialScale, UsfChunkAddress};
 
-pub const DEFAULT_UNIVERSE_SEED: u64 = 0x10_0CA57_5EED_2026;
+pub const DEFAULT_WORLDGEN_NOISE_KEY: u64 = 0x10_0CA57_5EED_2026;
 
 /// Opaque temporal-model resolution label.
 ///
@@ -44,6 +44,22 @@ pub struct WorldgenEpoch {
 }
 
 impl WorldgenEpoch {
+    pub fn new(id: WorldgenEpochId, age_gyr: f64, scale_factor: f64) -> Self {
+        assert!(
+            age_gyr.is_finite() && age_gyr >= 0.0,
+            "worldgen age must be finite and non-negative"
+        );
+        assert!(
+            scale_factor.is_finite() && scale_factor > 0.0,
+            "worldgen scale factor must be finite and positive"
+        );
+        Self {
+            id,
+            age_gyr,
+            scale_factor,
+        }
+    }
+
     pub const fn present_day_bootstrap() -> Self {
         Self {
             id: WorldgenEpochId::PRESENT_DAY_BOOTSTRAP,
@@ -166,16 +182,20 @@ impl WorldgenEvaluationKey {
 pub struct PhenomenonEvaluationContext {
     key: WorldgenEvaluationKey,
     epoch: WorldgenEpoch,
-    seed: u64,
+    noise_key: u64,
 }
 
 impl PhenomenonEvaluationContext {
     pub(super) const fn new(
         key: WorldgenEvaluationKey,
         epoch: WorldgenEpoch,
-        seed: u64,
+        noise_key: u64,
     ) -> Self {
-        Self { key, epoch, seed }
+        Self {
+            key,
+            epoch,
+            noise_key,
+        }
     }
 
     pub const fn key(self) -> WorldgenEvaluationKey {
@@ -198,19 +218,19 @@ impl PhenomenonEvaluationContext {
         self.epoch
     }
 
-    pub const fn seed(self) -> u64 {
-        self.seed
+    pub const fn noise_key(self) -> u64 {
+        self.noise_key
     }
 }
 
-/// One generated semantic scope at one temporal parameterization and epoch.
-pub struct WorldgenNode {
+/// One cached phenomenon evaluation at one spatial/temporal context.
+pub struct WorldgenEvaluation {
     context: PhenomenonEvaluationContext,
     parent: Option<WorldgenEvaluationKey>,
     phenomena: Vec<PhenomenonSnapshot>,
 }
 
-impl WorldgenNode {
+impl WorldgenEvaluation {
     pub(super) fn new(
         context: PhenomenonEvaluationContext,
         parent: Option<WorldgenEvaluationKey>,

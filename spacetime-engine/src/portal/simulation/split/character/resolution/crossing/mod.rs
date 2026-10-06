@@ -1,27 +1,22 @@
 //! One accepted character center crossing.
 
-use avian3d::{
-    character_controller::move_and_slide::MoveAndSlide,
-    prelude::*,
-};
+use avian3d::{character_controller::move_and_slide::MoveAndSlide, prelude::*};
 use bevy::prelude::*;
 
 use crate::{
+    physics::{
+        character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
+        topology::{KinematicQueryExclusions, SpatialSplitBox},
+    },
     portal::{
         PortalSplitTraveler,
         domain::ActivePortalSplit,
         topology::mapping::{map_transform, portal_mapping},
     },
-    physics::{
-        character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
-        topology::{KinematicQueryExclusions, SpatialSplitBox},
-    },
 };
 
 use super::remainder::simulate_destination_remainder;
-use crate::portal::simulation::{
-    CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION,
-};
+use crate::portal::simulation::{CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION};
 
 pub(super) struct CrossingContext<'a, 'w, 's> {
     pub entity: Entity,
@@ -45,10 +40,7 @@ pub(super) struct CrossingState<'a> {
     pub exclusions: &'a mut KinematicQueryExclusions,
 }
 
-pub(super) fn resolve_crossing(
-    context: CrossingContext<'_, '_, '_>,
-    state: CrossingState<'_>,
-) {
+pub(super) fn resolve_crossing(context: CrossingContext<'_, '_, '_>, state: CrossingState<'_>) {
     let start = state.split.tick_start.translation;
     let end = state.body.translation;
     let crossing = Transform {
@@ -72,9 +64,9 @@ pub(super) fn resolve_crossing(
             context.destination,
         )
         .rotation;
-        let target = state
-            .locomotion_frame
-            .map_or(mapped_control, |frame| frame.aligned_rotation(mapped_control));
+        let target = state.locomotion_frame.map_or(mapped_control, |frame| {
+            frame.aligned_rotation(mapped_control)
+        });
         control.begin_settle(
             mapped_control,
             target,

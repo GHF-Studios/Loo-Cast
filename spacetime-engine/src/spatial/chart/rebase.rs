@@ -3,17 +3,16 @@
 use avian3d::prelude::{ColliderAabb, ColliderOf, Position, RigidBody};
 use bevy::prelude::*;
 
+use crate::usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
 use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
-        UsfChartDelta, UsfOriginRebased, UsfRuntimeChartState, UsfScaleLayer,
-        UsfSpatialAnchor, resolved_rebase_scale,
+        UsfChartDelta, UsfOriginRebased, UsfRuntimeChartState, UsfScaleLayer, UsfSpatialAnchor,
+        resolved_rebase_scale,
     },
 };
-use crate::usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
 
-const REBASE_QUANTUM_NATIVE: f32 =
-    USF_CHUNK_NATIVE_SIZE / USF_CHILD_CHUNKS_PER_AXIS as f32;
+const REBASE_QUANTUM_NATIVE: f32 = USF_CHUNK_NATIVE_SIZE / USF_CHILD_CHUNKS_PER_AXIS as f32;
 const REBASE_THRESHOLD_NATIVE: f32 = REBASE_QUANTUM_NATIVE;
 
 pub(in crate::spatial) fn rebase_local_frame(
@@ -25,14 +24,8 @@ pub(in crate::spatial) fn rebase_local_frame(
         >,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
-    physics_positions: Query<
-        (Option<&UsfScaleLayer>, Option<&ColliderOf>),
-        With<Position>,
-    >,
-    collider_leaves: Query<
-        (Option<&UsfScaleLayer>, Option<&ColliderOf>),
-        With<ColliderAabb>,
-    >,
+    physics_positions: Query<(Option<&UsfScaleLayer>, Option<&ColliderOf>), With<Position>>,
+    collider_leaves: Query<(Option<&UsfScaleLayer>, Option<&ColliderOf>), With<ColliderAabb>>,
     body_layers: Query<&UsfScaleLayer, With<RigidBody>>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
@@ -76,8 +69,7 @@ pub(in crate::spatial) fn rebase_local_frame(
         }
     }
     for (layer, attached) in &physics_positions {
-        let target_scale =
-            resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
+        let target_scale = resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
         if let Err(error) = delta.at_scale(target_scale) {
             error!(
                 ?error,
@@ -90,8 +82,7 @@ pub(in crate::spatial) fn rebase_local_frame(
         }
     }
     for (layer, attached) in &collider_leaves {
-        let target_scale =
-            resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
+        let target_scale = resolved_rebase_scale(layer, attached, &body_layers, anchor_scale);
         if let Err(error) = delta.at_scale(target_scale) {
             error!(
                 ?error,

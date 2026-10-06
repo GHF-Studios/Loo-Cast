@@ -1,4 +1,15 @@
 //! Portal domain types and public mutation protocol.
+//!
+//! ## Module map
+//!
+//! - `command`: Public mutation commands for the persistent portal pair.
+//! - `config`: Configuration for portal-domain behavior and supported portal states.
+//! - `face`: Directed portal faces.
+//! - `portal`: Physical portal endpoints and pair identity.
+//! - `traveler`: Track portal travelers and the state of ordinary or split traversal.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod command;
 mod config;

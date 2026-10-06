@@ -1,3 +1,12 @@
+//! Install playground HUD and context-action presentation.
+//!
+//! ## Module map
+//!
+//! - `context_actions`: Contextual input hints for the playground HUD.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
+
 use bevy::prelude::*;
 
 use crate::{

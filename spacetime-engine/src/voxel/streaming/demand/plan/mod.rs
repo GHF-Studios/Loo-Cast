@@ -1,4 +1,12 @@
 //! Bounded chunk plan, region culling and predictive tube selection.
+//!
+//! ## Module map
+//!
+//! - `regions`: Bounded region traversal with conservative surface-shell culling.
+//! - `tube`: Sparse predictive centerline and prioritized chunk selection.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use super::*;
 
@@ -199,9 +207,9 @@ impl std::fmt::Display for VoxelDemandPlanError {
 }
 
 pub(super) fn refresh_demand_plan(
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     demands: &[VoxelRealizationScope],
-    streaming: &mut VoxelStreaming,
+    streaming: &mut VoxelMaterializationResidency,
     pinned_shell: Option<(Entity, f32)>,
     residency: &UsfContextResidency,
     view_demands: &UsfViewDemandSnapshot,
@@ -355,7 +363,7 @@ fn validate_context_residency(
 }
 
 fn demand_plan_key(
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     demands: &[VoxelRealizationScope],
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
@@ -401,7 +409,7 @@ fn demand_plan_key(
 }
 
 fn demanded_chunk_for_key(
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     request: VoxelRealizationScope,
     key: VoxelMaterializationKey,
     motion: VoxelDemandMotion,

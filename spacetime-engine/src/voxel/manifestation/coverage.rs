@@ -1,4 +1,4 @@
-//! Reconciles store-backed voxel facts and surface manifestations into generic capability coverage.
+//! Publishes generic capability readiness from voxel stores and disposable manifestations.
 
 use std::collections::HashMap;
 
@@ -8,24 +8,23 @@ use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
-        UsfCapabilityCoverageBatch, UsfCapabilityCoverageRecord,
-        UsfCapabilityRealization, UsfScaleLayer, UsfScaleRoleMask,
+        UsfCapabilityCoverageFact, UsfCapabilityCoveragePublication, UsfCapabilityRealization,
+        UsfScaleLayer, UsfScaleRoleMask,
     },
 };
 
-use super::{
-    VoxelMaterializationRuntime,
-    collision::{collision_requested, VoxelCollisionAggregateRegistry},
-};
 use super::super::{
-    CelestialVoxelFrameBinding, VoxelCollisionDisabled,
-    VoxelRealizationDemandSnapshot,
-    VoxelStreaming,
-    MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
+    CelestialVoxelRealizationFrame, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled,
+    VoxelEditingDisabled, VoxelMaterializationResidency, VoxelRealizationDemandSnapshot,
+    VoxelScaleRealization,
+};
+use super::{
+    VoxelPresentationManifestation,
+    collision::{VoxelCollisionAggregateRegistry, collision_requested},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct CapabilityWorldSignature {
+struct CapabilityRealizationSignature {
     materializations: u64,
     streaming: Option<u64>,
     collision_disabled: bool,
@@ -36,37 +35,37 @@ struct CapabilityWorldSignature {
 }
 
 #[derive(Default)]
-pub(in crate::voxel) struct CapabilitySyncCache {
+pub(in crate::voxel) struct CapabilityPublicationCache {
     initialized: bool,
-    worlds: HashMap<Entity, CapabilityWorldSignature>,
+    worlds: HashMap<Entity, CapabilityRealizationSignature>,
 }
 
-pub(in crate::voxel) fn sync_capability_realizations(
+pub(in crate::voxel) fn publish_voxel_capability_realizations(
     config: Res<EngineConfig>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
     worlds: Query<(
         Entity,
-        &VoxelWorld,
+        &VoxelScaleRealization,
         &UsfScaleLayer,
         Option<&UsfLogicalRealizationOf>,
-        Option<&VoxelStreaming>,
+        Option<&VoxelMaterializationResidency>,
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
-        Option<&CelestialVoxelFrameBinding>,
+        Option<&CelestialVoxelRealizationFrame>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     collision_registry: Res<VoxelCollisionAggregateRegistry>,
     mut runtimes: Query<(
         Entity,
-        &VoxelMaterializationRuntime,
+        &VoxelPresentationManifestation,
         Option<&mut UsfCapabilityRealization>,
     )>,
-    mut coverage_batches: Query<&mut UsfCapabilityCoverageBatch>,
-    mut cache: Local<CapabilitySyncCache>,
+    mut coverage_publications: Query<&mut UsfCapabilityCoveragePublication>,
+    mut cache: Local<CapabilityPublicationCache>,
 ) {
     let mut world_signatures =
-        HashMap::<Entity, CapabilityWorldSignature>::with_capacity(worlds.iter().len());
+        HashMap::<Entity, CapabilityRealizationSignature>::with_capacity(worlds.iter().len());
     for (
         world_entity,
         world,
@@ -80,9 +79,9 @@ pub(in crate::voxel) fn sync_capability_realizations(
     {
         world_signatures.insert(
             world_entity,
-            CapabilityWorldSignature {
+            CapabilityRealizationSignature {
                 materializations: world.materializations().capability_revision(),
-                streaming: streaming.map(VoxelStreaming::collision_policy_revision),
+                streaming: streaming.map(VoxelMaterializationResidency::collision_policy_revision),
                 collision_disabled: collision_disabled.is_some(),
                 editing_disabled: editing_disabled.is_some(),
                 scale: layer.scale(),
@@ -114,7 +113,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
     //
     // No-surface realization facts are store-owned. Publish them as one
-    // deterministic batch on the VoxelWorld entity instead of manufacturing a
+    // deterministic batch on the VoxelScaleRealization entity instead of manufacturing a
     // runtime entity for every uniform air/solid materialization.
     for (
         world_entity,
@@ -134,11 +133,9 @@ pub(in crate::voxel) fn sync_capability_realizations(
         let mut keys = world.materializations().active_keys().collect::<Vec<_>>();
         keys.sort_by_key(|key| key.components());
 
-        let mut records = Vec::<UsfCapabilityCoverageRecord>::new();
+        let mut facts = Vec::<UsfCapabilityCoverageFact>::new();
         for key in keys {
-            let Some(dense_revision) =
-                world.materializations().active_dense_revision(key)
-            else {
+            let Some(dense_revision) = world.materializations().active_dense_revision(key) else {
                 continue;
             };
             if world.materializations().surface(key).is_some() {
@@ -169,24 +166,19 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
             let mut roles = UsfScaleRoleMask::REALIZATION;
             let derived_current =
-                world.materializations().active_derived_revision(key)
-                    == Some(dense_revision);
+                world.materializations().active_derived_revision(key) == Some(dense_revision);
 
             // A derived-current no-surface result is a positive fact: there is
             // nothing to draw/collide here, so requested presentation is ready.
-            if derived_current
-                && requested.contains(UsfScaleRoleMask::PRESENTATION)
-            {
+            if derived_current && requested.contains(UsfScaleRoleMask::PRESENTATION) {
                 roles = roles.union(UsfScaleRoleMask::PRESENTATION);
             }
-            if requested.contains(UsfScaleRoleMask::EDITING)
-                && editing_disabled.is_none()
-            {
+            if requested.contains(UsfScaleRoleMask::EDITING) && editing_disabled.is_none() {
                 // Editing owns dense semantic working data, not a mesh.
                 roles = roles.union(UsfScaleRoleMask::EDITING);
             }
 
-            records.push(UsfCapabilityCoverageRecord::new(
+            facts.push(UsfCapabilityCoverageFact::new(
                 authority,
                 layer.scale(),
                 center,
@@ -196,8 +188,8 @@ pub(in crate::voxel) fn sync_capability_realizations(
             ));
         }
 
-        let next = UsfCapabilityCoverageBatch::new(records);
-        match coverage_batches.get_mut(world_entity) {
+        let next = UsfCapabilityCoveragePublication::new(facts);
+        match coverage_publications.get_mut(world_entity) {
             Ok(mut current) => {
                 if *current != next {
                     *current = next;
@@ -226,7 +218,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
             collision_disabled,
             editing_disabled,
             _celestial_frame,
-        )) = worlds.get(runtime.world())
+        )) = worlds.get(runtime.realization())
         else {
             if let Some(mut realization) = existing {
                 realization.set_roles(UsfScaleRoleMask::NONE);
@@ -251,8 +243,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
         let requested = streaming.map_or_else(
             || {
-                let mut roles =
-                    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
+                let mut roles = UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
                 if collision_disabled.is_none() {
                     roles = roles.union(UsfScaleRoleMask::COLLISION);
                 }
@@ -267,17 +258,17 @@ pub(in crate::voxel) fn sync_capability_realizations(
         let mut roles = UsfScaleRoleMask::NONE;
         if derived_current {
             let collision_current = collision_registry.member_current(
-                runtime.world(),
+                runtime.realization(),
                 runtime.key(),
                 runtime.revision(),
             );
-            let rigid_current = world
-                .materializations()
-                .surface(runtime.key())
-                .is_some_and(|cache| {
-                    cache.revision == runtime.revision()
-                        && cache.surface.has_rigid_triangles()
-                });
+            let rigid_current =
+                world
+                    .materializations()
+                    .surface(runtime.key())
+                    .is_some_and(|cache| {
+                        cache.revision == runtime.revision() && cache.surface.has_rigid_triangles()
+                    });
 
             //
             // PRESENTATION is a readiness claim, not just "a mesh exists".
@@ -293,7 +284,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
                 && rigid_current
                 && streaming.is_some_and(|streaming| {
                     collision_requested(
-                        runtime.world(),
+                        runtime.realization(),
                         runtime.key(),
                         world,
                         layer,
@@ -312,14 +303,10 @@ pub(in crate::voxel) fn sync_capability_realizations(
             {
                 roles = roles.union(UsfScaleRoleMask::PRESENTATION);
             }
-            if requested.contains(UsfScaleRoleMask::COLLISION)
-                && collision_current
-            {
+            if requested.contains(UsfScaleRoleMask::COLLISION) && collision_current {
                 roles = roles.union(UsfScaleRoleMask::COLLISION);
             }
-            if requested.contains(UsfScaleRoleMask::EDITING)
-                && editing_disabled.is_none()
-            {
+            if requested.contains(UsfScaleRoleMask::EDITING) && editing_disabled.is_none() {
                 roles = roles.union(UsfScaleRoleMask::EDITING);
             }
         }

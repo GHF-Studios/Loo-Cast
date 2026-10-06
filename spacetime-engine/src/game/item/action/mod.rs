@@ -83,7 +83,7 @@ impl ItemAim {
 
 /// One semantic use of an equipped item.
 #[derive(Message, Debug, Clone, Copy)]
-pub struct UseItem {
+pub struct UseItemRequest {
     pub item: ItemId,
     pub action: ItemAction,
     pub actor: Entity,

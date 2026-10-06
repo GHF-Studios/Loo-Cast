@@ -1,27 +1,31 @@
 //! Character split resolution after ordinary motor movement.
+//!
+//! ## Module map
+//!
+//! - `crossing`: One accepted character center crossing.
+//! - `remainder`: Collision-constrained movement for the unused fraction of a crossing tick.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
-use avian3d::{
-    character_controller::move_and_slide::MoveAndSlide,
-    prelude::*,
-};
+use avian3d::{character_controller::move_and_slide::MoveAndSlide, prelude::*};
 use bevy::prelude::*;
 
 use crate::{
     ecs::UsfLogicalRealizationOf,
-    portal::{
-        Portal, PortalActive, PortalSplitTraveler, PortalTraveler,
-        topology::mapping::portal_plane,
-    },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    portal::{
+        Portal, PortalActive, PortalSplitTraveler, PortalTraveler, topology::mapping::portal_plane,
+    },
     spatial::UsfScaleLayer,
 };
 
+use super::super::{CLEAR_MARGIN, box_fits_aperture_at, center_crossing_fraction};
 use super::finish_character_split;
-use super::super::{box_fits_aperture_at, center_crossing_fraction, CLEAR_MARGIN};
 
 mod crossing;
 mod remainder;
@@ -82,10 +86,7 @@ pub(crate) fn resolve_portal_splits(
             continue;
         };
 
-        let pair = match (
-            portals.get(active.source),
-            portals.get(active.destination),
-        ) {
+        let pair = match (portals.get(active.source), portals.get(active.destination)) {
             (
                 Ok((_, source_portal, source_active, source)),
                 Ok((_, _, destination_active, destination)),

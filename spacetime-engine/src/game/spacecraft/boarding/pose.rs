@@ -6,7 +6,7 @@ use super::*;
 /// manifestation state. A missing/non-walkable hit leaves control on the ship.
 pub(super) fn resolve_disembark_pose(
     spatial_query: &SpatialQuery,
-    physics_charts: &UsfPhysicsSlices,
+    physics_charts: &UsfPhysicsSliceQuery,
     ship_entity: Entity,
     ship_transform: &Transform,
     ship_layer: &UsfScaleLayer,

@@ -32,7 +32,7 @@ pub(super) fn collect_focused_thermal_gizmo(
     let radius = combustible
         .get(target.semantic_entity)
         .ok()
-        .map(|material| material.heat_transfer_radius_meters)
+        .map(|material| material.heat_transfer_radius_metres)
         .filter(|radius| *radius > 0.0);
     let color = thermal_color(body.temperature_kelvin());
     let mut batch = WorldDrawBatch::default();

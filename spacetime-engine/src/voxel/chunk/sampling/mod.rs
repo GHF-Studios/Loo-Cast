@@ -2,7 +2,7 @@
 
 use super::*;
 
-impl VoxelChunk {
+impl DenseVoxelMaterialization {
     pub fn sample(&self, local: IVec3) -> Option<VoxelSample> {
         let index = Self::index(self.storage_coord(local)?);
         Some(self.sample_at_index(index))

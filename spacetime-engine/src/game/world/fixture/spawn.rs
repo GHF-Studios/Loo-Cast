@@ -18,14 +18,7 @@ use crate::{
 use super::BodySurfaceSite;
 
 const SEARCH_RING_METRES: [f64; 8] = [
-    0.0,
-    2_000.0,
-    5_000.0,
-    10_000.0,
-    20_000.0,
-    40_000.0,
-    80_000.0,
-    160_000.0,
+    0.0, 2_000.0, 5_000.0, 10_000.0, 20_000.0, 40_000.0, 80_000.0, 160_000.0,
 ];
 const RING_SAMPLES: usize = 12;
 const IDEAL_MAX_SLOPE_DEGREES: f64 = 18.0;
@@ -46,9 +39,7 @@ fn outer_surface_is_volumetric_boundary(
 ) -> bool {
     field
         .signed_distance_local_metres(point_local_metres)
-        .is_some_and(|distance| {
-            distance.abs() <= VOLUMETRIC_SURFACE_TOLERANCE_METRES
-        })
+        .is_some_and(|distance| distance.abs() <= VOLUMETRIC_SURFACE_TOLERANCE_METRES)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -67,7 +58,11 @@ fn tangent_basis(direction: Vec3) -> Option<(Vec3, Vec3)> {
     if direction == Vec3::ZERO {
         return None;
     }
-    let reference = if direction.y.abs() < 0.9 { Vec3::Y } else { Vec3::X };
+    let reference = if direction.y.abs() < 0.9 {
+        Vec3::Y
+    } else {
+        Vec3::X
+    };
     let tangent_u = direction.cross(reference).normalize_or_zero();
     if tangent_u == Vec3::ZERO {
         return None;
@@ -76,14 +71,9 @@ fn tangent_basis(direction: Vec3) -> Option<(Vec3, Vec3)> {
     (tangent_v != Vec3::ZERO).then_some((tangent_u, tangent_v))
 }
 
-fn angular_offset(
-    direction: Vec3,
-    tangent: Vec3,
-    arc_metres: f64,
-    radius_metres: f64,
-) -> Vec3 {
-    let angle = (arc_metres / radius_metres.max(1.0))
-        .clamp(0.0, std::f64::consts::FRAC_PI_2) as f32;
+fn angular_offset(direction: Vec3, tangent: Vec3, arc_metres: f64, radius_metres: f64) -> Vec3 {
+    let angle =
+        (arc_metres / radius_metres.max(1.0)).clamp(0.0, std::f64::consts::FRAC_PI_2) as f32;
     (direction * angle.cos() + tangent * angle.sin()).normalize_or_zero()
 }
 
@@ -96,7 +86,6 @@ fn sample_candidate(
     let direction_local = direction_local.normalize_or_zero();
     let (tangent_u, tangent_v) = tangent_basis(direction_local)?;
     let center = field.surface_local_metres(direction_local).ok()?;
-
 
     // Spawn ownership needs an actual physical surface, not merely the radial
     // outer-shell approximation. A cave entrance can make the full volumetric
@@ -136,8 +125,8 @@ fn sample_candidate(
         normal = -normal;
     }
 
-    let normal_local = Vec3::new(normal.x as f32, normal.y as f32, normal.z as f32)
-        .normalize_or_zero();
+    let normal_local =
+        Vec3::new(normal.x as f32, normal.y as f32, normal.z as f32).normalize_or_zero();
     if normal_local == Vec3::ZERO {
         return None;
     }
@@ -178,8 +167,7 @@ fn preferred_ring_direction(
         return preferred;
     }
     let theta = std::f32::consts::TAU * phase as f32 / RING_SAMPLES as f32;
-    let ring_tangent =
-        (tangent_u * theta.cos() + tangent_v * theta.sin()).normalize_or_zero();
+    let ring_tangent = (tangent_u * theta.cos() + tangent_v * theta.sin()).normalize_or_zero();
     angular_offset(preferred, ring_tangent, distance_metres, radius_metres)
 }
 
@@ -230,12 +218,9 @@ pub(super) fn resolve_good_spawn(
                 phase,
                 field.radius_metres(),
             );
-            let Some(candidate) = sample_candidate(
-                field,
-                direction,
-                distance_metres,
-                probe_radius_metres,
-            ) else {
+            let Some(candidate) =
+                sample_candidate(field, direction, distance_metres, probe_radius_metres)
+            else {
                 continue;
             };
 

@@ -1,7 +1,7 @@
 //! Input completion over registered command paths and runtime variables.
 
-use super::command::{ConsoleArgumentCompletion, ConsoleCommandRegistry};
 use super::RuntimeVariableRegistry;
+use super::command::{ConsoleArgumentCompletion, ConsoleCommandRegistry};
 
 #[derive(Debug, Clone)]
 struct CompletionToken {

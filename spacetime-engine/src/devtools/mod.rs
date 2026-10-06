@@ -3,6 +3,28 @@
 //! The editor is one consumer of semantic tooling rather than the owner of domain
 //! meaning. Raw ECS reflection, semantic inspection, contextual gizmos and World
 //! Draw deliberately remain separate mechanisms that can be composed together.
+//!
+//! ## Integration
+//!
+//! Inspection, structure, focus, and World Draw consume published domain state. Editing and actions
+//! remain requests to the owning domain.
+//!
+//! ## Module map
+//!
+//! - `draw`: Text-free world-space developer visualization.
+//! - `editor`: Runtime editor/composer shell around the already-running game.
+//! - `focus`: Track the developer focus target and prune stale focus.
+//! - `gizmo`: Contextual editor gizmos.
+//! - `inspect`: Compose inspection frames, metadata, typed models, and visitor traits.
+//! - `inspect_ui`: Reusable egui presentation for the UI-agnostic inspection model.
+//! - `script_workbench`: Host-managed developer scripting workspace.
+//! - `structure`: Publish semantic structure rows and preserve valid selection.
+//! - `tools`: Register developer visualizations and expose their application extension.
+//! - `ui`: Screen-space developer UI.
+//! - `view`: Store the developer view state used by tooling and inspection.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod draw;
 mod editor;
@@ -10,8 +32,8 @@ mod focus;
 mod gizmo;
 mod inspect;
 pub mod inspect_ui;
-mod structure;
 mod script_workbench;
+mod structure;
 mod tools;
 mod ui;
 mod view;
@@ -30,10 +52,8 @@ pub use inspect::{
     InspectUnit, InspectValue, InspectWidgetId, InspectionFrame,
 };
 pub use inspect_ui::{AppInspectorWidgetsExt, InspectorWidgetRegistry};
+pub(crate) use script_workbench::{DeveloperScriptWorkbench, ScriptTarget, draw_script_workspace};
 pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
-pub(crate) use script_workbench::{
-    DeveloperScriptWorkbench, draw_script_workspace,
-};
 pub use tools::{AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec};
 pub use view::DeveloperView;
 
@@ -89,8 +109,8 @@ impl Plugin for DeveloperToolsPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    structure::clear_structure_frame,
-                    inspect::clear_inspection_frame,
+                    structure::begin_structure_frame,
+                    inspect::begin_inspection_frame,
                 )
                     .in_set(DeveloperSet::ResolveFocus),
             )

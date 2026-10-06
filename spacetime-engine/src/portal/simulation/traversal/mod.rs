@@ -1,4 +1,4 @@
-//! Instantaneous conventional portal traversal fallback.
+//! Conventional whole-body portal traversal transaction.
 //!
 //! Entities opted into `PortalSplitTraveler` are handled by the manifestation
 //! split prototype instead. This path remains useful for simple travelers that
@@ -8,6 +8,7 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
+    physics::character::{CharacterControlFrame, CharacterLocomotionFrame},
     portal::{
         PortalActive,
         domain::{Portal, PortalTraveler, PortalVelocity},
@@ -16,12 +17,11 @@ use crate::{
             mapping::{map_transform, portal_mapping},
         },
     },
-    physics::character::{CharacterControlFrame, CharacterLocomotionFrame},
 };
 
 use super::{CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION};
 
-pub(in super::super) fn teleport_travelers(
+pub(in super::super) fn resolve_portal_traversal(
     portals: Query<(&Portal, &PortalActive, &Transform)>,
     mut travelers: Query<
         (
@@ -32,10 +32,7 @@ pub(in super::super) fn teleport_travelers(
             Option<&mut PortalVelocity>,
             Option<&mut LinearVelocity>,
         ),
-        (
-            Without<Portal>,
-            Without<crate::portal::PortalSplitTraveler>,
-        ),
+        (Without<Portal>, Without<crate::portal::PortalSplitTraveler>),
     >,
 ) {
     for (

@@ -1,3 +1,5 @@
+//! Publish semantic structure rows and preserve valid selection.
+
 use bevy::prelude::*;
 
 use super::{DeveloperFocus, FocusTarget};
@@ -100,7 +102,7 @@ impl StructureSelection {
     }
 }
 
-pub(super) fn clear_structure_frame(mut frame: ResMut<StructureFrame>) {
+pub(super) fn begin_structure_frame(mut frame: ResMut<StructureFrame>) {
     frame.clear();
 }
 

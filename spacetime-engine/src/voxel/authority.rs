@@ -1,4 +1,4 @@
-//! Shared semantic authority for voxel fields with multiple realizations.
+//! Canonical semantic edit authority shared by voxel scale realizations.
 //!
 //! A realization owns residency, dense materializations, meshes and colliders.
 //! The authority owns semantic identity and the canonical ordered edit history.
@@ -9,16 +9,16 @@ use bevy::prelude::*;
 
 use super::VoxelFrameEdit;
 
-/// Canonical edit authority shared by one or more voxel realizations.
+/// Canonical body/frame-local voxel edit authority shared by scale realizations.
 ///
 /// The log is intentionally address-agnostic. A materialization address belongs
 /// to one scale-local realization and therefore cannot be the global edit key.
 #[derive(Component, Debug, Default)]
-pub struct VoxelAuthority {
+pub struct VoxelSemanticAuthority {
     edits: Vec<VoxelFrameEdit>,
 }
 
-impl VoxelAuthority {
+impl VoxelSemanticAuthority {
     pub fn record_edit(&mut self, edit: VoxelFrameEdit) {
         self.edits.push(edit);
     }

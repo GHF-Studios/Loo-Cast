@@ -2,6 +2,16 @@
 //!
 //! Each group writes through its existing policy owner. Console state never
 //! becomes an alternate source of simulation truth.
+//!
+//! ## Module map
+//!
+//! - `character`: Controlled character movement bindings.
+//! - `freecam`: Detached camera controls and their presentation-only demand policy.
+//! - `lab`: Developer locomotion override binding.
+//! - `voxel`: Engine config override bindings for voxel work budgets.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use crate::console::{AppConsoleExt, ConsoleArgumentCompletion, ConsoleCommandSpec};
 use bevy::prelude::*;

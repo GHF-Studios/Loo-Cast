@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(in crate::game::player) fn look(
+pub(in crate::game::player) fn write_player_view_intent(
     input: Res<PlayerInputFrame>,
     profile: Single<&ViewCameraProfile, With<LocalViewTarget>>,
     player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
@@ -28,7 +28,7 @@ pub(in crate::game::player) fn look(
 ///
 /// The semantic planner remains authoritative, so manual inspection and
 /// automatic navigation compose instead of racing over `UsfViewContext`.
-pub(in crate::game::player) fn zoom_spatial_view(
+pub(in crate::game::player) fn adjust_view_scale_bias(
     input: Res<PlayerInputFrame>,
     presentation: Res<PrimaryViewPresentation>,
     assistance: Single<&TravelAssistanceState, With<LocalControlSubject>>,

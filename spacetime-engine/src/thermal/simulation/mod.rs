@@ -1,4 +1,13 @@
 //! Thermal energy evolution and combustion propagation.
+//!
+//! ## Module map
+//!
+//! - `combustion`: Combustion lifecycle and manifestation-space heat propagation.
+//! - `energy`: Direct thermal-energy impulses and ambient exchange.
+//! - `heat`: Combustion heat transfer from disposable spatial samples to semantic bodies.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use std::collections::HashMap;
 
@@ -33,6 +42,6 @@ pub(super) fn configure(app: &mut App) {
             cool_thermal_bodies,
         )
             .chain()
-            .in_set(ThermalSet::Lumped),
+            .in_set(ThermalSet::Evolution),
     );
 }

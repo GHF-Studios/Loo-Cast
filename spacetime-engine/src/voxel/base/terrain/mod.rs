@@ -4,11 +4,11 @@ use bevy::prelude::Vec2;
 
 use crate::spatial::UsfPosition;
 
+use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 use super::{
     EMPTY_DISTANCE, TERRAIN_DIRECT_LOCAL_LIMIT, TERRAIN_VERTICAL_QUERY_LIMIT,
     noise::{canonical_cell_size, semantic_value_noise, value_noise},
 };
-use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 /// Small dependency-free terrain field for the first procedural-world map.
 ///

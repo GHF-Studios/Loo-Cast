@@ -3,11 +3,21 @@
 //! A canonical materialization address has identity without requiring a Bevy
 //! entity. This store owns the lifecycle of dense working data and derived CPU
 //! caches. ECS is reserved for transient jobs and runtime manifestations.
+//!
+//! ## Module map
+//!
+//! - `derived`: Dense-edit invalidation and derived surface-build lifecycle.
+//! - `metrics`: Residency count used by the public voxel-world facade.
+//! - `render`: Render-dirty queueing and surface-cache access.
+//! - `residency`: Dense residency, generation reservation, reactivation and warm-cache eviction.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::{
-    VoxelChunk, VoxelEdit, VoxelMaterializationChunkAddress,
+    DenseVoxelMaterialization, VoxelEdit, VoxelMaterializationChunkAddress,
     VoxelMaterializationKey, mesh::VoxelSurface,
 };
 
@@ -36,7 +46,7 @@ impl VoxelSurfaceCache {
 enum VoxelMaterializationState {
     Pending { token: u64 },
     Failed,
-    Dense(VoxelChunk),
+    Dense(DenseVoxelMaterialization),
 }
 
 #[derive(Debug)]
@@ -50,19 +60,17 @@ struct VoxelMaterializationEntry {
 }
 
 impl VoxelMaterializationEntry {
-    fn dense(&self) -> Option<&VoxelChunk> {
+    fn dense(&self) -> Option<&DenseVoxelMaterialization> {
         match &self.state {
             VoxelMaterializationState::Dense(chunk) => Some(chunk),
-            VoxelMaterializationState::Pending { .. }
-            | VoxelMaterializationState::Failed => None,
+            VoxelMaterializationState::Pending { .. } | VoxelMaterializationState::Failed => None,
         }
     }
 
-    fn dense_mut(&mut self) -> Option<&mut VoxelChunk> {
+    fn dense_mut(&mut self) -> Option<&mut DenseVoxelMaterialization> {
         match &mut self.state {
             VoxelMaterializationState::Dense(chunk) => Some(chunk),
-            VoxelMaterializationState::Pending { .. }
-            | VoxelMaterializationState::Failed => None,
+            VoxelMaterializationState::Pending { .. } | VoxelMaterializationState::Failed => None,
         }
     }
 }
@@ -113,11 +121,7 @@ impl VoxelMaterializationStore {
         }
     }
 
-
-    pub(in crate::voxel) fn refresh_render_membership(
-        &mut self,
-        key: VoxelMaterializationKey,
-    ) {
+    pub(in crate::voxel) fn refresh_render_membership(&mut self, key: VoxelMaterializationKey) {
         if self.entries.get(&key).is_some_and(|entry| entry.active) {
             self.mark_render_dirty(key);
         }

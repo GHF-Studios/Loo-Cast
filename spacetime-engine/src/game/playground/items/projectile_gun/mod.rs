@@ -4,8 +4,8 @@ use bevy::prelude::*;
 
 use crate::game::{
     GameSet,
-    combat::FireWeapon,
-    item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
+    combat::FireWeaponRequest,
+    item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItemRequest},
 };
 
 pub const PROJECTILE_GUN: ItemId = ItemId::new("projectile_gun");
@@ -24,22 +24,20 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: PROJECTILE_GUN,
         name: "Projectile Gun",
         description: "Fire ordinary damage projectiles.",
-        action_hints: vec![
-            ItemActionHint::new(ItemAction::PRIMARY, "Fire"),
-        ],
+        action_hints: vec![ItemActionHint::new(ItemAction::PRIMARY, "Fire")],
     });
 }
 
 fn use_projectile_gun(
-    mut uses: MessageReader<UseItem>,
-    mut fire: MessageWriter<FireWeapon>,
+    mut uses: MessageReader<UseItemRequest>,
+    mut fire: MessageWriter<FireWeaponRequest>,
 ) {
     for request in uses.read() {
         if request.item != PROJECTILE_GUN || request.action != ItemAction::PRIMARY {
             continue;
         }
 
-        fire.write(FireWeapon {
+        fire.write(FireWeaponRequest {
             wielder: request.actor,
             origin: request.aim.origin,
             direction: request.aim.direction,

@@ -17,7 +17,7 @@ pub(in crate::game::player) struct FlightHudRight;
 #[derive(Component)]
 pub(in crate::game::player) struct FlightHudAlert;
 
-pub(in crate::game::player) fn spawn_flight_hud(mut commands: Commands) {
+pub(in crate::game::player) fn spawn_flight_hud_presentation(mut commands: Commands) {
     commands.spawn((
         Name::new("Flight HUD Left Wing"),
         FlightHudLeft,

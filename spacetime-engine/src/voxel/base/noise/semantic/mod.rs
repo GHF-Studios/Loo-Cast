@@ -1,4 +1,14 @@
 //! Canonical lattice preparation, exact caches and semantic noise sampling.
+//!
+//! ## Module map
+//!
+//! - `cache`: Durable worker-thread corner and cell caches with diagnostic baselines.
+//! - `compact`: Exact balanced-decimal corner hashing and zero-prefix acceleration.
+//! - `prepared`: Bounded canonical lattice point preparation.
+//! - `sampling`: Canonical 2D/3D interpolation over prepared and generic coordinates.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::*;
 

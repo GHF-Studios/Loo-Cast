@@ -1,4 +1,4 @@
-//! Sparse world-generation cache and refinement orchestration.
+//! Sparse phenomenon-evaluation cache and contextual refinement facility.
 
 use std::{any::Any, collections::HashMap};
 
@@ -8,11 +8,11 @@ use crate::spatial::{SpatialScale, UsfChunkAddress, UsfPosition, UsfPositionErro
 
 use super::{
     model::{
-        DEFAULT_UNIVERSE_SEED, PhenomenonEvaluationContext, PhenomenonId, TemporalScale,
-        WorldgenEpoch, WorldgenEvaluationKey, WorldgenNode,
+        DEFAULT_WORLDGEN_NOISE_KEY, PhenomenonEvaluationContext, PhenomenonId, TemporalScale,
+        WorldgenEpoch, WorldgenEvaluation, WorldgenEvaluationKey,
     },
     phenomenon::PhenomenonRegistry,
-    seed::scope_seed,
+    seed::scope_noise_key,
 };
 
 /// Sparse semantic-generation capability cache over canonical USF context
@@ -21,30 +21,30 @@ use super::{
 /// competing spatial tree. Addressability alone does not allocate semantic
 /// state: only requested/refined scopes are cached here.
 #[derive(Resource)]
-pub struct WorldgenStore {
-    universe_seed: u64,
-    nodes: HashMap<WorldgenEvaluationKey, WorldgenNode>,
+pub struct WorldgenEvaluationCache {
+    noise_key: u64,
+    nodes: HashMap<WorldgenEvaluationKey, WorldgenEvaluation>,
 }
 
-impl Default for WorldgenStore {
+impl Default for WorldgenEvaluationCache {
     fn default() -> Self {
         Self {
-            universe_seed: DEFAULT_UNIVERSE_SEED,
+            noise_key: DEFAULT_WORLDGEN_NOISE_KEY,
             nodes: HashMap::new(),
         }
     }
 }
 
-impl WorldgenStore {
-    pub fn new(universe_seed: u64) -> Self {
+impl WorldgenEvaluationCache {
+    pub fn new(noise_key: u64) -> Self {
         Self {
-            universe_seed,
+            noise_key,
             nodes: HashMap::new(),
         }
     }
 
-    pub const fn universe_seed(&self) -> u64 {
-        self.universe_seed
+    pub const fn noise_key(&self) -> u64 {
+        self.noise_key
     }
 
     pub fn len(&self) -> usize {
@@ -84,17 +84,15 @@ impl WorldgenStore {
             return Ok(key);
         }
 
-        let seed = scope_seed(self.universe_seed, scope);
-        let context = PhenomenonEvaluationContext::new(key, epoch, seed);
+        let noise_key = scope_noise_key(self.noise_key, scope);
+        let context = PhenomenonEvaluationContext::new(key, epoch, noise_key);
         let phenomena = registry.evaluate(&context, None);
         debug_assert!(
             !phenomena.is_empty(),
             "root context must be semantically interpreted"
         );
-        self.nodes.insert(
-            key,
-            WorldgenNode::new(context, None, phenomena),
-        );
+        self.nodes
+            .insert(key, WorldgenEvaluation::new(context, None, phenomena));
         Ok(key)
     }
 
@@ -123,18 +121,14 @@ impl WorldgenStore {
             return Ok(None);
         }
 
-        let key = WorldgenEvaluationKey::new(
-            child_scope,
-            parent.temporal_scale(),
-            parent.epoch(),
-        );
+        let key = WorldgenEvaluationKey::new(child_scope, parent.temporal_scale(), parent.epoch());
         if self.nodes.contains_key(&key) {
             return Ok(Some(key));
         }
 
         let epoch = parent_node.context().epoch();
-        let seed = scope_seed(self.universe_seed, child_scope);
-        let context = PhenomenonEvaluationContext::new(key, epoch, seed);
+        let noise_key = scope_noise_key(self.noise_key, child_scope);
+        let context = PhenomenonEvaluationContext::new(key, epoch, noise_key);
         let phenomena = registry.evaluate(&context, Some(parent_node));
         debug_assert!(
             !phenomena.is_empty(),
@@ -142,7 +136,7 @@ impl WorldgenStore {
         );
         self.nodes.insert(
             key,
-            WorldgenNode::new(context, Some(parent), phenomena),
+            WorldgenEvaluation::new(context, Some(parent), phenomena),
         );
         Ok(Some(key))
     }
@@ -165,9 +159,11 @@ impl WorldgenStore {
         Ok((current.scope().scale() == target_scale).then_some(current))
     }
 
-    /// Compatibility convenience implemented in terms of coarse bootstrap and
-    /// explicit downward contextual refinement.
-    pub fn ensure_branch(
+    /// Evaluate one sparse canonical branch down to the requested Scale Slice.
+    ///
+    /// This is phenomenon evaluation only. Semantic construction must consume
+    /// typed results through a separate construction boundary.
+    pub fn evaluate_branch(
         &mut self,
         target: UsfPosition,
         target_scale: SpatialScale,
@@ -181,7 +177,7 @@ impl WorldgenStore {
             .expect("root and target define one canonical refinement branch"))
     }
 
-    pub fn node(&self, key: WorldgenEvaluationKey) -> Option<&WorldgenNode> {
+    pub fn node(&self, key: WorldgenEvaluationKey) -> Option<&WorldgenEvaluation> {
         self.nodes.get(&key)
     }
 
@@ -190,7 +186,7 @@ impl WorldgenStore {
     }
 
     /// Returns leaf -> root ancestry for one generated evaluation.
-    pub fn lineage(&self, mut key: WorldgenEvaluationKey) -> Vec<&WorldgenNode> {
+    pub fn lineage(&self, mut key: WorldgenEvaluationKey) -> Vec<&WorldgenEvaluation> {
         let mut lineage = Vec::new();
         while let Some(node) = self.nodes.get(&key) {
             lineage.push(node);
@@ -203,11 +199,11 @@ impl WorldgenStore {
     }
 }
 
-pub struct WorldGenerationPlugin;
+pub struct WorldgenEvaluationPlugin;
 
-impl Plugin for WorldGenerationPlugin {
+impl Plugin for WorldgenEvaluationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PhenomenonRegistry>()
-            .init_resource::<WorldgenStore>();
+            .init_resource::<WorldgenEvaluationCache>();
     }
 }

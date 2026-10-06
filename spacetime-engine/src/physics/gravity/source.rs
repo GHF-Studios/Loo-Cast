@@ -38,8 +38,12 @@ impl RadialGravitySource {
         }
     }
 
-    pub const fn radius_metres(self) -> f64 { self.radius_metres }
-    pub const fn field_scale(self) -> SpatialScale { self.field_scale }
+    pub const fn radius_metres(self) -> f64 {
+        self.radius_metres
+    }
+    pub const fn field_scale(self) -> SpatialScale {
+        self.field_scale
+    }
     pub const fn surface_gravity_metres_per_second2(self) -> f32 {
         self.surface_gravity_metres_per_second2
     }
@@ -63,9 +67,7 @@ impl RadialGravitySource {
         ) * self.field_scale.metres_per_native();
 
         let distance_metres = relative_metres.length();
-        if distance_metres <= f64::EPSILON
-            || self.surface_gravity_metres_per_second2 <= 0.0
-        {
+        if distance_metres <= f64::EPSILON || self.surface_gravity_metres_per_second2 <= 0.0 {
             return Some(DVec3::ZERO);
         }
 

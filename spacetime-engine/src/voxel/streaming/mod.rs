@@ -1,8 +1,16 @@
-//! Demand-driven residency of voxel materialization caches.
+//! Demand-driven residency policy for voxel materializations.
 //!
 //! Streaming owns *which canonical addresses are active*. Dense voxel data lives
-//! in [`super::VoxelWorld`]'s compact materialization store rather than in one ECS entity
+//! in [`super::VoxelScaleRealization`]'s compact materialization store rather than in one ECS entity
 //! per address. Generation jobs are transient ECS participants only.
+//!
+//! ## Module map
+//!
+//! - `demand`: Spatial-demand interpretation and voxel residency reconciliation.
+//! - `generation`: Async dense-materialization generation lifecycle.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -13,50 +21,45 @@ use crate::spatial::UsfScaleRoleMask;
 use demand::{DemandedChunk, VoxelDemandPlanKey};
 // Keep the type opaque outside scheduling code; sibling voxel systems can
 // preserve ordering by passing ranks to the canonical comparator.
-pub(in crate::voxel) use demand::{
-    VoxelWorkRank, compare_work_ranks,
-};
+pub(in crate::voxel) use demand::{VoxelWorkRank, compare_work_ranks};
 
 mod demand;
 mod generation;
 
 fn roles_require_surface(roles: UsfScaleRoleMask) -> bool {
-    roles.contains(UsfScaleRoleMask::PRESENTATION)
-        || roles.contains(UsfScaleRoleMask::COLLISION)
+    roles.contains(UsfScaleRoleMask::PRESENTATION) || roles.contains(UsfScaleRoleMask::COLLISION)
 }
 
-pub(super) use demand::refresh_voxel_residency;
+pub(super) use demand::reconcile_voxel_materialization_residency;
 pub(super) use generation::{
-    finish_chunk_generation, retire_stale_generation_tasks, schedule_voxel_generation,
+    publish_generated_materializations, retire_stale_materialization_generation,
+    schedule_dense_materialization_generation,
 };
 
-/// Demand-streaming policy for one [`super::VoxelWorld`].
+/// Demand-streaming policy for one [`super::VoxelScaleRealization`].
 ///
 /// Presentation material is intentionally separate: residency policy should not
 /// own renderer state, and manually resident worlds can use the same realization
 /// pipeline without pretending to be streamed.
 #[derive(Component, Debug, Clone)]
-pub struct VoxelStreaming {
+pub struct VoxelMaterializationResidency {
     load_budget_per_frame: usize,
     residency_revision: u64,
     policy_revision: u64,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
     /// Latest desired address -> capability-role intent.
-    cached_desired_roles:
-        HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
+    cached_desired_roles: HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
     // Scheduling rank survives beyond the pending generation queue so surface
     // derivation can honor the same useful-work ordering.
-    desired_work_ranks:
-        HashMap<VoxelMaterializationKey, VoxelWorkRank>,
+    desired_work_ranks: HashMap<VoxelMaterializationKey, VoxelWorkRank>,
     /// Sparse original committed state for keys whose current candidate
     /// differs during make-before-break migration.
     ///
     /// `None` means the key did not exist in the committed target; `Some(roles)`
     /// records the committed role set. Stable state is empty, so migration cost
     /// scales with the changed boundary rather than the whole desired volume.
-    migration_original_roles:
-        HashMap<VoxelMaterializationKey, Option<UsfScaleRoleMask>>,
+    migration_original_roles: HashMap<VoxelMaterializationKey, Option<UsfScaleRoleMask>>,
     effective_desired: HashSet<VoxelMaterializationKey>,
     residency_activate: HashSet<VoxelMaterializationKey>,
     residency_deactivate: HashSet<VoxelMaterializationKey>,
@@ -65,7 +68,7 @@ pub struct VoxelStreaming {
     role_refresh: HashSet<VoxelMaterializationKey>,
 }
 
-impl VoxelStreaming {
+impl VoxelMaterializationResidency {
     pub fn new(load_budget_per_frame: usize) -> Self {
         Self {
             load_budget_per_frame: load_budget_per_frame.max(1),
@@ -94,7 +97,6 @@ impl VoxelStreaming {
     pub(in crate::voxel) fn desired_count(&self) -> usize {
         self.cached_desired_roles.len()
     }
-
 
     fn retire_all_desired(&mut self) -> bool {
         let changed = !self.cached_desired_roles.is_empty()
@@ -156,10 +158,7 @@ impl VoxelStreaming {
         }
     }
 
-    fn stage_desired_roles(
-        &mut self,
-        desired: HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
-    ) {
+    fn stage_desired_roles(&mut self, desired: HashMap<VoxelMaterializationKey, UsfScaleRoleMask>) {
         if self.cached_desired_roles == desired {
             return;
         }
@@ -281,16 +280,13 @@ impl VoxelStreaming {
     fn migration_candidate_addresses(
         &self,
     ) -> impl Iterator<Item = (VoxelMaterializationKey, UsfScaleRoleMask)> + '_ {
-        self.migration_original_roles
-            .keys()
-            .filter_map(|&key| {
-                self.cached_desired_roles
-                    .get(&key)
-                    .copied()
-                    .map(|roles| (key, roles))
-            })
+        self.migration_original_roles.keys().filter_map(|&key| {
+            self.cached_desired_roles
+                .get(&key)
+                .copied()
+                .map(|roles| (key, roles))
+        })
     }
-
 
     fn take_residency_delta(
         &mut self,
@@ -306,8 +302,7 @@ impl VoxelStreaming {
             return false;
         }
 
-        let previous =
-            std::mem::take(&mut self.migration_original_roles);
+        let previous = std::mem::take(&mut self.migration_original_roles);
         for (key, original) in previous {
             self.role_refresh.insert(key);
             if original.is_some()
@@ -336,21 +331,13 @@ impl VoxelStreaming {
             .get(&key)
             .copied()
             .unwrap_or(UsfScaleRoleMask::NONE);
-        if let Some(committed) = self
-            .migration_original_roles
-            .get(&key)
-            .copied()
-            .flatten()
-        {
+        if let Some(committed) = self.migration_original_roles.get(&key).copied().flatten() {
             roles = roles.union(committed);
         }
         roles
     }
 
-    pub(in crate::voxel) fn surface_required(
-        &self,
-        key: VoxelMaterializationKey,
-    ) -> bool {
+    pub(in crate::voxel) fn surface_required(&self, key: VoxelMaterializationKey) -> bool {
         roles_require_surface(self.effective_roles(key))
     }
 
@@ -394,13 +381,15 @@ impl VoxelStreaming {
     }
 
     fn next_pending_work_rank(&self) -> Option<VoxelWorkRank> {
-        self.pending_desired.front().map(|demand| demand.work_rank())
+        self.pending_desired
+            .front()
+            .map(|demand| demand.work_rank())
     }
 }
 
-/// Diagnostic counters only; never used as scheduling authority.
+/// Diagnostic materialization/work counters only; never scheduling authority.
 #[derive(Resource, Debug, Default, Clone, Copy)]
-pub struct VoxelStreamingTelemetry {
+pub struct VoxelMaterializationTelemetry {
     worker_capacity: usize,
     generation_in_flight: usize,
     derived_in_flight: usize,
@@ -416,7 +405,7 @@ pub struct VoxelStreamingTelemetry {
     derived_skipped_empty_total: u64,
 }
 
-impl VoxelStreamingTelemetry {
+impl VoxelMaterializationTelemetry {
     pub(super) fn worker_capacity(&mut self, capacity: usize) {
         self.worker_capacity = capacity;
     }
@@ -490,14 +479,14 @@ pub struct VoxelMaterializationDemand;
 /// observer is far away, a small whole-body shell remains materialized using the
 /// same voxel/Surface-Nets pipeline as every finer local terrain patch.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
-pub struct VoxelPinnedDemand {
+pub struct VoxelPinnedMaterializationDemand {
     center: crate::spatial::UsfPosition,
     half_extent_native: Vec3,
     priority: i32,
     surface_radius_native: Option<f32>,
 }
 
-impl VoxelPinnedDemand {
+impl VoxelPinnedMaterializationDemand {
     pub fn cuboid(center: crate::spatial::UsfPosition, half_extent_native: Vec3) -> Self {
         Self {
             center,

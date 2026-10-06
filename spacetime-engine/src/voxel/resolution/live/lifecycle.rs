@@ -7,7 +7,7 @@ pub(super) fn park_clipmap_entity(
     entity: Entity,
     block: &mut CelestialClipmapBlock,
     visibility: &mut Visibility,
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
 ) {
     if !block.active {
         return;
@@ -74,7 +74,7 @@ pub(super) fn spawn_gpu_clipmap_entity(
             MeshMaterial3d(presentation_material),
             bounds,
             NoAutoAabb,
-            GpuTerrainBlock::new(mesh, build_id, admission.descriptor),
+            GpuTerrainBuild::new(mesh, build_id, admission.descriptor),
             Transform::IDENTITY,
             RenderLayers::layer(USF_PRESENTATION_LAYER),
             NotShadowCaster,
@@ -86,7 +86,7 @@ pub(super) fn spawn_gpu_clipmap_entity(
 
 /// Stable rotation prevents a limited admission budget from favoring the
 /// incidental iteration order of the plan map.
-pub(super) fn gpu_admission_authorities(registry: &CelestialClipmapRegistry) -> Vec<Entity> {
+pub(super) fn gpu_admission_authorities(registry: &CelestialClipmapRealizations) -> Vec<Entity> {
     // Resume after the last successful authority even when the plan set changes.
     let mut authorities = registry.plans.keys().copied().collect::<Vec<_>>();
     authorities.sort_unstable_by_key(|authority| authority.to_bits());
@@ -104,7 +104,7 @@ pub(super) fn gpu_admission_authorities(registry: &CelestialClipmapRegistry) -> 
 /// Select bounded GPU builds. This decides work admission only; it does not
 /// publish a frontier or claim GPU completion.
 pub(super) fn select_gpu_admissions(
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
     frame_budget: &mut ReconstructibleFrameBudget,
     inflight: &HashSet<(Entity, CelestialClipmapBlockSpec)>,
 ) -> Vec<PendingGpuAdmission> {
@@ -179,7 +179,7 @@ pub(super) fn select_gpu_admissions(
 pub(super) fn poll_gpu_builds(
     commands: &mut Commands,
     blocks: &mut Query<(Entity, &mut CelestialClipmapBlock, &mut Visibility)>,
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
     completed_gpu_builds: &HashSet<u64>,
 ) -> HashSet<(Entity, CelestialClipmapBlockSpec)> {
     let mut inflight = HashSet::new();
@@ -198,7 +198,7 @@ pub(super) fn poll_gpu_builds(
 
             if !valid {
                 if let Ok((_, mut block, mut visibility)) = blocks.get_mut(build.entity) {
-                    commands.entity(build.entity).remove::<GpuTerrainBlock>();
+                    commands.entity(build.entity).remove::<GpuTerrainBuild>();
                     park_clipmap_entity(
                         commands,
                         build.entity,
@@ -220,7 +220,7 @@ pub(super) fn poll_gpu_builds(
                 continue;
             }
 
-            commands.entity(build.entity).remove::<GpuTerrainBlock>();
+            commands.entity(build.entity).remove::<GpuTerrainBuild>();
             registry.active_entities.insert(key, build.entity);
             registry.mark_projection_pending(build.entity);
 
@@ -314,13 +314,13 @@ pub(super) fn advance_clipmap_plan(
 pub(super) fn commit_ready_frontiers(
     commands: &mut Commands,
     blocks: &mut Query<(Entity, &mut CelestialClipmapBlock, &mut Visibility)>,
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
 ) {
     {
         let _span = bevy::log::info_span!("celestial_clipmap.commit").entered();
         let mut retired_entities = Vec::<Entity>::new();
 
-        let CelestialClipmapRegistry {
+        let CelestialClipmapRealizations {
             plans,
             active_entities,
             ..
@@ -376,7 +376,7 @@ pub(super) fn collect_clipmap_plan_inputs(
         &UsfPosition,
         &UsfSemanticFrame,
         &CelestialVoxelField,
-        &VoxelAuthority,
+        &VoxelSemanticAuthority,
         &CelestialVoxelRealizationPolicy,
     )>,
     view: &UsfViewDemand,
@@ -447,7 +447,7 @@ pub(super) fn collect_clipmap_plan_inputs(
 pub(super) fn retire_dead_clipmap_plans(
     commands: &mut Commands,
     blocks: &mut Query<(Entity, &mut CelestialClipmapBlock, &mut Visibility)>,
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
     live_authorities: &HashSet<Entity>,
 ) -> bool {
     let plan_count_before_retain = registry.plans.len();
@@ -475,33 +475,33 @@ pub(super) fn retire_dead_clipmap_plans(
     plans_removed
 }
 
-pub(super) fn sync_celestial_clipmap_realizations(
+pub(super) fn reconcile_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut material_params: CelestialClipmapMaterialParams,
     views: Res<UsfViewDemandSnapshot>,
-    workers: Res<VoxelWorkerPool>,
+    workers: Res<VoxelWorkExecutor>,
     authorities: Query<(
         Entity,
         Option<&Name>,
         &UsfPosition,
         &UsfSemanticFrame,
         &CelestialVoxelField,
-        &VoxelAuthority,
+        &VoxelSemanticAuthority,
         &CelestialVoxelRealizationPolicy,
     )>,
     mut blocks: Query<(Entity, &mut CelestialClipmapBlock, &mut Visibility)>,
-    mut registry: ResMut<CelestialClipmapRegistry>,
+    mut registry: ResMut<CelestialClipmapRealizations>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
-    mut gpu_runtime: ResMut<GpuTerrainRuntime>,
+    mut gpu_runtime: ResMut<GpuTerrainBuilds>,
 ) {
     let Some(view) = views.iter().next() else {
         return;
     };
 
     let expected_build_seconds =
-        workers.estimated_latency_seconds(VoxelWorkerLane::PresentationPlanning);
+        workers.estimated_latency_seconds(VoxelWorkLane::PresentationPlanning);
     let (live_authorities, current_inputs) =
         collect_clipmap_plan_inputs(&authorities, view, expected_build_seconds);
 

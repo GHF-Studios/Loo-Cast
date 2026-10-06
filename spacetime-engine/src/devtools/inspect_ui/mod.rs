@@ -9,16 +9,26 @@
 //! Custom widgets implement [`InspectorWidget<T>`]. The trait has separate
 //! read-only and editable entry points so presentation is only handed `&mut T`
 //! when the host already possesses a real edit capability.
+//!
+//! ## Module map
+//!
+//! - `formatting`: Compact human-readable formatting for inspection values.
+//! - `inspectable`: Visitor-backed rendering/editing of `Inspect` implementations.
+//! - `registry`: Type-directed egui widget registry and host registration API.
+//! - `sections`: Generic semantic inspection-section UI and request emission.
+//! - `widgets`: Built-in inspector widgets for common Bevy/Rust value types.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::prelude::*;
 pub use bevy_egui::egui;
 
 use super::{
-    FocusTarget, Inspect, InspectAccess, InspectActionRequest, InspectEditRequest,
-    InspectField, InspectFieldMetadata, InspectFieldVisitor, InspectFieldVisitorMut,
-    InspectNumberFormat, InspectNumberInput, InspectSection, InspectTypeRegistration,
-    InspectUnit, InspectValue, InspectWidgetId, InspectionFrame,
-    StructureItemId,
+    FocusTarget, Inspect, InspectAccess, InspectActionRequest, InspectEditRequest, InspectField,
+    InspectFieldMetadata, InspectFieldVisitor, InspectFieldVisitorMut, InspectNumberFormat,
+    InspectNumberInput, InspectSection, InspectTypeRegistration, InspectUnit, InspectValue,
+    InspectWidgetId, InspectionFrame, StructureItemId,
 };
 
 mod formatting;
@@ -29,16 +39,12 @@ mod widgets;
 
 pub use formatting::{format_number, format_quantity, format_value};
 pub use inspectable::{
-    edit_inspectable, edit_registered_inspectable, show_inspectable,
-    show_registered_inspectable,
+    edit_inspectable, edit_registered_inspectable, show_inspectable, show_registered_inspectable,
 };
 pub use registry::{
-    AppInspectorWidgetsExt, InspectWidgetContext, InspectorWidget,
-    InspectorWidgetRegistry,
+    AppInspectorWidgetsExt, InspectWidgetContext, InspectorWidget, InspectorWidgetRegistry,
 };
-pub use sections::{
-    InspectionUiOutput, draw_contextual_gizmo, draw_section, draw_sections,
-};
+pub use sections::{InspectionUiOutput, draw_contextual_gizmo, draw_section, draw_sections};
 pub use widgets::{
     BoolWidget, NumberWidget, QuatWidget, StringWidget, TransformWidget, Vec3Widget,
 };

@@ -3,6 +3,19 @@
 //! Each item is an ordinary Bevy plugin. This is intentionally the same shape
 //! expected from statically composed Vapor/mod content: register metadata, then
 //! consume semantic playground actions and/or emit domain messages.
+//!
+//! ## Module map
+//!
+//! - `assets`: Shared presentation assets for concrete playground cube items.
+//! - `chunkloading_cube`: Movable playground probe for generic spatial demand.
+//! - `damageable_cube`: Damageable, thermal, dynamic rigid cubes exposed as playground items.
+//! - `heat_ray`: Thermal test tool.
+//! - `portal_gun`: Portal Gun playground item.
+//! - `projectile_gun`: Ordinary projectile weapon exposed as a playground item.
+//! - `voxel_hand`: Space-Engineers-style voxel hand for every active voxel world.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod assets;
 mod chunkloading_cube;

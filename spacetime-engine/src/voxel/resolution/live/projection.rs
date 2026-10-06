@@ -43,9 +43,9 @@ pub(super) fn project_clipmap_shell(
     true
 }
 
-pub(super) fn sync_celestial_clipmap_transforms(
+pub(super) fn project_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    mut registry: ResMut<CelestialClipmapRegistry>,
+    mut registry: ResMut<CelestialClipmapRealizations>,
     mut material_params: CelestialClipmapMaterialParams,
     authorities: Query<(
         &UsfPosition,
@@ -434,20 +434,20 @@ pub(super) fn sync_celestial_clipmap_transforms(
 /// fallback only. The interaction Scale chooses which physical dense cache is
 /// available; it does not choose visual LOD. Once a complete binary frontier
 /// owns the authority, all dense visual chunks yield together.
-pub(super) fn enforce_dense_interaction_presentation(
+pub(super) fn reconcile_dense_presentation_fallback(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     presentation_state: Res<CelestialTerrainPresentationState>,
-    runtimes: Query<&VoxelMaterializationRuntime>,
+    runtimes: Query<&VoxelPresentationManifestation>,
     worlds: Query<(
-        &CelestialVoxelRealization,
+        &CelestialVoxelScaleRealization,
         &UsfScaleLayer,
-        &VoxelWorld,
-        Option<&VoxelStreaming>,
+        &VoxelScaleRealization,
+        Option<&VoxelMaterializationResidency>,
     )>,
-    mut presentations: Query<(&ChildOf, &mut Visibility), With<VoxelMaterializationPresentation>>,
+    mut presentations: Query<(&ChildOf, &mut Visibility), With<VoxelPresentationGeometry>>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
 ) {
     let primary_view_demand = view_demands.iter().next();
@@ -459,7 +459,7 @@ pub(super) fn enforce_dense_interaction_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((realization, layer, world, streaming)) = worlds.get(runtime.world()) else {
+        let Ok((realization, layer, world, streaming)) = worlds.get(runtime.realization()) else {
             continue;
         };
 

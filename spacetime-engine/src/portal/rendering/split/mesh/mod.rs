@@ -30,7 +30,10 @@ pub(super) struct LocalFacePlane {
 /// Split visuals omit the face lying on the portal cut plane: physics needs a
 /// closed convex cap, but visually that face is the open seam whose continuation
 /// is rendered by the complementary manifestation.
-pub(super) fn convex_polyhedron_mesh(points: &[Vec3], excluded_face: Option<LocalFacePlane>) -> Mesh {
+pub(super) fn convex_polyhedron_mesh(
+    points: &[Vec3],
+    excluded_face: Option<LocalFacePlane>,
+) -> Mesh {
     let mut faces: Vec<(Vec3, f32, Vec<usize>)> = Vec::new();
 
     for i in 0..points.len() {

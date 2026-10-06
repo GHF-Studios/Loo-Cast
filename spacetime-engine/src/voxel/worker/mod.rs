@@ -1,4 +1,4 @@
-//! Shared background worker policy for voxel realization.
+//! Bounded execution facility for reconstructible voxel work.
 
 use std::{
     collections::VecDeque,
@@ -16,22 +16,22 @@ use bevy::{
     tasks::{TaskPool, TaskPoolBuilder, available_parallelism},
 };
 
-type VoxelWorkerJob = Box<dyn FnOnce() + Send + 'static>;
+type VoxelWorkJob = Box<dyn FnOnce() + Send + 'static>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum VoxelWorkerPriority {
+pub(super) enum VoxelWorkPriority {
     Normal,
     Critical,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum VoxelWorkerLane {
+pub(super) enum VoxelWorkLane {
     Generation,
     Derivation,
     PresentationPlanning,
 }
 
-impl VoxelWorkerLane {
+impl VoxelWorkLane {
     const COUNT: usize = 3;
 
     const SERVICE_WHEEL: [Self; 5] = [
@@ -53,16 +53,16 @@ impl VoxelWorkerLane {
 
 const MAX_CRITICAL_SERVICE_BURST: usize = 4;
 
-struct VoxelWorkerQueueState {
-    normal: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
-    critical: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
+struct VoxelWorkQueueState {
+    normal: [VecDeque<VoxelWorkJob>; VoxelWorkLane::COUNT],
+    critical: [VecDeque<VoxelWorkJob>; VoxelWorkLane::COUNT],
     service_cursor: usize,
     critical_cursor: usize,
     critical_burst: usize,
     closed: bool,
 }
 
-impl Default for VoxelWorkerQueueState {
+impl Default for VoxelWorkQueueState {
     fn default() -> Self {
         Self {
             normal: std::array::from_fn(|_| VecDeque::new()),
@@ -76,18 +76,18 @@ impl Default for VoxelWorkerQueueState {
 }
 
 #[derive(Default)]
-struct VoxelWorkerQueue {
-    state: Mutex<VoxelWorkerQueueState>,
+struct VoxelWorkQueue {
+    state: Mutex<VoxelWorkQueueState>,
     ready: Condvar,
 }
 
-impl VoxelWorkerQueue {
+impl VoxelWorkQueue {
     fn push(
         &self,
-        lane: VoxelWorkerLane,
-        priority: VoxelWorkerPriority,
-        job: VoxelWorkerJob,
-    ) -> Result<(), VoxelWorkerJob> {
+        lane: VoxelWorkLane,
+        priority: VoxelWorkPriority,
+        job: VoxelWorkJob,
+    ) -> Result<(), VoxelWorkJob> {
         let Ok(mut state) = self.state.lock() else {
             return Err(job);
         };
@@ -95,10 +95,10 @@ impl VoxelWorkerQueue {
             return Err(job);
         }
         match priority {
-            VoxelWorkerPriority::Normal => {
+            VoxelWorkPriority::Normal => {
                 state.normal[lane.index()].push_back(job);
             }
-            VoxelWorkerPriority::Critical => {
+            VoxelWorkPriority::Critical => {
                 state.critical[lane.index()].push_back(job);
             }
         }
@@ -106,46 +106,39 @@ impl VoxelWorkerQueue {
         Ok(())
     }
 
-    fn pop(&self) -> Option<VoxelWorkerJob> {
+    fn pop(&self) -> Option<VoxelWorkJob> {
         let mut state = self.state.lock().ok()?;
         loop {
             if state.closed {
                 return None;
             }
 
-            let normal_waiting =
-                state.normal.iter().any(|lane| !lane.is_empty());
-            let critical_waiting =
-                state.critical.iter().any(|lane| !lane.is_empty());
+            let normal_waiting = state.normal.iter().any(|lane| !lane.is_empty());
+            let critical_waiting = state.critical.iter().any(|lane| !lane.is_empty());
 
             // Physical interaction work remains low-latency, but an endless
             // collision stream must not permanently starve contextual
             // realization/presentation. After a bounded critical burst, serve
             // one normal weighted-fair job if one exists.
             if critical_waiting
-                && (state.critical_burst < MAX_CRITICAL_SERVICE_BURST
-                    || !normal_waiting)
+                && (state.critical_burst < MAX_CRITICAL_SERVICE_BURST || !normal_waiting)
             {
-                for offset in 0..VoxelWorkerLane::COUNT {
-                    let lane_index =
-                        (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
+                for offset in 0..VoxelWorkLane::COUNT {
+                    let lane_index = (state.critical_cursor + offset) % VoxelWorkLane::COUNT;
                     if let Some(job) = state.critical[lane_index].pop_front() {
-                        state.critical_cursor =
-                            (lane_index + 1) % VoxelWorkerLane::COUNT;
-                        state.critical_burst =
-                            state.critical_burst.saturating_add(1);
+                        state.critical_cursor = (lane_index + 1) % VoxelWorkLane::COUNT;
+                        state.critical_burst = state.critical_burst.saturating_add(1);
                         return Some(job);
                     }
                 }
             }
 
-            for offset in 0..VoxelWorkerLane::SERVICE_WHEEL.len() {
+            for offset in 0..VoxelWorkLane::SERVICE_WHEEL.len() {
                 let wheel_index =
-                    (state.service_cursor + offset) % VoxelWorkerLane::SERVICE_WHEEL.len();
-                let lane = VoxelWorkerLane::SERVICE_WHEEL[wheel_index];
+                    (state.service_cursor + offset) % VoxelWorkLane::SERVICE_WHEEL.len();
+                let lane = VoxelWorkLane::SERVICE_WHEEL[wheel_index];
                 if let Some(job) = state.normal[lane.index()].pop_front() {
-                    state.service_cursor =
-                        (wheel_index + 1) % VoxelWorkerLane::SERVICE_WHEEL.len();
+                    state.service_cursor = (wheel_index + 1) % VoxelWorkLane::SERVICE_WHEEL.len();
                     state.critical_burst = 0;
                     return Some(job);
                 }
@@ -154,14 +147,11 @@ impl VoxelWorkerQueue {
             // If normal work disappeared between the availability check and
             // service scan, do not sleep while critical work is queued.
             if critical_waiting {
-                for offset in 0..VoxelWorkerLane::COUNT {
-                    let lane_index =
-                        (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
+                for offset in 0..VoxelWorkLane::COUNT {
+                    let lane_index = (state.critical_cursor + offset) % VoxelWorkLane::COUNT;
                     if let Some(job) = state.critical[lane_index].pop_front() {
-                        state.critical_cursor =
-                            (lane_index + 1) % VoxelWorkerLane::COUNT;
-                        state.critical_burst =
-                            state.critical_burst.saturating_add(1);
+                        state.critical_cursor = (lane_index + 1) % VoxelWorkLane::COUNT;
+                        state.critical_burst = state.critical_burst.saturating_add(1);
                         return Some(job);
                     }
                 }
@@ -183,19 +173,17 @@ impl VoxelWorkerQueue {
         }
         self.ready.notify_all();
     }
-
 }
 
 #[derive(Debug)]
-struct VoxelWorkerAdmission {
-    outstanding: [AtomicUsize; VoxelWorkerLane::COUNT],
-    running: [AtomicUsize; VoxelWorkerLane::COUNT],
-    limits: [usize; VoxelWorkerLane::COUNT],
-    average_job_ns: [AtomicU64; VoxelWorkerLane::COUNT],
-
+struct VoxelWorkAdmission {
+    outstanding: [AtomicUsize; VoxelWorkLane::COUNT],
+    running: [AtomicUsize; VoxelWorkLane::COUNT],
+    limits: [usize; VoxelWorkLane::COUNT],
+    average_job_ns: [AtomicU64; VoxelWorkLane::COUNT],
     // Runtime pressure is scheduler state; Tracy only observes it.
 }
-impl VoxelWorkerAdmission {
+impl VoxelWorkAdmission {
     fn new(worker_capacity: usize) -> Self {
         let pipeline_depth = worker_capacity.saturating_mul(2).max(1);
         Self {
@@ -208,7 +196,7 @@ impl VoxelWorkerAdmission {
         }
     }
 
-    fn try_acquire(&self, lane: VoxelWorkerLane) -> bool {
+    fn try_acquire(&self, lane: VoxelWorkLane) -> bool {
         let index = lane.index();
         let limit = self.limits[index];
         let counter = &self.outstanding[index];
@@ -218,7 +206,10 @@ impl VoxelWorkerAdmission {
                 return false;
             }
             match counter.compare_exchange_weak(
-                current, current + 1, Ordering::AcqRel, Ordering::Acquire,
+                current,
+                current + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
             ) {
                 Ok(_) => return true,
                 Err(observed) => current = observed,
@@ -226,16 +217,15 @@ impl VoxelWorkerAdmission {
         }
     }
 
-    fn release(&self, lane: VoxelWorkerLane) {
+    fn release(&self, lane: VoxelWorkLane) {
         let previous = self.outstanding[lane.index()].fetch_sub(1, Ordering::AcqRel);
         debug_assert!(previous > 0, "voxel worker admission underflow");
     }
-    fn available(&self, lane: VoxelWorkerLane) -> usize {
-        self.limits[lane.index()].saturating_sub(
-            self.outstanding[lane.index()].load(Ordering::Acquire),
-        )
+    fn available(&self, lane: VoxelWorkLane) -> usize {
+        self.limits[lane.index()]
+            .saturating_sub(self.outstanding[lane.index()].load(Ordering::Acquire))
     }
-    fn outstanding(&self, lane: VoxelWorkerLane) -> usize {
+    fn outstanding(&self, lane: VoxelWorkLane) -> usize {
         self.outstanding[lane.index()].load(Ordering::Acquire)
     }
     fn total_outstanding(&self) -> usize {
@@ -244,7 +234,7 @@ impl VoxelWorkerAdmission {
             .map(|counter| counter.load(Ordering::Acquire))
             .sum()
     }
-    fn running(&self, lane: VoxelWorkerLane) -> usize {
+    fn running(&self, lane: VoxelWorkLane) -> usize {
         self.running[lane.index()].load(Ordering::Acquire)
     }
     fn total_running(&self) -> usize {
@@ -253,7 +243,7 @@ impl VoxelWorkerAdmission {
             .map(|counter| counter.load(Ordering::Acquire))
             .sum()
     }
-    fn record_job_duration(&self, lane: VoxelWorkerLane, elapsed_ns: u64) {
+    fn record_job_duration(&self, lane: VoxelWorkLane, elapsed_ns: u64) {
         let average = &self.average_job_ns[lane.index()];
         let mut current = average.load(Ordering::Relaxed);
         loop {
@@ -262,35 +252,30 @@ impl VoxelWorkerAdmission {
             } else {
                 current.saturating_mul(7).saturating_add(elapsed_ns.max(1)) / 8
             };
-            match average.compare_exchange_weak(
-                current, next, Ordering::Relaxed, Ordering::Relaxed,
-            ) {
+            match average.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+            {
                 Ok(_) => break,
                 Err(observed) => current = observed,
             }
         }
     }
-    fn average_job_seconds(&self, lane: VoxelWorkerLane) -> Option<f64> {
+    fn average_job_seconds(&self, lane: VoxelWorkLane) -> Option<f64> {
         let value = self.average_job_ns[lane.index()].load(Ordering::Relaxed);
         (value != 0).then_some(value as f64 * 1.0e-9)
     }
-
 }
 
 /// RAII lease for one queued/running worker computation.
 ///
 /// Admission is compute pressure only. It must end when worker computation
 /// ends, not when its result is eventually published on the main thread.
-struct VoxelWorkerComputeAdmission {
-    admission: Option<Arc<VoxelWorkerAdmission>>,
-    lane: VoxelWorkerLane,
+struct VoxelWorkComputeLease {
+    admission: Option<Arc<VoxelWorkAdmission>>,
+    lane: VoxelWorkLane,
 }
 
-impl VoxelWorkerComputeAdmission {
-    fn new(
-        admission: Arc<VoxelWorkerAdmission>,
-        lane: VoxelWorkerLane,
-    ) -> Self {
+impl VoxelWorkComputeLease {
+    fn new(admission: Arc<VoxelWorkAdmission>, lane: VoxelWorkLane) -> Self {
         admission.running[lane.index()].fetch_add(1, Ordering::AcqRel);
         Self {
             admission: Some(admission),
@@ -299,35 +284,31 @@ impl VoxelWorkerComputeAdmission {
     }
 }
 
-impl Drop for VoxelWorkerComputeAdmission {
+impl Drop for VoxelWorkComputeLease {
     fn drop(&mut self) {
         if let Some(admission) = self.admission.take() {
-            let previous = admission.running[self.lane.index()]
-                .fetch_sub(1, Ordering::AcqRel);
-            debug_assert!(
-                previous > 0,
-                "voxel worker running counter underflow"
-            );
+            let previous = admission.running[self.lane.index()].fetch_sub(1, Ordering::AcqRel);
+            debug_assert!(previous > 0, "voxel worker running counter underflow");
             admission.release(self.lane);
         }
     }
 }
 
-pub(super) struct VoxelWorkerTicket<T: Send + 'static> {
-    receiver: Mutex<Receiver<Result<T, VoxelWorkerFailure>>>,
+pub(super) struct VoxelWorkTicket<T: Send + 'static> {
+    receiver: Mutex<Receiver<Result<T, VoxelWorkFailure>>>,
     cancelled: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(super) enum VoxelWorkerFailure {
+pub(super) enum VoxelWorkFailure {
     Panicked,
     Disconnected,
 }
 
-impl<T: Send + 'static> VoxelWorkerTicket<T> {
+impl<T: Send + 'static> VoxelWorkTicket<T> {
     /// Pending, ready and terminal failure are distinct outcomes. A lost
     /// worker must never leave an ECS task waiting forever.
-    pub(super) fn try_take(&mut self) -> Result<Option<T>, VoxelWorkerFailure> {
+    pub(super) fn try_take(&mut self) -> Result<Option<T>, VoxelWorkFailure> {
         let receiver = self
             .receiver
             .get_mut()
@@ -336,12 +317,12 @@ impl<T: Send + 'static> VoxelWorkerTicket<T> {
             Ok(Ok(value)) => Ok(Some(value)),
             Ok(Err(failure)) => Err(failure),
             Err(TryRecvError::Empty) => Ok(None),
-            Err(TryRecvError::Disconnected) => Err(VoxelWorkerFailure::Disconnected),
+            Err(TryRecvError::Disconnected) => Err(VoxelWorkFailure::Disconnected),
         }
     }
 }
 
-impl<T: Send + 'static> Drop for VoxelWorkerTicket<T> {
+impl<T: Send + 'static> Drop for VoxelWorkTicket<T> {
     fn drop(&mut self) {
         // Result lifetime and compute-admission lifetime are independent.
         // Dropping the ticket prevents publication of stale output, while the
@@ -350,35 +331,35 @@ impl<T: Send + 'static> Drop for VoxelWorkerTicket<T> {
     }
 }
 
-/// Dedicated bounded execution domain for reconstructible voxel work.
+/// Dedicated bounded executor for reconstructible voxel work.
 ///
 /// Semantic/canonical authority stays on the simulation side. Fixed workers
 /// drain one durable queue; typed tickets preserve versioned publication and
 /// cancellation at the existing ECS ownership boundaries.
 #[derive(Resource)]
-pub(super) struct VoxelWorkerPool {
-    queue: Arc<VoxelWorkerQueue>,
-    admission: Arc<VoxelWorkerAdmission>,
+pub(super) struct VoxelWorkExecutor {
+    queue: Arc<VoxelWorkQueue>,
+    admission: Arc<VoxelWorkAdmission>,
     capacity: usize,
     _pool: TaskPool,
 }
 
-impl Drop for VoxelWorkerPool {
+impl Drop for VoxelWorkExecutor {
     fn drop(&mut self) {
         self.queue.close();
     }
 }
 
-impl Default for VoxelWorkerPool {
+impl Default for VoxelWorkExecutor {
     fn default() -> Self {
         let requested = recommended_worker_threads(available_parallelism());
         let pool = TaskPoolBuilder::new()
             .num_threads(requested)
-            .thread_name("Voxel Realization Worker".to_string())
+            .thread_name("Voxel Work".to_string())
             .build();
         let capacity = pool.thread_num().max(1);
 
-        let queue = Arc::new(VoxelWorkerQueue::default());
+        let queue = Arc::new(VoxelWorkQueue::default());
 
         for _ in 0..capacity {
             let queue = Arc::clone(&queue);
@@ -392,23 +373,23 @@ impl Default for VoxelWorkerPool {
 
         Self {
             queue,
-            admission: Arc::new(VoxelWorkerAdmission::new(capacity)),
+            admission: Arc::new(VoxelWorkAdmission::new(capacity)),
             capacity,
             _pool: pool,
         }
     }
 }
 
-impl VoxelWorkerPool {
+impl VoxelWorkExecutor {
     pub(super) const fn capacity(&self) -> usize {
         self.capacity
     }
 
-    pub(super) fn available_slots(&self, lane: VoxelWorkerLane) -> usize {
+    pub(super) fn available_slots(&self, lane: VoxelWorkLane) -> usize {
         self.admission.available(lane)
     }
 
-    pub(super) fn estimated_latency_seconds(&self, lane: VoxelWorkerLane) -> f64 {
+    pub(super) fn estimated_latency_seconds(&self, lane: VoxelWorkLane) -> f64 {
         //
         // "total jobs * this lane's average" badly underestimates latency when
         // expensive generation/resolution work shares the pool. Estimate queued
@@ -416,12 +397,10 @@ impl VoxelWorkerPool {
         // parallel capacity and add one local service time.
         const FALLBACK_JOB_SECONDS: f64 = 0.008;
 
-        let queued_compute_seconds = (0..VoxelWorkerLane::COUNT)
+        let queued_compute_seconds = (0..VoxelWorkLane::COUNT)
             .map(|index| {
-                let outstanding =
-                    self.admission.outstanding[index].load(Ordering::Acquire);
-                let average_ns =
-                    self.admission.average_job_ns[index].load(Ordering::Relaxed);
+                let outstanding = self.admission.outstanding[index].load(Ordering::Acquire);
+                let average_ns = self.admission.average_job_ns[index].load(Ordering::Relaxed);
                 let average_seconds = if average_ns == 0 {
                     FALLBACK_JOB_SECONDS
                 } else {
@@ -438,36 +417,32 @@ impl VoxelWorkerPool {
                 .unwrap_or(FALLBACK_JOB_SECONDS)
     }
 
-pub(super) fn try_submit<T, F>(
-        &self,
-        lane: VoxelWorkerLane,
-        job: F,
-    ) -> Option<VoxelWorkerTicket<T>>
+    pub(super) fn try_submit<T, F>(&self, lane: VoxelWorkLane, job: F) -> Option<VoxelWorkTicket<T>>
     where
         T: Send + 'static,
         F: FnOnce() -> T + Send + 'static,
     {
-        self.try_submit_with_priority(lane, VoxelWorkerPriority::Normal, job)
+        self.try_submit_with_priority(lane, VoxelWorkPriority::Normal, job)
     }
 
     pub(super) fn try_submit_critical<T, F>(
         &self,
-        lane: VoxelWorkerLane,
+        lane: VoxelWorkLane,
         job: F,
-    ) -> Option<VoxelWorkerTicket<T>>
+    ) -> Option<VoxelWorkTicket<T>>
     where
         T: Send + 'static,
         F: FnOnce() -> T + Send + 'static,
     {
-        self.try_submit_with_priority(lane, VoxelWorkerPriority::Critical, job)
+        self.try_submit_with_priority(lane, VoxelWorkPriority::Critical, job)
     }
 
     fn try_submit_with_priority<T, F>(
         &self,
-        lane: VoxelWorkerLane,
-        priority: VoxelWorkerPriority,
+        lane: VoxelWorkLane,
+        priority: VoxelWorkPriority,
         job: F,
-    ) -> Option<VoxelWorkerTicket<T>>
+    ) -> Option<VoxelWorkTicket<T>>
     where
         T: Send + 'static,
         F: FnOnce() -> T + Send + 'static,
@@ -481,12 +456,11 @@ pub(super) fn try_submit<T, F>(
         let worker_cancelled = Arc::clone(&cancelled);
         let admission_for_job = Arc::clone(&self.admission);
 
-        let worker_job: VoxelWorkerJob = Box::new(move || {
+        let worker_job: VoxelWorkJob = Box::new(move || {
             // The compute lease is created inside the durable worker job so it
             // is released on every closure exit path, including cancellation
             // before execution and panic unwind.
-            let _compute_admission =
-                VoxelWorkerComputeAdmission::new(admission_for_job.clone(), lane);
+            let _compute_admission = VoxelWorkComputeLease::new(admission_for_job.clone(), lane);
 
             if worker_cancelled.load(Ordering::Acquire) {
                 return;
@@ -494,20 +468,21 @@ pub(super) fn try_submit<T, F>(
 
             let started = Instant::now();
             let output = catch_unwind(AssertUnwindSafe(|| match lane {
-                VoxelWorkerLane::Generation => {
+                VoxelWorkLane::Generation => {
                     let _span = bevy::log::info_span!("voxel.worker.generation").entered();
                     job()
                 }
-                VoxelWorkerLane::Derivation => {
+                VoxelWorkLane::Derivation => {
                     let _span = bevy::log::info_span!("voxel.worker.derivation").entered();
                     job()
                 }
-                VoxelWorkerLane::PresentationPlanning => {
-                    let _span = bevy::log::info_span!("voxel.worker.presentation_planning").entered();
+                VoxelWorkLane::PresentationPlanning => {
+                    let _span =
+                        bevy::log::info_span!("voxel.worker.presentation_planning").entered();
                     job()
                 }
             }))
-            .map_err(|_| VoxelWorkerFailure::Panicked);
+            .map_err(|_| VoxelWorkFailure::Panicked);
             let elapsed_ns = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
             admission_for_job.record_job_duration(lane, elapsed_ns);
             if !worker_cancelled.load(Ordering::Acquire) {
@@ -520,32 +495,29 @@ pub(super) fn try_submit<T, F>(
             return None;
         }
 
-        Some(VoxelWorkerTicket {
+        Some(VoxelWorkTicket {
             receiver: Mutex::new(result_receiver),
             cancelled,
         })
     }
-
 }
 
 #[cfg(feature = "profiling-tracy")]
-pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
+pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkExecutor>) {
     let Some(client) = tracy_client::Client::running() else {
         return;
     };
 
-    let generation_outstanding =
-        workers.admission.outstanding(VoxelWorkerLane::Generation);
-    let generation_running =
-        workers.admission.running(VoxelWorkerLane::Generation);
-    let derivation_outstanding =
-        workers.admission.outstanding(VoxelWorkerLane::Derivation);
-    let derivation_running =
-        workers.admission.running(VoxelWorkerLane::Derivation);
-    let planning_outstanding =
-        workers.admission.outstanding(VoxelWorkerLane::PresentationPlanning);
-    let planning_running =
-        workers.admission.running(VoxelWorkerLane::PresentationPlanning);
+    let generation_outstanding = workers.admission.outstanding(VoxelWorkLane::Generation);
+    let generation_running = workers.admission.running(VoxelWorkLane::Generation);
+    let derivation_outstanding = workers.admission.outstanding(VoxelWorkLane::Derivation);
+    let derivation_running = workers.admission.running(VoxelWorkLane::Derivation);
+    let planning_outstanding = workers
+        .admission
+        .outstanding(VoxelWorkLane::PresentationPlanning);
+    let planning_running = workers
+        .admission
+        .running(VoxelWorkLane::PresentationPlanning);
 
     client.plot(
         tracy_client::plot_name!("Voxel workers/capacity"),
@@ -579,7 +551,7 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
         tracy_client::plot_name!("Voxel workers/Generation avg ms"),
         workers
             .admission
-            .average_job_seconds(VoxelWorkerLane::Generation)
+            .average_job_seconds(VoxelWorkLane::Generation)
             .unwrap_or(0.0)
             * 1_000.0,
     );
@@ -596,7 +568,7 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
         tracy_client::plot_name!("Voxel workers/Derivation avg ms"),
         workers
             .admission
-            .average_job_seconds(VoxelWorkerLane::Derivation)
+            .average_job_seconds(VoxelWorkLane::Derivation)
             .unwrap_or(0.0)
             * 1_000.0,
     );
@@ -613,11 +585,10 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
         tracy_client::plot_name!("Voxel workers/PresentationPlanning avg ms"),
         workers
             .admission
-            .average_job_seconds(VoxelWorkerLane::PresentationPlanning)
+            .average_job_seconds(VoxelWorkLane::PresentationPlanning)
             .unwrap_or(0.0)
             * 1_000.0,
     );
-
 }
 
 fn recommended_worker_threads(available: usize) -> usize {
@@ -630,4 +601,4 @@ fn recommended_worker_threads(available: usize) -> usize {
 }
 
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub(super) struct VoxelWorkerTask;
+pub(super) struct VoxelWorkTask;

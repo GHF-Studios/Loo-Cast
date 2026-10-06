@@ -1,4 +1,14 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
+//!
+//! ## Module map
+//!
+//! - `motion`: Quantized predictive motion as work priority, not authority.
+//! - `plan`: Bounded chunk plan, region culling and predictive tube selection.
+//! - `rank`: Demand ordering and capability-role work rank.
+//! - `systems`: ECS residency reconciliation and hot/warm transitions.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
@@ -16,14 +26,14 @@ use crate::{
     },
 };
 
-use super::{VoxelPinnedDemand, VoxelStreaming};
+use super::{VoxelMaterializationResidency, VoxelPinnedMaterializationDemand};
 
 use super::super::{
-    CelestialVoxelRealization, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled,
+    CelestialVoxelScaleRealization, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled,
     VoxelEditingDisabled, VoxelMaterializationKey, VoxelQueryPosition,
-    VoxelRealizationDemandSnapshot, VoxelRealizationScope, VoxelRegionSpan, VoxelWorld,
-    manifestation::VoxelMaterializationRuntime,
-    worker::{VoxelWorkerLane, VoxelWorkerPool},
+    VoxelRealizationDemandSnapshot, VoxelRealizationScope, VoxelRegionSpan, VoxelScaleRealization,
+    manifestation::VoxelPresentationManifestation,
+    worker::{VoxelWorkExecutor, VoxelWorkLane},
 };
 
 mod motion;
@@ -38,7 +48,7 @@ use plan::*;
 pub(super) use rank::DemandedChunk;
 use rank::compare_demanded_chunks;
 pub(in crate::voxel) use rank::{VoxelWorkRank, compare_work_ranks};
-pub(in crate::voxel) use systems::refresh_voxel_residency;
+pub(in crate::voxel) use systems::reconcile_voxel_materialization_residency;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct VoxelDemandPlanKey {

@@ -7,22 +7,22 @@ use super::*;
 ///
 /// This stage owns demand interpretation and hot/warm residency transitions. It
 /// does not spawn asynchronous generation work.
-pub(in crate::voxel) fn refresh_voxel_residency(
+pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
     config: Res<EngineConfig>,
     residency: Res<UsfContextResidency>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     view_demands: Res<UsfViewDemandSnapshot>,
     motions: Res<SpatialDemandMotionSnapshot>,
-    workers: Res<VoxelWorkerPool>,
+    workers: Res<VoxelWorkExecutor>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
-    runtimes: Query<(&VoxelMaterializationRuntime, &UsfCapabilityRealization)>,
+    runtimes: Query<(&VoxelPresentationManifestation, &UsfCapabilityRealization)>,
     mut worlds: Query<(
         Entity,
-        &mut VoxelWorld,
-        &mut VoxelStreaming,
+        &mut VoxelScaleRealization,
+        &mut VoxelMaterializationResidency,
         &UsfScaleLayer,
-        Option<&CelestialVoxelRealization>,
-        Option<&VoxelPinnedDemand>,
+        Option<&CelestialVoxelScaleRealization>,
+        Option<&VoxelPinnedMaterializationDemand>,
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
     )>,
@@ -30,9 +30,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     mut runtime_roles: Local<HashMap<(Entity, VoxelMaterializationKey), UsfScaleRoleMask>>,
 ) {
     let configured_warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
-    let expected_dense_build_seconds = workers
-        .estimated_latency_seconds(VoxelWorkerLane::Generation)
-        + workers.estimated_latency_seconds(VoxelWorkerLane::Derivation);
+    let expected_dense_build_seconds = workers.estimated_latency_seconds(VoxelWorkLane::Generation)
+        + workers.estimated_latency_seconds(VoxelWorkLane::Derivation);
 
     runtime_roles.clear();
     let mut runtime_roles_ready = false;
@@ -98,7 +97,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 let _span = bevy::log::info_span!("voxel_residency.runtime_roles").entered();
                 for (runtime, realization) in &runtimes {
                     if realization.revision() == runtime.revision() {
-                        runtime_roles.insert((runtime.world(), runtime.key()), realization.roles());
+                        runtime_roles
+                            .insert((runtime.realization(), runtime.key()), realization.roles());
                     }
                 }
                 runtime_roles_ready = true;
@@ -136,8 +136,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 
 fn candidate_plan_ready(
     world_entity: Entity,
-    world: &VoxelWorld,
-    streaming: &VoxelStreaming,
+    world: &VoxelScaleRealization,
+    streaming: &VoxelMaterializationResidency,
     collision_enabled: bool,
     editing_enabled: bool,
     runtime_roles: &HashMap<(Entity, VoxelMaterializationKey), UsfScaleRoleMask>,
@@ -184,7 +184,10 @@ fn candidate_plan_ready(
         })
 }
 
-fn prioritize_pending_work(streaming: &mut VoxelStreaming, surface_radius_native: Option<f32>) {
+fn prioritize_pending_work(
+    streaming: &mut VoxelMaterializationResidency,
+    surface_radius_native: Option<f32>,
+) {
     let _span = bevy::log::info_span!("voxel_residency.priority_sort").entered();
     let mut pending = streaming.pending_desired.drain(..).collect::<Vec<_>>();
     pending.sort_by(|a, b| {
@@ -201,8 +204,8 @@ fn prioritize_pending_work(streaming: &mut VoxelStreaming, surface_radius_native
 
 fn adaptive_warm_inactive_limit(
     configured_limit: usize,
-    world: &VoxelWorld,
-    streaming: &VoxelStreaming,
+    world: &VoxelScaleRealization,
+    streaming: &VoxelMaterializationResidency,
 ) -> usize {
     if configured_limit == 0 {
         return 0;
@@ -226,8 +229,8 @@ fn adaptive_warm_inactive_limit(
 }
 
 fn reconcile_materialization_residency(
-    world: &mut VoxelWorld,
-    streaming: &mut VoxelStreaming,
+    world: &mut VoxelScaleRealization,
+    streaming: &mut VoxelMaterializationResidency,
     warm_inactive_materialization_limit: usize,
 ) {
     let (activate, deactivate) = {

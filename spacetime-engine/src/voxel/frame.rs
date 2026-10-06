@@ -9,8 +9,7 @@ use bevy::{math::DVec3, prelude::*};
 use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError, UsfSemanticFrame};
 
 use super::{
-    VoxelBounds, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition,
-    edit::VoxelLocalEdit,
+    VoxelBounds, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition, edit::VoxelLocalEdit,
 };
 
 #[repr(transparent)]
@@ -43,23 +42,30 @@ pub struct VoxelFrameSnapshot {
 
 impl VoxelFrameSnapshot {
     pub const fn new(origin: UsfPosition, frame: UsfSemanticFrame, scale: SpatialScale) -> Self {
-        Self { origin, frame, scale }
+        Self {
+            origin,
+            frame,
+            scale,
+        }
     }
 
-    pub const fn origin(self) -> UsfPosition { self.origin }
-    pub const fn frame(self) -> UsfSemanticFrame { self.frame }
-    pub const fn scale(self) -> SpatialScale { self.scale }
+    pub const fn origin(self) -> UsfPosition {
+        self.origin
+    }
+    pub const fn frame(self) -> UsfSemanticFrame {
+        self.frame
+    }
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
 
     pub fn world_to_frame(
         self,
         world: VoxelQueryPosition,
     ) -> Result<VoxelFramePosition, UsfPositionError> {
-        let local_metres = self.frame.world_to_local_metres(
-            &self.origin,
-            &world.usf(),
-            self.scale,
-            f64::MAX,
-        )?;
+        let local_metres =
+            self.frame
+                .world_to_local_metres(&self.origin, &world.usf(), self.scale, f64::MAX)?;
         let local_native = local_metres / self.scale.metres_per_native();
         UsfPosition::from_scale_native_f64(local_native, self.scale, self.scale)
             .map(VoxelFramePosition)
@@ -95,11 +101,15 @@ impl VoxelFrameBrush {
     }
 
     pub const fn center(self) -> VoxelFramePosition {
-        match self { Self::Sphere { center, .. } => center }
+        match self {
+            Self::Sphere { center, .. } => center,
+        }
     }
 
     pub const fn radius_metres(self) -> f64 {
-        match self { Self::Sphere { radius_metres, .. } => radius_metres }
+        match self {
+            Self::Sphere { radius_metres, .. } => radius_metres,
+        }
     }
 
     fn projected_world(self, snapshot: VoxelFrameSnapshot) -> Result<VoxelBrush, UsfPositionError> {
@@ -141,9 +151,15 @@ impl VoxelFrameEdit {
         let radius_metres = f64::from(brush.radius()) * snapshot.scale.metres_per_native();
         let brush = VoxelFrameBrush::sphere(center, radius_metres);
         Ok(match kind {
-            0 => Self::Add { brush, material: material.expect("add material") },
+            0 => Self::Add {
+                brush,
+                material: material.expect("add material"),
+            },
             1 => Self::Remove { brush },
-            _ => Self::Paint { brush, material: material.expect("paint material") },
+            _ => Self::Paint {
+                brush,
+                material: material.expect("paint material"),
+            },
         })
     }
 

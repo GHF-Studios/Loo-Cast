@@ -149,7 +149,7 @@ impl UsfTravelInfluence {
         frame: UsfSemanticFrame,
         observer: &UsfPosition,
         measurement_scale: SpatialScale,
-        boundary: Option<&UsfTravelBoundaryResolver>,
+        boundary: Option<&UsfTravelBoundaryProvider>,
     ) -> Option<UsfTravelInfluenceMeasure> {
         const RELATIVE_BOUND_NATIVE: f32 = 1_000_000.0;
 
@@ -161,14 +161,14 @@ impl UsfTravelInfluence {
             + f64::from(relative.z).powi(2))
         .sqrt();
 
-        let to_scale0 = self.scale.scale0_units_per_native();
-        let center_distance_scale0 = center_distance_native * to_scale0;
-        let extent_radius_scale0 = self.extent_radius_native * to_scale0;
-        let characteristic_scale0 = self.characteristic_scale_native() * to_scale0;
-        let spherical_signed_boundary_scale0 =
-            (center_distance_native - self.extent_radius_native) * to_scale0;
+        let metres_per_native = self.scale.metres_per_native();
+        let center_distance_metres = center_distance_native * metres_per_native;
+        let extent_radius_metres = self.extent_radius_native * metres_per_native;
+        let characteristic_length_metres = self.characteristic_scale_native() * metres_per_native;
+        let spherical_signed_boundary_metres =
+            (center_distance_native - self.extent_radius_native) * metres_per_native;
 
-        let signed_boundary_scale0 = if matches!(self.kind, UsfTravelInfluenceKind::HardBody) {
+        let signed_boundary_metres = if matches!(self.kind, UsfTravelInfluenceKind::HardBody) {
             boundary
                 .and_then(|resolver| {
                     resolver.sample_near(anchor, frame, observer, measurement_scale)
@@ -184,35 +184,35 @@ impl UsfTravelInfluence {
                         f64::from(outward.z),
                     );
                     let signed_native = relative.dot(outward);
-                    let signed_scale0 = signed_native * sample.scale().scale0_units_per_native();
-                    signed_scale0.is_finite().then_some(signed_scale0)
+                    let signed_metres = signed_native * sample.scale().metres_per_native();
+                    signed_metres.is_finite().then_some(signed_metres)
                 })
-                .unwrap_or(spherical_signed_boundary_scale0)
+                .unwrap_or(spherical_signed_boundary_metres)
         } else {
-            spherical_signed_boundary_scale0
+            spherical_signed_boundary_metres
         };
 
-        let boundary_clearance_scale0 = signed_boundary_scale0.max(0.0);
-        let penetration_depth_scale0 = (-signed_boundary_scale0).max(0.0);
+        let boundary_clearance_metres = signed_boundary_metres.max(0.0);
+        let penetration_depth_metres = (-signed_boundary_metres).max(0.0);
 
-        if !center_distance_scale0.is_finite()
-            || !extent_radius_scale0.is_finite()
-            || !characteristic_scale0.is_finite()
-            || !boundary_clearance_scale0.is_finite()
-            || !penetration_depth_scale0.is_finite()
-            || extent_radius_scale0 <= 0.0
-            || characteristic_scale0 <= 0.0
+        if !center_distance_metres.is_finite()
+            || !extent_radius_metres.is_finite()
+            || !characteristic_length_metres.is_finite()
+            || !boundary_clearance_metres.is_finite()
+            || !penetration_depth_metres.is_finite()
+            || extent_radius_metres <= 0.0
+            || characteristic_length_metres <= 0.0
         {
             return None;
         }
 
         Some(UsfTravelInfluenceMeasure {
-            center_distance_scale0,
-            boundary_clearance_scale0,
-            penetration_depth_scale0,
-            extent_radius_scale0,
-            characteristic_scale0,
-            inside: signed_boundary_scale0 <= 0.0,
+            center_distance_metres,
+            boundary_clearance_metres,
+            penetration_depth_metres,
+            extent_radius_metres,
+            characteristic_length_metres,
+            inside: signed_boundary_metres <= 0.0,
         })
     }
 
@@ -233,33 +233,33 @@ impl UsfTravelInfluence {
 
 #[derive(Debug, Clone, Copy)]
 pub struct UsfTravelInfluenceMeasure {
-    center_distance_scale0: f64,
-    boundary_clearance_scale0: f64,
-    penetration_depth_scale0: f64,
-    extent_radius_scale0: f64,
-    characteristic_scale0: f64,
+    center_distance_metres: f64,
+    boundary_clearance_metres: f64,
+    penetration_depth_metres: f64,
+    extent_radius_metres: f64,
+    characteristic_length_metres: f64,
     inside: bool,
 }
 
 impl UsfTravelInfluenceMeasure {
-    pub const fn center_distance_scale0(self) -> f64 {
-        self.center_distance_scale0
+    pub const fn center_distance_metres(self) -> f64 {
+        self.center_distance_metres
     }
 
-    pub const fn boundary_clearance_scale0(self) -> f64 {
-        self.boundary_clearance_scale0
+    pub const fn boundary_clearance_metres(self) -> f64 {
+        self.boundary_clearance_metres
     }
 
-    pub const fn penetration_depth_scale0(self) -> f64 {
-        self.penetration_depth_scale0
+    pub const fn penetration_depth_metres(self) -> f64 {
+        self.penetration_depth_metres
     }
 
-    pub const fn extent_radius_scale0(self) -> f64 {
-        self.extent_radius_scale0
+    pub const fn extent_radius_metres(self) -> f64 {
+        self.extent_radius_metres
     }
 
-    pub const fn characteristic_scale0(self) -> f64 {
-        self.characteristic_scale0
+    pub const fn characteristic_length_metres(self) -> f64 {
+        self.characteristic_length_metres
     }
 
     pub const fn inside(self) -> bool {
@@ -269,6 +269,6 @@ impl UsfTravelInfluenceMeasure {
     /// Distance to the influence boundary measured in units of the local
     /// feature scale that actually matters for navigation.
     pub fn relative_proximity(self) -> f64 {
-        self.boundary_clearance_scale0 / self.characteristic_scale0
+        self.boundary_clearance_metres / self.characteristic_length_metres
     }
 }

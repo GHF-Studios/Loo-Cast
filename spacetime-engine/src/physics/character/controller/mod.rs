@@ -4,6 +4,16 @@
 //! modules own contact classification, velocity integration, route selection,
 //! and dynamic-body interaction. The ECS system itself only acquires state,
 //! delegates one-character simulation, and publishes push messages.
+//!
+//! ## Module map
+//!
+//! - `grounding`: Pose reconciliation and walkable-ground classification.
+//! - `movement`: Character velocity integration and grounded-state transitions.
+//! - `pushing`: Dynamic-body interaction at the character-controller boundary.
+//! - `stepping`: Collision-constrained movement route selection.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::time::Duration;
 
@@ -15,16 +25,14 @@ use bevy::prelude::*;
 
 use crate::{
     physics::{
-        slice::UsfPhysicsSlices,
-        gravity::GravitySample,
-        topology::KinematicQueryExclusions,
+        gravity::GravitySample, slice::UsfPhysicsSliceQuery, topology::KinematicQueryExclusions,
     },
     spatial::UsfScaleLayer,
 };
 
 use super::{
     CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-    CharacterMovementInput, ResolvedCharacterMovementConfig,
+    CharacterMovementIntent, ResolvedCharacterMovementConfig,
 };
 
 mod grounding;
@@ -52,7 +60,7 @@ struct CollisionContext<'a, 'w, 's> {
 /// Mutable semantic state for one character during one fixed tick.
 struct MotorTick<'a> {
     config: &'a ResolvedCharacterMovementConfig,
-    input: &'a mut CharacterMovementInput,
+    input: &'a mut CharacterMovementIntent,
     ground: &'a mut CharacterGroundState,
     velocity: &'a mut LinearVelocity,
     transform: &'a mut Transform,
@@ -62,7 +70,7 @@ struct MotorTick<'a> {
 pub(super) fn simulate_character_motors(
     time: Res<Time<Fixed>>,
     move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsSlices,
+    physics_charts: UsfPhysicsSliceQuery,
     mut pushes: MessageWriter<CharacterPush>,
     mut query: Query<
         (
@@ -72,7 +80,7 @@ pub(super) fn simulate_character_motors(
             &CharacterMovementConfig,
             &GravitySample,
             &CharacterLocomotionFrame,
-            &mut CharacterMovementInput,
+            &mut CharacterMovementIntent,
             &mut CharacterGroundState,
             &mut LinearVelocity,
             &mut Transform,
@@ -103,8 +111,11 @@ pub(super) fn simulate_character_motors(
         exclusions,
     ) in &mut query
     {
-        let excluded = std::iter::once(entity)
-            .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
+        let excluded = std::iter::once(entity).chain(
+            exclusions
+                .into_iter()
+                .flat_map(|exclusions| exclusions.iter()),
+        );
         let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
 
         let resolved_config =
@@ -164,8 +175,7 @@ fn simulate_character_motor(
     let moving_on_ground =
         moving_from_ground && super::reject(tick.velocity.0, tick.up).length_squared() > 1.0e-8;
 
-    let push =
-        pushing::detect_outgoing_push(collision, start, tick.velocity.0, dt);
+    let push = pushing::detect_outgoing_push(collision, start, tick.velocity.0, dt);
 
     let chosen = stepping::move_with_step_selection(
         collision,
@@ -200,7 +210,7 @@ fn simulate_character_motor(
     movement::finish_transition_flags(tick.ground, was_grounded);
 
     // One-shot input is consumed by the physics tick; held input persists.
-    tick.input.jump_pressed = false;
+    tick.input.consume_jump_request();
 
     push
 }

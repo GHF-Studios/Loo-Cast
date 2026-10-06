@@ -1,7 +1,18 @@
 //! Runtime diagnostics data owned independently from developer UI.
 //!
-//! Diagnostics sample runtime/world state and expose a typed snapshot resource.
+//! Diagnostics sample runtime/semantic state and expose typed observations.
 //! They do not own developer controls, HUDs, Inspector sections, or World Draw.
+//!
+//! ## Module map
+//!
+//! - `model`: Typed runtime snapshots consumed by tooling and telemetry.
+//! - `physics`: Bounded Avian runtime diagnostics.
+//! - `runtime`: Frame/runtime/system diagnostic sampling and low-frame-rate calculation.
+//! - `telemetry`: Vapor telemetry publication for typed runtime/world diagnostic snapshots.
+//! - `world`: Low-frequency ECS/world structure and inline-memory sampling.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use std::collections::BTreeMap;
 
@@ -47,9 +58,9 @@ mod runtime;
 mod telemetry;
 mod world;
 
-use runtime::collect_runtime_diagnostics;
+use runtime::sample_runtime_diagnostics;
 use telemetry::{publish_runtime_telemetry, publish_world_telemetry};
-use world::collect_world_diagnostics;
+use world::sample_world_diagnostics;
 
 impl Plugin for RuntimeDiagnosticsPlugin {
     fn build(&self, app: &mut App) {
@@ -71,8 +82,8 @@ impl Plugin for RuntimeDiagnosticsPlugin {
             )
             .add_systems(
                 Update,
-                (physics::finalize_physics_frame, collect_runtime_diagnostics).chain(),
+                (physics::finalize_physics_frame, sample_runtime_diagnostics).chain(),
             )
-            .add_systems(Last, collect_world_diagnostics);
+            .add_systems(Last, sample_world_diagnostics);
     }
 }

@@ -58,8 +58,7 @@ impl VoxelMaterializationStore {
 
         if let Some(entry) = self.entries.get_mut(&address) {
             match &entry.state {
-                VoxelMaterializationState::Pending { .. }
-                | VoxelMaterializationState::Failed => {
+                VoxelMaterializationState::Pending { .. } | VoxelMaterializationState::Failed => {
                     remove_pending = true;
                 }
                 VoxelMaterializationState::Dense(_) => {
@@ -87,9 +86,13 @@ impl VoxelMaterializationStore {
     pub(in crate::voxel) fn insert_dense_active(
         &mut self,
         address: VoxelMaterializationKey,
-        mut chunk: VoxelChunk,
+        mut chunk: DenseVoxelMaterialization,
     ) {
-        if self.entries.get(&address).is_some_and(|entry| !entry.active) {
+        if self
+            .entries
+            .get(&address)
+            .is_some_and(|entry| !entry.active)
+        {
             self.inactive_count = self.inactive_count.saturating_sub(1);
         }
 
@@ -97,8 +100,7 @@ impl VoxelMaterializationStore {
         // A uniform dense result already proves that no surface representation
         // exists for this revision. Publish that derived fact immediately:
         // there is no reason to enqueue Surface Nets merely to rediscover it.
-        let uniform_revision =
-            (!chunk.has_surface_transition()).then_some(chunk.revision());
+        let uniform_revision = (!chunk.has_surface_transition()).then_some(chunk.revision());
         if uniform_revision.is_some() {
             chunk.mark_meshed();
         }
@@ -129,7 +131,7 @@ impl VoxelMaterializationStore {
         &mut self,
         address: VoxelMaterializationKey,
         token: u64,
-        chunk: VoxelChunk,
+        chunk: DenseVoxelMaterialization,
         needs_surface: bool,
     ) -> bool {
         let Some(entry) = self.entries.get_mut(&address) else {
@@ -149,8 +151,7 @@ impl VoxelMaterializationStore {
         }
 
         let mut chunk = chunk;
-        let uniform_revision =
-            (!chunk.has_surface_transition()).then_some(chunk.revision());
+        let uniform_revision = (!chunk.has_surface_transition()).then_some(chunk.revision());
         if uniform_revision.is_some() {
             chunk.mark_meshed();
         }
@@ -183,7 +184,8 @@ impl VoxelMaterializationStore {
         let Some(entry) = self.entries.get_mut(&address) else {
             return false;
         };
-        if !matches!(&entry.state, VoxelMaterializationState::Pending { token: current } if *current == token) {
+        if !matches!(&entry.state, VoxelMaterializationState::Pending { token: current } if *current == token)
+        {
             return false;
         }
         entry.state = VoxelMaterializationState::Failed;
@@ -203,7 +205,7 @@ impl VoxelMaterializationStore {
         if !entry.active {
             return None;
         }
-        entry.dense().map(VoxelChunk::revision)
+        entry.dense().map(DenseVoxelMaterialization::revision)
     }
 
     pub(in crate::voxel) fn active_keys(
@@ -236,7 +238,7 @@ impl VoxelMaterializationStore {
 
     pub(in crate::voxel) fn active_dense_entries(
         &self,
-    ) -> impl Iterator<Item = (VoxelMaterializationKey, &VoxelChunk)> + '_ {
+    ) -> impl Iterator<Item = (VoxelMaterializationKey, &DenseVoxelMaterialization)> + '_ {
         self.entries.iter().filter_map(|(&address, entry)| {
             entry
                 .active
@@ -253,7 +255,11 @@ impl VoxelMaterializationStore {
                 debug_assert_eq!(self.inactive_count, 0, "inactive count/LRU drift");
                 break;
             };
-            if self.entries.get(&address).is_some_and(|entry| !entry.active) {
+            if self
+                .entries
+                .get(&address)
+                .is_some_and(|entry| !entry.active)
+            {
                 self.entries.remove(&address);
                 self.dirty_derived_set.remove(&address);
                 self.inactive_count = self.inactive_count.saturating_sub(1);

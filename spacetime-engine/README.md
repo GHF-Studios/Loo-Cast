@@ -17,7 +17,6 @@ engine software rather than as a collection of prototypes.
 - `devtools` / `diagnostics`: observability; never semantic authority.
 - `game`: Loo Cast gameplay/test adapters built on reusable engine domains.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for dependency and code-shape rules.
 
 The Celestial Fixture is explicit Sun/Earth/Moon content. A body's canonical
 field supplies voxel baselines, the arrival surface, and a finite whole-body
@@ -29,7 +28,6 @@ claimed. World membership owns lifetime without inheriting runtime transforms.
 
 Engine policy is loaded through `config::EngineConfigPlugin`. Compiled defaults
 are overridden by `assets/config/engine.ron`, then by typed runtime overrides.
-See [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Validation
 

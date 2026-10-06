@@ -5,13 +5,12 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
-        UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
-        health::{Health, DamageableBounds},
-        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        health::{DamageableBounds, Health},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItemRequest},
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
@@ -19,13 +18,12 @@ use crate::{
     },
     portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
     thermal::{
-        CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
-        ThermalSpatialSample,
+        CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial, ThermalSpatialSample,
     },
 };
 
-use super::assets::PlaygroundItemPresentationAssets;
 use super::super::{PlaygroundPickable, PlaygroundRoot};
+use super::assets::PlaygroundItemPresentationAssets;
 
 pub const DAMAGEABLE_CUBE: ItemId = ItemId::new("damageable_cube");
 pub const SPLIT_DAMAGEABLE_CUBE: ItemId = ItemId::new("split_damageable_cube");
@@ -63,15 +61,13 @@ fn register_items(mut catalog: ResMut<ItemCatalog>) {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
         description: "One semantic state with two independently dynamic spatial manifestations.",
-        action_hints: vec![
-            ItemActionHint::new(ItemAction::PRIMARY, "Place split cube"),
-        ],
+        action_hints: vec![ItemActionHint::new(ItemAction::PRIMARY, "Place split cube")],
     });
 }
 
 fn use_cube_items(
     mut commands: Commands,
-    mut uses: MessageReader<UseItem>,
+    mut uses: MessageReader<UseItemRequest>,
     assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
@@ -193,7 +189,6 @@ fn spawn_dynamic_manifestation(
     let authority = commands
         .spawn((
             Name::new(format!("Cube Manifestation {index}")),
-            
             UsfLogicalRealizationOf(authority_partition),
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
@@ -219,7 +214,6 @@ fn spawn_dynamic_manifestation(
     let peer = commands
         .spawn((
             Name::new(format!("Cube Portal Peer {index}")),
-            
             SpatialSplitPeer { authority },
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),

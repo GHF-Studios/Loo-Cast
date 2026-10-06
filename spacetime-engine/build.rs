@@ -8,8 +8,7 @@
 //! seeds a separate writable live tree.
 
 use std::{
-    env,
-    fs,
+    env, fs,
     path::{Component, Path, PathBuf},
 };
 
@@ -50,11 +49,7 @@ fn main() {
     fs::write(&generated, output).expect("write embedded developer-script table");
 }
 
-fn collect_scripts(
-    root: &Path,
-    directory: &Path,
-    out: &mut Vec<(String, String, PathBuf)>,
-) {
+fn collect_scripts(root: &Path, directory: &Path, out: &mut Vec<(String, String, PathBuf)>) {
     if out.len() >= MAX_SCRIPT_FILES {
         panic!("developer script source limit exceeded ({MAX_SCRIPT_FILES})");
     }
@@ -79,8 +74,7 @@ fn collect_scripts(
             continue;
         }
 
-        if !file_type.is_file()
-            || path.extension().and_then(|value| value.to_str()) != Some("rhai")
+        if !file_type.is_file() || path.extension().and_then(|value| value.to_str()) != Some("rhai")
         {
             continue;
         }

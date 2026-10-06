@@ -9,20 +9,14 @@
 //! local collider residency must never decide whether high-speed collision
 //! exists.
 
-use bevy::{
-    ecs::system::SystemParam,
-    math::DVec3,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemParam, math::DVec3, prelude::*};
 
 use crate::{
-    physics::collision_query::{
-        UsfCanonicalSweep, UsfCollisionCandidate, UsfSweepInterval,
-    },
+    physics::collision_query::{UsfCanonicalSweep, UsfCollisionCandidate, UsfSweepInterval},
     spatial::{SpatialScale, UsfPosition, UsfSemanticFrame},
 };
 
-use super::{CelestialVoxelField, VoxelAuthority, VoxelBounds, VoxelFrameSnapshot};
+use super::{CelestialVoxelField, VoxelBounds, VoxelFrameSnapshot, VoxelSemanticAuthority};
 
 #[derive(SystemParam)]
 pub struct VoxelCollisionQuery<'w, 's> {
@@ -34,7 +28,7 @@ pub struct VoxelCollisionQuery<'w, 's> {
             &'static UsfPosition,
             &'static UsfSemanticFrame,
             &'static CelestialVoxelField,
-            Option<&'static VoxelAuthority>,
+            Option<&'static VoxelSemanticAuthority>,
         ),
     >,
 }
@@ -44,10 +38,7 @@ impl VoxelCollisionQuery<'_, '_> {
     ///
     /// The returned candidates are query evidence only. Neither this provider
     /// nor [`UsfCollisionCandidate`] owns collision response.
-    pub fn candidates(
-        &self,
-        sweep: UsfCanonicalSweep,
-    ) -> Vec<UsfCollisionCandidate> {
+    pub fn candidates(&self, sweep: UsfCanonicalSweep) -> Vec<UsfCollisionCandidate> {
         let mut candidates = Vec::new();
 
         for (authority_entity, body_origin, body_frame, field, edits) in &self.authorities {
@@ -89,9 +80,7 @@ impl VoxelCollisionQuery<'_, '_> {
                 let Ok(bounds) = edit.world_bounds(snapshot) else {
                     continue;
                 };
-                if let Some(interval) =
-                    segment_bounds_interval(sweep, bounds)
-                {
+                if let Some(interval) = segment_bounds_interval(sweep, bounds) {
                     candidates.push(candidate_for_interval(
                         authority_entity,
                         query_scale,
@@ -106,11 +95,7 @@ impl VoxelCollisionQuery<'_, '_> {
             a.interval()
                 .minimum()
                 .total_cmp(&b.interval().minimum())
-                .then_with(|| {
-                    a.interval()
-                        .maximum()
-                        .total_cmp(&b.interval().maximum())
-                })
+                .then_with(|| a.interval().maximum().total_cmp(&b.interval().maximum()))
                 .then_with(|| a.authority().to_bits().cmp(&b.authority().to_bits()))
         });
         candidates
@@ -139,11 +124,7 @@ fn segment_sphere_interval(
     displacement: DVec3,
     radius: f64,
 ) -> Option<UsfSweepInterval> {
-    if !start.is_finite()
-        || !displacement.is_finite()
-        || !radius.is_finite()
-        || radius < 0.0
-    {
+    if !start.is_finite() || !displacement.is_finite() || !radius.is_finite() || radius < 0.0 {
         return None;
     }
 
@@ -181,16 +162,10 @@ fn segment_bounds_interval(
 
     let start = sweep
         .start()
-        .relative_at_scale_bounded_f64(
-            &anchor,
-            scale,
-            f64::MAX,
-        )
+        .relative_at_scale_bounded_f64(&anchor, scale, f64::MAX)
         .ok()?;
-    let displacement =
-        sweep.displacement_metres() / scale.metres_per_native();
-    let expansion =
-        scale.metres_to_native_f64(sweep.bounding_radius_metres());
+    let displacement = sweep.displacement_metres() / scale.metres_per_native();
+    let expansion = scale.metres_to_native_f64(sweep.bounding_radius_metres());
 
     let minimum = DVec3::new(
         f64::from(bounds.min_offset().x) - expansion,
@@ -257,7 +232,7 @@ pub(in crate::voxel) fn publish_collision_query_candidates(
 
     for request in requests {
         for candidate in provider.candidates(request.sweep()) {
-            frame.push_candidate(request.id(), candidate);
+            frame.publish_candidate(request.id(), candidate);
         }
     }
 }

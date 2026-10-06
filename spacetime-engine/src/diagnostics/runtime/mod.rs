@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(super) fn collect_runtime_diagnostics(
+pub(super) fn sample_runtime_diagnostics(
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
     mut cadence: ResMut<DiagnosticsCadence>,

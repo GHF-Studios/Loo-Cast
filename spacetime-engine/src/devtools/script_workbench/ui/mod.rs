@@ -1,4 +1,12 @@
 //! Script explorer and editor surface embedded in the developer console.
+//!
+//! ## Module map
+//!
+//! - `editor`: One-frame editor actions, source editing and diagnostics.
+//! - `explorer`: Document selection and status listing.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use super::DeveloperScriptWorkbench;
 use bevy_egui::egui;

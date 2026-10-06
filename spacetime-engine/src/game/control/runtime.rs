@@ -1,4 +1,4 @@
-//! Ordered local-control transfer and focus reconciliation.
+//! Ordered local-control transfer transaction and adapter reconciliation.
 //!
 //! Transfer changes semantic control first. The view/interaction adapter then
 //! follows the accepted manifestation and requests any needed chart handoff.
@@ -8,13 +8,13 @@ use crate::{
     ecs::UsfOwnershipQuery,
     spatial::{
         UsfInteractionProjection, UsfInteractionRequirement, UsfInteractionScaleAffinity,
-        UsfPosition, UsfSpatialAnchor, UsfSpatialTransition, UsfSpatialTransitionQueue,
+        UsfPosition, UsfSpatialAnchor, UsfSpatialTransition, UsfSpatialTransitions,
         UsfTransitionVelocity, UsfViewAnchor,
     },
 };
 use bevy::prelude::*;
 
-pub(super) fn apply_local_control_transfers(
+pub(super) fn resolve_local_control_transfers(
     mut commands: Commands,
     mut requests: MessageReader<LocalControlTransferRequest>,
     controllers: Query<(), With<LocalController>>,
@@ -97,7 +97,7 @@ pub(super) fn apply_local_control_transfers(
 
 /// Current game policy: the primary view/interaction focus follows local
 /// control. This is an adapter, not part of semantic control authority.
-pub(super) fn reconcile_local_control_focus(
+pub(super) fn reconcile_local_control_adapters(
     mut commands: Commands,
     mut applied: MessageReader<LocalControlTransferApplied>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
@@ -105,7 +105,7 @@ pub(super) fn reconcile_local_control_focus(
     view_targets: Query<Entity, With<LocalViewTarget>>,
     affinities: Query<&UsfInteractionScaleAffinity>,
     semantic_positions: Query<&UsfPosition>,
-    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+    mut transitions: ResMut<UsfSpatialTransitions>,
 ) {
     let Some(transfer) = applied.read().last().copied() else {
         return;
@@ -179,17 +179,17 @@ pub(super) fn reconcile_local_control_focus(
             .requiring_coverage(affinity.required_roles(), affinity.coverage_radius_native());
     }
 
-    transitions.request(transition);
+    transitions.relocate(transition);
 }
 
 /// Continuously reassert the controlled manifestation's authored Scale affinity.
 ///
 /// This is intentionally boring stable state. Movement, altitude, terrain
 /// clearance, locomotion regime and view zoom are absent from this function.
-pub(super) fn sync_controlled_interaction_scale_affinity(
+pub(super) fn refresh_controlled_interaction_requirement(
     ownership: UsfOwnershipQuery,
     subject: Single<(Entity, &UsfInteractionScaleAffinity), With<LocalControlSubject>>,
-    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+    mut transitions: ResMut<UsfSpatialTransitions>,
 ) {
     let (manifestation, affinity) = subject.into_inner();
     let Some(semantic) = ownership.semantic_of(manifestation) else {
@@ -209,7 +209,7 @@ pub(super) fn sync_controlled_interaction_scale_affinity(
         requirement = requirement
             .requiring_coverage(affinity.required_roles(), affinity.coverage_radius_native());
     }
-    transitions.set_interaction_requirement(requirement);
+    transitions.require_interaction(requirement);
 }
 
 pub(super) fn audit_local_control_invariants(

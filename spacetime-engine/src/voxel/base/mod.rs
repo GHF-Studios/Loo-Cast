@@ -1,7 +1,17 @@
 //! Procedural backing fields for voxel worlds.
 //!
 //! A base field is reconstructible and therefore does not need to be persisted
-//! per voxel. Persistent/world edits are layered on top by [`VoxelWorld`].
+//! per voxel. Persistent/world edits are layered on top by [`crate::voxel::VoxelScaleRealization`].
+//!
+//! ## Module map
+//!
+//! - `celestial`: Procedural voxel baselines for generic celestial bodies.
+//! - `noise`: Deterministic local and canonical noise primitives for voxel bases.
+//! - `terrain`: Reference/legacy procedural heightfield backing a voxel base.
+//! - `volume`: Reconstructible three-dimensional procedural voxel field.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::Vec3;
 
@@ -9,16 +19,16 @@ use crate::spatial::UsfPosition;
 
 use super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
+mod celestial;
 mod noise;
 mod terrain;
-mod celestial;
 mod volume;
 
-pub use celestial::{CelestialBodyProfile, CelestialFieldRealization};
 pub(crate) use celestial::{
-    CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES,
-    CelestialFieldSample, PreparedCelestialPresentationBody,
+    CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES, CelestialFieldSample,
+    PreparedCelestialPresentationBody,
 };
+pub use celestial::{CelestialBodyProfile, CelestialFieldRealization};
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
@@ -60,10 +70,7 @@ impl VoxelBase {
     pub(crate) fn may_have_linear_drag(self) -> bool {
         match self {
             Self::Sphere { material, .. } => material.behavior().linear_drag > 0.0,
-            Self::Empty
-            | Self::CelestialBody(_)
-            | Self::Volume(_)
-            | Self::Terrain(_) => false,
+            Self::Empty | Self::CelestialBody(_) | Self::Volume(_) | Self::Terrain(_) => false,
         }
     }
 

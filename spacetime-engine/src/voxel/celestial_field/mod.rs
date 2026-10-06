@@ -2,6 +2,14 @@
 //!
 //! This field owns terrain identity and bandwidth. Numerical Scale is chosen
 //! only when adapting it to a bounded voxel sampler or presentation cache.
+//!
+//! ## Module map
+//!
+//! - `boundary`: Volumetric zero-crossing projection and travel-boundary queries.
+//! - `sampler`: Prepared presentation adapter over one canonical celestial field.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::{math::DVec3, prelude::*};
 

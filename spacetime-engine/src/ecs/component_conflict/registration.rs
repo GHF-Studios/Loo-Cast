@@ -1,3 +1,5 @@
+//! Declare component-conflict rules for runtime validation.
+
 use std::any::{TypeId, type_name};
 
 use bevy::ecs::{

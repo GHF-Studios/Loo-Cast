@@ -93,22 +93,26 @@ pub struct UsfViewDemand {
 }
 
 impl UsfViewDemand {
-    pub const fn source(&self) -> Entity { self.source }
-    pub const fn anchor(&self) -> UsfPosition { self.anchor }
+    pub const fn source(&self) -> Entity {
+        self.source
+    }
+    pub const fn anchor(&self) -> UsfPosition {
+        self.anchor
+    }
     pub const fn velocity_metres_per_second(&self) -> DVec3 {
         self.velocity_metres_per_second
     }
-    pub const fn finest_scale(&self) -> SpatialScale { self.finest_scale }
+    pub const fn finest_scale(&self) -> SpatialScale {
+        self.finest_scale
+    }
 
-/// Physical camera-eye offset from the semantic observer anchor in SI metres.
+    /// Physical camera-eye offset from the semantic observer anchor in SI metres.
     pub const fn projection_eye_offset_metres(&self) -> DVec3 {
         self.projection_eye_offset_metres
     }
 
     /// Perspective camera basis plus exact horizontal/vertical half angles.
-    pub fn perspective_basis_and_half_angles(
-        &self,
-    ) -> Option<(DVec3, DVec3, DVec3, f64, f64)> {
+    pub fn perspective_basis_and_half_angles(&self) -> Option<(DVec3, DVec3, DVec3, f64, f64)> {
         if !self.perspective {
             return None;
         }
@@ -137,9 +141,7 @@ impl UsfViewDemand {
         debug_assert!(vertical_half > 0.0);
         debug_assert!(horizontal_half > 0.0);
 
-        let dvec = |v: Vec3| {
-            DVec3::new(f64::from(v.x), f64::from(v.y), f64::from(v.z))
-        };
+        let dvec = |v: Vec3| DVec3::new(f64::from(v.x), f64::from(v.y), f64::from(v.z));
         Some((
             dvec(forward),
             dvec(right),
@@ -191,11 +193,8 @@ impl UsfViewDemand {
         half_extent_native: Vec3,
     ) -> bool {
         let half_extent_native = half_extent_native.abs();
-        let bound =
-            VIEW_RELATIVE_BOUND_NATIVE.max(half_extent_native.length() + 1.0);
-        let Ok(relative) =
-            center.relative_at_scale_bounded(&self.anchor, scale, bound)
-        else {
+        let bound = VIEW_RELATIVE_BOUND_NATIVE.max(half_extent_native.length() + 1.0);
+        let Ok(relative) = center.relative_at_scale_bounded(&self.anchor, scale, bound) else {
             return false;
         };
 
@@ -205,11 +204,8 @@ impl UsfViewDemand {
         if let Some(pixels_per_radian) = self.pixels_per_radian
             && distance_native > radius_native.max(f32::EPSILON)
         {
-            let angular_radius =
-                (radius_native / distance_native).clamp(0.0, 1.0).asin();
-            if angular_radius * pixels_per_radian
-                < MIN_PROJECTED_CELL_RADIUS_PIXELS
-            {
+            let angular_radius = (radius_native / distance_native).clamp(0.0, 1.0).asin();
+            if angular_radius * pixels_per_radian < MIN_PROJECTED_CELL_RADIUS_PIXELS {
                 return false;
             }
         }
@@ -224,8 +220,7 @@ impl UsfViewDemand {
             center: Vec3A::ZERO,
             half_extents: Vec3A::from(half_extent_native),
         };
-        let world_from_local =
-            Affine3A::from_translation(self.camera_translation + relative);
+        let world_from_local = Affine3A::from_translation(self.camera_translation + relative);
 
         self.frustum
             .intersects_obb(&aabb, &world_from_local, false, false)
@@ -239,7 +234,9 @@ pub struct UsfViewDemandSnapshot {
 }
 
 impl UsfViewDemandSnapshot {
-    pub const fn revision(&self) -> u64 { self.revision }
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
 
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &UsfViewDemand> {
         self.entries.iter()
@@ -255,8 +252,7 @@ impl UsfViewDemand {
         self.source == other.source
             && self.anchor == other.anchor
             && self.finest_scale == other.finest_scale
-            && self.projection_eye_offset_metres
-                == other.projection_eye_offset_metres
+            && self.projection_eye_offset_metres == other.projection_eye_offset_metres
             && self.camera_translation == other.camera_translation
             && self.camera_rotation == other.camera_rotation
             && self.perspective == other.perspective
@@ -303,33 +299,28 @@ fn capture_view_demand(
             continue;
         }
 
-        let (
-            perspective,
-            perspective_fov,
-            perspective_aspect_ratio,
-            pixels_per_radian,
-        ) = match projection {
-            Projection::Perspective(perspective) => {
-                let pixels_per_radian = camera
-                    .logical_viewport_size()
-                    .filter(|size| size.y > 0.0 && perspective.fov > 0.0)
-                    .map(|size| size.y / perspective.fov);
-                (
-                    true,
-                    Some(perspective.fov),
-                    Some(perspective.aspect_ratio),
-                    pixels_per_radian,
-                )
-            }
-            _ => (false, None, None, None),
-        };
+        let (perspective, perspective_fov, perspective_aspect_ratio, pixels_per_radian) =
+            match projection {
+                Projection::Perspective(perspective) => {
+                    let pixels_per_radian = camera
+                        .logical_viewport_size()
+                        .filter(|size| size.y > 0.0 && perspective.fov > 0.0)
+                        .map(|size| size.y / perspective.fov);
+                    (
+                        true,
+                        Some(perspective.fov),
+                        Some(perspective.aspect_ratio),
+                        pixels_per_radian,
+                    )
+                }
+                _ => (false, None, None, None),
+            };
 
         entries.push(UsfViewDemand {
             source,
             anchor: *view.anchor(),
             velocity_metres_per_second: view.velocity_metres_per_second(),
-            projection_eye_offset_metres:
-                view.projection_eye_offset_metres(),
+            projection_eye_offset_metres: view.projection_eye_offset_metres(),
             finest_scale: view.scale(),
             camera_translation: transform.translation,
             camera_rotation: transform.rotation,

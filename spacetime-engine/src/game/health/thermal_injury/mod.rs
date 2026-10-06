@@ -14,7 +14,7 @@ pub(super) fn configure(app: &mut App) {
         Update,
         emit_thermal_injury_damage
             .in_set(SimulationSet::Phenomena)
-            .after(ThermalSet::Lumped)
+            .after(ThermalSet::Evolution)
             .before(ThermalSet::SpatialOutput),
     );
 }

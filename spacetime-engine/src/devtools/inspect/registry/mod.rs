@@ -1,7 +1,10 @@
 //! Explicit type-erased registration of inspectable Rust types.
 
-use std::{any::{Any, TypeId}, collections::HashMap};
 use bevy::prelude::{App, Resource};
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+};
 
 use super::{
     metadata::InspectTypeMetadata,

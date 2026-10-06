@@ -23,25 +23,20 @@ use bevy::{
 };
 
 use crate::{
-    procedural_assets::{
-        DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
-    },
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
+    procedural_assets::{DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralPresentationAssets},
     spatial::{
-        SpatialScale, UsfCapabilityRealization, UsfCapabilitySet,
-        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfScaleLayer,
-        UsfScaleRoleMask, UsfSpatialSet,
-        UsfViewContext, UsfViewRenderAnchor,
+        SpatialScale, UsfCapabilityRealization, UsfCapabilitySet, UsfPosition,
+        UsfPresentationDomainProbe, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfScaleRoleMask,
+        UsfSpatialSet, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
+use super::super::{VoxelMaterializationKey, VoxelPostUpdateSet, VoxelScaleRealization};
 use super::{
-    VoxelMaterializationRuntime,
-    frontier::{
-        VoxelRefinementFrontierSet, VoxelRefinementFrontierSnapshot,
-    },
+    VoxelPresentationManifestation,
+    frontier::{VoxelRefinementFrontierSet, VoxelRefinementFrontierSnapshot},
 };
-use super::super::{VoxelMaterializationKey, VoxelPostUpdateSet, VoxelWorld};
 
 /// Coarse parent support retained inward from an exposed fine frontier face.
 ///
@@ -109,10 +104,7 @@ fn compact_refinement_clip_sources(
 
     for (_group, mut cells) in groups {
         while !cells.is_empty() {
-            let start = *cells
-                .keys()
-                .min()
-                .expect("non-empty refinement clip group");
+            let start = *cells.keys().min().expect("non-empty refinement clip group");
             let seed = *cells
                 .get(&start)
                 .expect("selected refinement clip seed exists");
@@ -130,9 +122,7 @@ fn compact_refinement_clip_sources(
                 let Some(next_y) = max_y.checked_add(1) else {
                     break;
                 };
-                if (start[0]..=max_x)
-                    .all(|x| cells.contains_key(&[x, next_y, start[2]]))
-                {
+                if (start[0]..=max_x).all(|x| cells.contains_key(&[x, next_y, start[2]])) {
                     max_y = next_y;
                 } else {
                     break;
@@ -225,10 +215,9 @@ impl MaterialExtension for VoxelRefinementClipExtension {
     }
 }
 
-
 fn debug_grid_meta(uv_metres_per_unit: Option<f32>) -> Vec4 {
-    let Some(uv_metres_per_unit) = uv_metres_per_unit
-        .filter(|value| value.is_finite() && *value > 0.0)
+    let Some(uv_metres_per_unit) =
+        uv_metres_per_unit.filter(|value| value.is_finite() && *value > 0.0)
     else {
         return Vec4::ZERO;
     };
@@ -253,10 +242,7 @@ pub(in crate::voxel) fn create_voxel_render_material(
     buffers: &mut Assets<ShaderBuffer>,
     materials: &mut Assets<VoxelRenderMaterial>,
 ) -> Handle<VoxelRenderMaterial> {
-    let clip_boxes = buffers.add(ShaderBuffer::from(vec![
-        [0.0_f32; 4],
-        [0.0_f32; 4],
-    ]));
+    let clip_boxes = buffers.add(ShaderBuffer::from(vec![[0.0_f32; 4], [0.0_f32; 4]]));
     let grid_meta = debug_grid_meta(debug_grid_uv_metres_per_unit);
     strip_raster_debug_grid(&mut base, grid_meta.x > 0.5);
 
@@ -299,10 +285,7 @@ impl VoxelPresentationMaterial {
 
     pub(super) fn handles(
         &self,
-    ) -> Option<(
-        &Handle<VoxelRenderMaterial>,
-        &Handle<VoxelRenderMaterial>,
-    )> {
+    ) -> Option<(&Handle<VoxelRenderMaterial>, &Handle<VoxelRenderMaterial>)> {
         Some((self.opaque.as_ref()?, self.translucent.as_ref()?))
     }
 
@@ -319,10 +302,7 @@ impl VoxelPresentationMaterial {
 
         // Keep a real buffer bound even when no aperture is active. clip_meta.x
         // is authoritative for length, so the dummy values are never read.
-        let clip_boxes = buffers.add(ShaderBuffer::from(vec![
-            [0.0_f32; 4],
-            [0.0_f32; 4],
-        ]));
+        let clip_boxes = buffers.add(ShaderBuffer::from(vec![[0.0_f32; 4], [0.0_f32; 4]]));
 
         let grid_meta = debug_grid_meta(debug_grid_uv_metres_per_unit);
         strip_raster_debug_grid(&mut base, grid_meta.x > 0.5);
@@ -406,11 +386,11 @@ impl VoxelPresentationMaterial {
 
 fn initialize_voxel_presentation_materials(
     mut worlds: Query<(
-        &VoxelWorld,
+        &VoxelScaleRealization,
         &UsfScaleLayer,
         &mut VoxelPresentationMaterial,
     )>,
-    library: Res<ProceduralAssetLibrary>,
+    library: Res<ProceduralPresentationAssets>,
     standard_materials: Res<Assets<StandardMaterial>>,
     mut buffers: ResMut<Assets<ShaderBuffer>>,
     mut materials: ResMut<Assets<VoxelRenderMaterial>>,
@@ -426,11 +406,9 @@ fn initialize_voxel_presentation_materials(
         // Dense Surface Nets UVs are 0.5 UV/native-unit. Convert that stable
         // historical coordinate to physical metres in the shader so the same
         // analytical asset means the same thing at every decimal Scale Slice.
-        let debug_grid_uv_metres_per_unit =
-            (material.base == library.debug_grid).then_some(
-                DEBUG_GRID_BASE_UV_METRES_PER_UNIT
-                    * layer.scale().metres_per_native() as f32,
-            );
+        let debug_grid_uv_metres_per_unit = (material.base == library.debug_grid).then_some(
+            DEBUG_GRID_BASE_UV_METRES_PER_UNIT * layer.scale().metres_per_native() as f32,
+        );
 
         material.initialize(
             base,
@@ -455,8 +433,7 @@ fn refinement_source_is_presented(
     context_enabled: bool,
     context_eligible: bool,
 ) -> bool {
-    let physical = fine_scale == interaction_scale
-        && view_scale == interaction_scale;
+    let physical = fine_scale == interaction_scale && view_scale == interaction_scale;
 
     if physical {
         return physical_enabled;
@@ -470,11 +447,11 @@ fn refinement_source_is_presented(
 fn sync_refinement_clip_materials(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    probe: Res<UsfPresentationProbe>,
+    probe: Res<UsfPresentationDomainProbe>,
     frontier: Res<VoxelRefinementFrontierSnapshot>,
     realizations: Query<(
         Entity,
-        &VoxelMaterializationRuntime,
+        &VoxelPresentationManifestation,
         &UsfCapabilityRealization,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
@@ -492,20 +469,16 @@ fn sync_refinement_clip_materials(
 
     let source_revision = frontier.source_coverage_revision();
     if cache.source_coverage_revision != Some(source_revision) {
-        let _span =
-            bevy::log::info_span!("voxel.refinement_clip.topology").entered();
+        let _span = bevy::log::info_span!("voxel.refinement_clip.topology").entered();
 
         let mut raw = Vec::<RefinementClipSource>::with_capacity(realizations.iter().len());
         for (_, runtime, realization) in &realizations {
-            if !realization
-                .roles()
-                .contains(UsfScaleRoleMask::PRESENTATION)
-            {
+            if !realization.roles().contains(UsfScaleRoleMask::PRESENTATION) {
                 continue;
             }
 
             raw.push(RefinementClipSource {
-                world: runtime.world(),
+                world: runtime.realization(),
                 authority: realization.authority(),
                 fine_scale: realization.scale(),
                 key: runtime.key(),
@@ -513,7 +486,7 @@ fn sync_refinement_clip_materials(
                 half_extent_native: realization.half_extent_native(),
                 exposed_faces: frontier
                     .exposed_faces(
-                        runtime.world(),
+                        runtime.realization(),
                         realization.authority(),
                         realization.scale(),
                         runtime.key(),
@@ -522,8 +495,7 @@ fn sync_refinement_clip_materials(
             });
         }
 
-        let _compact_span =
-            bevy::log::info_span!("voxel.refinement_clip.compact").entered();
+        let _compact_span = bevy::log::info_span!("voxel.refinement_clip.compact").entered();
         cache.sources = compact_refinement_clip_sources(raw);
         cache.source_coverage_revision = Some(source_revision);
     }
@@ -532,8 +504,7 @@ fn sync_refinement_clip_materials(
         value.clear();
     }
 
-    let projection_span =
-        bevy::log::info_span!("voxel.refinement_clip.project").entered();
+    let projection_span = bevy::log::info_span!("voxel.refinement_clip.project").entered();
 
     for source in cache.sources.iter().copied() {
         let fine_scale = source.fine_scale;
@@ -562,11 +533,11 @@ fn sync_refinement_clip_materials(
         }
 
         let bound = 1_000_000.0_f32;
-        let Ok(relative) = source.center.relative_at_scale_bounded(
-            view.anchor(),
-            fine_scale,
-            bound,
-        ) else {
+        let Ok(relative) =
+            source
+                .center
+                .relative_at_scale_bounded(view.anchor(), fine_scale, bound)
+        else {
             continue;
         };
 
@@ -583,24 +554,16 @@ fn sync_refinement_clip_materials(
             REFINEMENT_SUPPORT_BAND_FINE_NATIVE * factor
         };
 
-        let entry = boxes
-            .entry((source.authority, coarse_scale))
-            .or_default();
+        let entry = boxes.entry((source.authority, coarse_scale)).or_default();
 
         // w carries presentation-only transition metadata:
         // center.w = exposed-face bit mask, half.w = support-band width.
-        entry.push([
-            center.x,
-            center.y,
-            center.z,
-            f32::from(exposed_faces),
-        ]);
+        entry.push([center.x, center.y, center.z, f32::from(exposed_faces)]);
         entry.push([half.x, half.y, half.z, support_band]);
     }
 
     drop(projection_span);
-    let _publish_span =
-        bevy::log::info_span!("voxel.refinement_clip.publish").entered();
+    let _publish_span = bevy::log::info_span!("voxel.refinement_clip.publish").entered();
 
     for (layer, logical, mut material) in &mut worlds {
         let Some(_handles) = material.handles() else {
@@ -611,9 +574,7 @@ fn sync_refinement_clip_materials(
         // projection path must avoid contextual clip coordinates. If the view
         // has refined past interaction, the interaction Scale is now a
         // contextual ancestor and must receive child aperture clipping too.
-        if layer.scale() == interaction.scale()
-            && view.scale() == interaction.scale()
-        {
+        if layer.scale() == interaction.scale() && view.scale() == interaction.scale() {
             material.set_clip_data(Vec::new(), &mut buffers, &mut materials);
             continue;
         }
@@ -631,7 +592,6 @@ fn sync_refinement_clip_materials(
     }
 }
 
-
 pub(super) fn configure(app: &mut App) {
     load_internal_asset!(
         app,
@@ -643,8 +603,7 @@ pub(super) fn configure(app: &mut App) {
     app.add_plugins(MaterialPlugin::<VoxelRenderMaterial>::default())
         .add_systems(
             PostUpdate,
-            initialize_voxel_presentation_materials
-                .before(VoxelPostUpdateSet::Rebuild),
+            initialize_voxel_presentation_materials.before(VoxelPostUpdateSet::Rebuild),
         )
         .add_systems(
             PostUpdate,

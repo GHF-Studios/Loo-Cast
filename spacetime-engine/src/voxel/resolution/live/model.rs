@@ -18,7 +18,7 @@ pub(super) struct CelestialClipmapMaterialParams<'w> {
     pub(super) standard_materials: Res<'w, Assets<StandardMaterial>>,
     pub(super) render_materials: ResMut<'w, Assets<VoxelRenderMaterial>>,
     pub(super) shader_buffers: ResMut<'w, Assets<ShaderBuffer>>,
-    pub(super) library: Res<'w, ProceduralAssetLibrary>,
+    pub(super) library: Res<'w, ProceduralPresentationAssets>,
     pub(super) band_materials: ResMut<'w, CelestialClipmapBandDebugMaterials>,
 }
 
@@ -165,7 +165,7 @@ impl Ord for ClipmapRefinementCandidate {
 }
 
 #[derive(Resource, Default)]
-pub(super) struct CelestialClipmapRegistry {
+pub(super) struct CelestialClipmapRealizations {
     pub(super) next_generation: u64,
     pub(super) gpu_admission_cursor: Option<Entity>,
     pub(super) plans: HashMap<Entity, CelestialClipmapPlan>,
@@ -181,7 +181,7 @@ pub(super) struct CelestialClipmapRegistry {
     pub(super) projection_pending: Vec<Entity>,
 }
 
-impl CelestialClipmapRegistry {
+impl CelestialClipmapRealizations {
     pub(super) fn next_generation(&mut self) -> u64 {
         self.next_generation = self.next_generation.wrapping_add(1).max(1);
         self.next_generation
@@ -366,7 +366,7 @@ pub(super) struct CelestialClipmapPlanBuildTask {
     pub(super) authority: Entity,
     pub(super) input: CelestialClipmapPlanInput,
     pub(super) field: CelestialVoxelField,
-    pub(super) task: VoxelWorkerTicket<CelestialClipmapPlanBuildOutput>,
+    pub(super) task: VoxelWorkTicket<CelestialClipmapPlanBuildOutput>,
 }
 
 pub(super) struct CelestialClipmapPlanBuildOutput {

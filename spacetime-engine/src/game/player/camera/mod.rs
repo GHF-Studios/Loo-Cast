@@ -9,6 +9,17 @@
 //! Collision may therefore push the camera inward without ever overwriting the
 //! user's intended zoom. When the obstruction disappears, the camera returns
 //! to `base_distance_metres + zoom_offset_metres`.
+//!
+//! ## Module map
+//!
+//! - `model`: Target-owned camera profile and primary-camera state.
+//! - `freecam`: Detached local debug camera and observer-policy adapter.
+//! - `input`: Local camera-mode and third-person zoom intent.
+//! - `presentation`: Runtime camera transform, FOV and self-presentation policy.
+//! - `third_person`: Collision- and portal-aware third-person boom resolution.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod model;
 
@@ -21,10 +32,7 @@ use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery};
 use bevy::prelude::*;
 
 use crate::{
-    physics::{
-        character::CharacterControlFrame,
-        slice::UsfPhysicsSlices,
-    },
+    physics::{character::CharacterControlFrame, slice::UsfPhysicsSliceQuery},
     portal::{Portal, PortalActive, crossed_aperture_fraction, map_through_portal},
     spatial::UsfScaleLayer,
 };

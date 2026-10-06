@@ -25,7 +25,7 @@ fn collect_shadow_collision_sweeps(
     semantic_positions: Query<&UsfPosition>,
     mut frame: ResMut<UsfCollisionQueryFrame>,
 ) {
-    frame.begin_frame();
+    frame.begin_transaction();
 
     let duration = fixed_time.delta().as_secs_f64();
     if !duration.is_finite() || duration <= 0.0 {
@@ -51,7 +51,7 @@ fn collect_shadow_collision_sweeps(
             continue;
         }
 
-        frame.push_request(
+        frame.submit_request(
             UsfCanonicalSweep::new(
                 subject,
                 start,
@@ -65,7 +65,7 @@ fn collect_shadow_collision_sweeps(
 }
 
 fn finalize_collision_query_frame(mut frame: ResMut<UsfCollisionQueryFrame>) {
-    frame.finalize();
+    frame.finalize_transaction();
 }
 
 pub(in crate::physics) fn configure(app: &mut App) {

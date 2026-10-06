@@ -48,21 +48,42 @@ impl CelestialClipmapBlockKey {
             self.coord.z.checked_mul(2)?,
         );
         Some([
-            Self { resolution, coord: base + IVec3::new(0, 0, 0) },
-            Self { resolution, coord: base + IVec3::new(1, 0, 0) },
-            Self { resolution, coord: base + IVec3::new(0, 1, 0) },
-            Self { resolution, coord: base + IVec3::new(1, 1, 0) },
-            Self { resolution, coord: base + IVec3::new(0, 0, 1) },
-            Self { resolution, coord: base + IVec3::new(1, 0, 1) },
-            Self { resolution, coord: base + IVec3::new(0, 1, 1) },
-            Self { resolution, coord: base + IVec3::new(1, 1, 1) },
+            Self {
+                resolution,
+                coord: base + IVec3::new(0, 0, 0),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(1, 0, 0),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(0, 1, 0),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(1, 1, 0),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(0, 0, 1),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(1, 0, 1),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(0, 1, 1),
+            },
+            Self {
+                resolution,
+                coord: base + IVec3::new(1, 1, 1),
+            },
         ])
     }
 
-    pub(super) fn ancestor_at(
-        self,
-        target: VoxelPresentationResolution,
-    ) -> Option<Self> {
+    pub(super) fn ancestor_at(self, target: VoxelPresentationResolution) -> Option<Self> {
         if target < self.resolution {
             return None;
         }
@@ -138,10 +159,7 @@ pub(super) fn same_or_coarser_face_neighbor(
     face: VoxelTransitionFace,
     maximum_exponent: i16,
 ) -> Option<CelestialClipmapBlockKey> {
-    let mut coord = checked_coord_add(
-        key.coord,
-        clipmap_face_delta(face),
-    )?;
+    let mut coord = checked_coord_add(key.coord, clipmap_face_delta(face))?;
     let mut resolution = key.resolution;
 
     loop {
@@ -169,22 +187,18 @@ pub(super) fn transition_faces_for_frontier(
         return HashMap::new();
     };
 
-    let mut transitions = HashMap::<
-        CelestialClipmapBlockKey,
-        VoxelTransitionFaces,
-    >::with_capacity(leaves.len() / 4 + 8);
+    let mut transitions = HashMap::<CelestialClipmapBlockKey, VoxelTransitionFaces>::with_capacity(
+        leaves.len() / 4 + 8,
+    );
 
     // 2:1 balance means every coarse/fine boundary can be discovered from the
     // fine side with one same-or-parent ascent. That is <=6 lookups per leaf,
     // instead of asking every coarse leaf about 4 finer candidates on 6 faces.
     for &fine in leaves {
         for (face, _) in CLIPMAP_FACE_DIRECTIONS {
-            let Some(neighbor) = same_or_coarser_face_neighbor(
-                leaves,
-                fine,
-                face,
-                maximum_exponent,
-            ) else {
+            let Some(neighbor) =
+                same_or_coarser_face_neighbor(leaves, fine, face, maximum_exponent)
+            else {
                 continue;
             };
             if neighbor.resolution > fine.resolution {
@@ -208,16 +222,13 @@ fn checked_floor_coord(point: DVec3, extent: f64) -> Option<IVec3> {
     let x = scaled.x.floor();
     let y = scaled.y.floor();
     let z = scaled.z.floor();
-    let valid = |value: f64| {
-        value >= f64::from(i32::MIN) && value <= f64::from(i32::MAX)
-    };
+    let valid = |value: f64| value >= f64::from(i32::MIN) && value <= f64::from(i32::MAX);
     if !valid(x) || !valid(y) || !valid(z) {
         return None;
     }
 
     Some(IVec3::new(x as i32, y as i32, z as i32))
 }
-
 
 pub(super) fn leaf_containing_point(
     leaves: &HashSet<CelestialClipmapBlockKey>,
@@ -227,8 +238,7 @@ pub(super) fn leaf_containing_point(
 ) -> Option<CelestialClipmapBlockKey> {
     let mut resolution = finest;
     loop {
-        let extent =
-            resolution.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+        let extent = resolution.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
         let coord = checked_floor_coord(point, extent)?;
         let key = CelestialClipmapBlockKey { resolution, coord };
         if leaves.contains(&key) {
@@ -243,10 +253,7 @@ pub(super) fn leaf_containing_point(
 }
 
 #[inline]
-pub(super) fn block_distance_squared_to_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> f64 {
+pub(super) fn block_distance_squared_to_point(key: CelestialClipmapBlockKey, point: DVec3) -> f64 {
     let min = key.origin_local_metres();
     let max = min + DVec3::splat(key.extent_metres());
     let nearest = point.clamp(min, max);
@@ -254,17 +261,11 @@ pub(super) fn block_distance_squared_to_point(
 }
 
 #[inline]
-pub(super) fn block_distance_to_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> f64 {
+pub(super) fn block_distance_to_point(key: CelestialClipmapBlockKey, point: DVec3) -> f64 {
     block_distance_squared_to_point(key, point).sqrt()
 }
 
-pub(super) fn block_contains_local_point(
-    key: CelestialClipmapBlockKey,
-    point: DVec3,
-) -> bool {
+pub(super) fn block_contains_local_point(key: CelestialClipmapBlockKey, point: DVec3) -> bool {
     let min = key.origin_local_metres();
     let max = min + DVec3::splat(key.extent_metres());
     point.x >= min.x
@@ -274,4 +275,3 @@ pub(super) fn block_contains_local_point(
         && point.z >= min.z
         && point.z <= max.z
 }
-

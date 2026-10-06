@@ -25,7 +25,10 @@ impl UsfOwnershipQuery<'_, '_> {
     }
 
     pub fn semantic_for(&self, logical: &UsfLogicalRealizationOf) -> Option<Entity> {
-        self.partition_of.get(logical.0).ok().map(|partition| partition.0)
+        self.partition_of
+            .get(logical.0)
+            .ok()
+            .map(|partition| partition.0)
     }
 
     pub fn is_realization_of(&self, realization: Entity, semantic: Entity) -> bool {

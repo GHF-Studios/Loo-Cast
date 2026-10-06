@@ -9,7 +9,7 @@ use bevy::prelude::*;
 
 use crate::{
     physics::{
-        PhysicalBoxHull, character::CharacterDimensions, slice::UsfPhysicsSlices,
+        PhysicalBoxHull, character::CharacterDimensions, slice::UsfPhysicsSliceQuery,
         topology::KinematicQueryExclusions,
     },
     portal::PortalTraveler,
@@ -32,7 +32,7 @@ pub fn update_stance(
     input: Res<PlayerInputFrame>,
     mut params: ParamSet<(
         SpatialQuery,
-        UsfPhysicsSlices,
+        UsfPhysicsSliceQuery,
         Single<
             (
                 Entity,

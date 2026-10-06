@@ -1,15 +1,11 @@
-use proc_macro_crate::{FoundCrate, crate_name};
+//! Expand inspection derives into typed metadata and visitors.
+
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Expr, ExprRange, Fields, Generics, Ident, LitStr, Result, Type,
     spanned::Spanned,
 };
-
-/// The Cargo package name of the runtime crate.
-///
-/// This must match `[package].name` in the runtime crate's Cargo.toml.
-const SPACETIME_ENGINE_CRATE: &str = "spacetime-engine";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AccessMode {
@@ -60,14 +56,14 @@ struct InspectField {
     attributes: FieldAttributes,
 }
 
-pub struct Inspect {
+pub(super) struct Inspect {
     ident: Ident,
     label: LitStr,
     fields: Vec<InspectField>,
 }
 
 impl Inspect {
-    pub fn parse(input: TokenStream) -> Result<Self> {
+    pub(super) fn parse(input: TokenStream) -> Result<Self> {
         let input = syn::parse2::<DeriveInput>(input)?;
         ensure_non_generic(&input.generics)?;
 
@@ -123,14 +119,14 @@ impl Inspect {
         })
     }
 
-    pub fn generate(self) -> TokenStream {
+    pub(super) fn generate(self) -> TokenStream {
         let Self {
             ident,
             label,
             fields,
         } = self;
 
-        let spacetime_engine = match spacetime_engine_path() {
+        let spacetime_engine = match crate::runtime_crate::path() {
             Ok(path) => path,
             Err(error) => return error.into_compile_error(),
         };
@@ -430,18 +426,4 @@ fn ensure_non_generic(generics: &Generics) -> Result<()> {
         generics,
         "Inspect can currently only be derived for non-generic structs; implement Inspect manually for generic types",
     ))
-}
-
-fn spacetime_engine_path() -> Result<TokenStream> {
-    match crate_name(SPACETIME_ENGINE_CRATE) {
-        Ok(FoundCrate::Itself) => Ok(quote!(crate)),
-        Ok(FoundCrate::Name(name)) => {
-            let ident = Ident::new(&name, Span::call_site());
-            Ok(quote!(::#ident))
-        }
-        Err(error) => Err(syn::Error::new(
-            Span::call_site(),
-            format!("could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"),
-        )),
-    }
 }

@@ -2,23 +2,24 @@
 
 use bevy::prelude::*;
 
-use crate::reconstructible::{
-    ReconstructibleFrameBudget, ReconstructibleWorkClass,
-};
+use crate::reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass};
 
+use super::super::{VoxelMaterializationResidency, VoxelScaleRealization};
 use super::{
-    ManifestationKey, VoxelMaterializationRuntime,
-    VoxelMaterializationRuntimeRegistry,
-    VoxelPresentationFallbackRetireReady,
+    ManifestationKey, VoxelPresentationFallbackRetireReady, VoxelPresentationManifestation,
+    VoxelPresentationManifestationRegistry,
 };
-use super::super::{VoxelStreaming, VoxelWorld};
 
-pub(in crate::voxel) fn sync_manifestation_membership(
+pub(in crate::voxel) fn reconcile_presentation_manifestations(
     mut commands: Commands,
-    mut worlds: Query<(Entity, &mut VoxelWorld, Option<&VoxelStreaming>)>,
-    runtimes: Query<&VoxelMaterializationRuntime>,
+    mut worlds: Query<(
+        Entity,
+        &mut VoxelScaleRealization,
+        Option<&VoxelMaterializationResidency>,
+    )>,
+    runtimes: Query<&VoxelPresentationManifestation>,
     retire_ready: Query<Entity, With<VoxelPresentationFallbackRetireReady>>,
-    mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
+    mut registry: ResMut<VoxelPresentationManifestationRegistry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     // Dense presentation fallbacks are retired by an explicit compositor
@@ -31,7 +32,7 @@ pub(in crate::voxel) fn sync_manifestation_membership(
             continue;
         };
         let key = ManifestationKey {
-            world: runtime.world(),
+            realization: runtime.realization(),
             key: runtime.key(),
         };
         if registry.entities.get(&key).copied() != Some(entity) {
@@ -44,7 +45,7 @@ pub(in crate::voxel) fn sync_manifestation_membership(
         // If demand returned before the retirement handshake was consumed,
         // resurrection wins. Do not churn a now-active manifestation through
         // the pool just because last frame's compositor marked it retireable.
-        if let Ok((_, _, streaming)) = worlds.get_mut(runtime.world())
+        if let Ok((_, _, streaming)) = worlds.get_mut(runtime.realization())
             && streaming.is_none_or(|streaming| {
                 streaming
                     .effective_roles(runtime.key())
@@ -71,20 +72,16 @@ pub(in crate::voxel) fn sync_manifestation_membership(
 
     'worlds: for (world_entity, mut world, streaming) in &mut worlds {
         loop {
-            let Some(work_token) =
-                frame_budget.begin(ReconstructibleWorkClass::Publication)
-            else {
+            let Some(work_token) = frame_budget.begin(ReconstructibleWorkClass::Publication) else {
                 break 'worlds;
             };
-            let Some(materialization_key) =
-                world.materializations_mut().pop_dirty_render()
-            else {
+            let Some(materialization_key) = world.materializations_mut().pop_dirty_render() else {
                 frame_budget.finish(work_token);
                 break;
             };
 
             let key = ManifestationKey {
-                world: world_entity,
+                realization: world_entity,
                 key: materialization_key,
             };
             let presentation_requested = streaming.is_none_or(|streaming| {

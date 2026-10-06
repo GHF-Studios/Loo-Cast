@@ -42,10 +42,7 @@ impl VoxelMaterializationStore {
     /// async completion order from destroying semantic demand priority.
     pub(in crate::voxel) fn pop_dirty_derived_best_by(
         &mut self,
-        mut compare: impl FnMut(
-            VoxelMaterializationKey,
-            VoxelMaterializationKey,
-        ) -> std::cmp::Ordering,
+        mut compare: impl FnMut(VoxelMaterializationKey, VoxelMaterializationKey) -> std::cmp::Ordering,
     ) -> Option<VoxelMaterializationKey> {
         let scan = self.dirty_derived.len();
         let mut best = None::<VoxelMaterializationKey>;
@@ -58,9 +55,7 @@ impl VoxelMaterializationStore {
                 continue;
             }
 
-            if best.is_none_or(|current| {
-                compare(address, current) == std::cmp::Ordering::Less
-            }) {
+            if best.is_none_or(|current| compare(address, current) == std::cmp::Ordering::Less) {
                 best = Some(address);
             }
             self.dirty_derived.push_back(address);
@@ -87,10 +82,7 @@ impl VoxelMaterializationStore {
 
     /// Re-arm surface derivation from already resident dense truth after a
     /// capability-role upgrade. Current/in-flight revisions remain no-ops.
-    pub(in crate::voxel) fn ensure_derived_dirty(
-        &mut self,
-        address: VoxelMaterializationKey,
-    ) {
+    pub(in crate::voxel) fn ensure_derived_dirty(&mut self, address: VoxelMaterializationKey) {
         let should_mark = self.entries.get(&address).is_some_and(|entry| {
             if !entry.active {
                 return false;
@@ -99,8 +91,7 @@ impl VoxelMaterializationStore {
                 return false;
             };
             let revision = chunk.revision();
-            entry.derived_revision != Some(revision)
-                && entry.derived_in_flight != Some(revision)
+            entry.derived_revision != Some(revision) && entry.derived_in_flight != Some(revision)
         });
         if should_mark {
             self.mark_derived_dirty(address);
@@ -110,10 +101,7 @@ impl VoxelMaterializationStore {
     /// Whether an active materialization completed surface derivation for its
     /// current dense revision. Processed-empty chunks are current despite
     /// having no surface cache.
-    pub(in crate::voxel) fn is_derived_current(
-        &self,
-        address: VoxelMaterializationKey,
-    ) -> bool {
+    pub(in crate::voxel) fn is_derived_current(&self, address: VoxelMaterializationKey) -> bool {
         self.active_derived_revision(address).is_some()
     }
 
@@ -140,7 +128,7 @@ impl VoxelMaterializationStore {
     pub(in crate::voxel) fn begin_surface_build(
         &mut self,
         address: VoxelMaterializationKey,
-    ) -> Option<(u64, VoxelChunk)> {
+    ) -> Option<(u64, DenseVoxelMaterialization)> {
         let entry = self.entries.get_mut(&address)?;
         if !entry.active {
             return None;
@@ -204,7 +192,7 @@ impl VoxelMaterializationStore {
         let mut published = false;
 
         if let Some(entry) = self.entries.get_mut(&address) {
-            let current_revision = entry.dense().map(VoxelChunk::revision);
+            let current_revision = entry.dense().map(DenseVoxelMaterialization::revision);
             if current_revision == Some(revision) {
                 entry.surface = surface;
                 entry.derived_revision = Some(revision);

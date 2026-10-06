@@ -5,16 +5,16 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::UsfLogicalRealizationOf,
-    portal::{
-        Portal, PortalActive, PortalSplitTraveler,
-        topology::mapping::{map_transform, portal_mapping, portal_plane},
-    },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         topology::{
             KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive,
             partition_box_by_plane,
         },
+    },
+    portal::{
+        Portal, PortalActive, PortalSplitTraveler,
+        topology::mapping::{map_transform, portal_mapping, portal_plane},
     },
     spatial::UsfScaleLayer,
 };
@@ -47,13 +47,11 @@ pub(crate) fn materialize_portal_splits(
     >,
     mut peers: Query<
         (&mut Transform, &mut LinearVelocity, &mut Collider),
-        (
-            With<SpatialSplitPeer>,
-            Without<Portal>,
-        ),
+        (With<SpatialSplitPeer>, Without<Portal>),
     >,
 ) {
-    for (_authority, body, velocity, hull, layer, split, mut authority_collider) in &mut authorities {
+    for (_authority, body, velocity, hull, layer, split, mut authority_collider) in &mut authorities
+    {
         let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
         let peer_entity = split.solver_peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_collider)) =
@@ -73,14 +71,12 @@ pub(crate) fn materialize_portal_splits(
             continue;
         };
 
-        let pair = match (
-            portals.get(active.source),
-            portals.get(active.destination),
-        ) {
-            (
-                Ok((_, source_active, source)),
-                Ok((_, destination_active, destination)),
-            ) if source_active.0 && destination_active.0 => Some((source, destination)),
+        let pair = match (portals.get(active.source), portals.get(active.destination)) {
+            (Ok((_, source_active, source)), Ok((_, destination_active, destination)))
+                if source_active.0 && destination_active.0 =>
+            {
+                Some((source, destination))
+            }
             _ => None,
         };
 

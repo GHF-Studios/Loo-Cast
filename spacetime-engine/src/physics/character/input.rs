@@ -1,13 +1,15 @@
+//! Represent the movement intent consumed by the character solver.
+
 use bevy::prelude::*;
 
-/// Physics-facing movement intent.
+/// Physics-facing character movement intent.
 ///
 /// The motor deliberately does not know about keyboards, cameras or players.
 /// Adapters write world-space intent before the fixed loop and keep tuning in
 /// [`super::CharacterMovementConfig`] immutable.
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
-pub struct CharacterMovementInput {
+pub struct CharacterMovementIntent {
     /// Desired world-space movement direction.
     pub wish_direction: Vec3,
     /// Analog magnitude in `[0, 1]`.
@@ -23,7 +25,7 @@ pub struct CharacterMovementInput {
     pub jump_pressed: bool,
 }
 
-impl Default for CharacterMovementInput {
+impl Default for CharacterMovementIntent {
     fn default() -> Self {
         Self {
             wish_direction: Vec3::ZERO,
@@ -35,7 +37,7 @@ impl Default for CharacterMovementInput {
     }
 }
 
-impl CharacterMovementInput {
+impl CharacterMovementIntent {
     pub fn set_wish(&mut self, direction: Vec3, speed_fraction: f32) {
         self.wish_direction = direction;
         self.wish_speed_fraction = speed_fraction.clamp(0.0, 1.0);
@@ -43,6 +45,22 @@ impl CharacterMovementInput {
 
     pub fn set_speed_multiplier(&mut self, multiplier: f32) {
         self.speed_multiplier = multiplier.max(0.0);
+    }
+
+    pub fn set_jump_held(&mut self, held: bool) {
+        self.jump_held = held;
+    }
+
+    pub fn request_jump(&mut self) {
+        self.jump_pressed = true;
+    }
+
+    pub const fn jump_requested(&self) -> bool {
+        self.jump_pressed
+    }
+
+    pub(crate) fn consume_jump_request(&mut self) {
+        self.jump_pressed = false;
     }
 
     pub fn clear(&mut self) {

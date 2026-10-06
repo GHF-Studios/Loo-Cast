@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 /// Biological-style response to dangerous body temperature.
 ///
-/// This is intentionally separate from [`CombustibleMaterial`]. A living body
+/// This is intentionally separate from [`crate::thermal::CombustibleMaterial`]. A living body
 /// can suffer thermal injury without itself being modeled as a lump of fuel,
 /// while an inanimate fuel object can burn without having biological Health.
 #[derive(Component, Reflect, Debug, Clone, Copy)]

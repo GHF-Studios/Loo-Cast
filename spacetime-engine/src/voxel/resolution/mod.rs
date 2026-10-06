@@ -4,9 +4,20 @@
 //! backend use?". It must not also answer "how densely should this semantic
 //! field be polygonized?". Those are independent axes.
 //!
-//! The binary clipmap is live presentation. Dense [`super::VoxelWorld`]
+//! The binary clipmap is live presentation. Dense [`super::VoxelScaleRealization`]
 //! materializations remain independent editable/collision working caches.
-
+//!
+//! ## Module map
+//!
+//! - `classification`: Field-owned shell exclusion and sparse boundary evidence for clipmap
+//!   planning.
+//! - `gpu`: GPU build backend for binary terrain presentation.
+//! - `live`: Live celestial presentation facility over the voxel-local binary resolution domain.
+//! - `topology`: Pure dyadic topology for body-local binary presentation blocks.
+//! - `visibility`: Body-local camera demand for the reconstructible clipmap frontier.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 #![allow(dead_code)]
 
@@ -16,9 +27,7 @@ mod live;
 mod topology;
 mod visibility;
 
-pub(super) use live::{
-    CelestialClipmapTelemetry,
-};
+pub(super) use live::CelestialClipmapTelemetry;
 
 use std::collections::HashMap;
 
@@ -169,11 +178,7 @@ pub(crate) struct VoxelPresentationResolutionPlan {
 }
 
 impl VoxelPresentationResolutionPlan {
-    pub(crate) fn request(
-        &mut self,
-        block: IVec3,
-        resolution: VoxelPresentationResolution,
-    ) {
+    pub(crate) fn request(&mut self, block: IVec3, resolution: VoxelPresentationResolution) {
         self.levels
             .entry(block)
             .and_modify(|current| {
@@ -184,10 +189,7 @@ impl VoxelPresentationResolutionPlan {
             .or_insert(resolution);
     }
 
-    pub(crate) fn resolution(
-        &self,
-        block: IVec3,
-    ) -> Option<VoxelPresentationResolution> {
+    pub(crate) fn resolution(&self, block: IVec3) -> Option<VoxelPresentationResolution> {
         self.levels.get(&block).copied()
     }
 
@@ -201,8 +203,7 @@ impl VoxelPresentationResolutionPlan {
     /// This only refines; it never silently coarsens a caller's request.
     pub(crate) fn balance_2_to_1(&mut self) {
         loop {
-            let mut corrections =
-                HashMap::<IVec3, VoxelPresentationResolution>::new();
+            let mut corrections = HashMap::<IVec3, VoxelPresentationResolution>::new();
 
             for (&block, &resolution) in &self.levels {
                 for (delta, _) in NEIGHBORS {
@@ -210,20 +211,16 @@ impl VoxelPresentationResolutionPlan {
                         continue;
                     };
 
-                    let difference =
-                        i32::from(resolution.binary_exponent())
-                            - i32::from(neighbor.binary_exponent());
+                    let difference = i32::from(resolution.binary_exponent())
+                        - i32::from(neighbor.binary_exponent());
                     if difference <= 1 {
                         continue;
                     }
 
-                    let Some(target_exponent) =
-                        neighbor.binary_exponent().checked_add(1)
-                    else {
+                    let Some(target_exponent) = neighbor.binary_exponent().checked_add(1) else {
                         continue;
                     };
-                    let target =
-                        VoxelPresentationResolution::new(target_exponent);
+                    let target = VoxelPresentationResolution::new(target_exponent);
                     corrections
                         .entry(block)
                         .and_modify(|existing| {
@@ -253,10 +250,7 @@ impl VoxelPresentationResolutionPlan {
 
     /// Transition faces belong to the *coarser* block facing an exactly
     /// one-level-finer neighbor.
-    pub(crate) fn transition_faces(
-        &self,
-        block: IVec3,
-    ) -> VoxelTransitionFaces {
+    pub(crate) fn transition_faces(&self, block: IVec3) -> VoxelTransitionFaces {
         let Some(resolution) = self.resolution(block) else {
             return VoxelTransitionFaces::default();
         };
@@ -286,9 +280,6 @@ impl VoxelPresentationResolutionPlan {
         })
     }
 }
-
-
-
 
 pub(super) fn configure(app: &mut bevy::prelude::App) {
     gpu::configure(app);

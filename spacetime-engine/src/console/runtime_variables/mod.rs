@@ -2,6 +2,15 @@
 //!
 //! The registry is metadata and typed ingress, not configuration authority.
 //! Semantic operations remain owned by causal ingress (#17).
+//!
+//! ## Module map
+//!
+//! - `commands`: Console ingress for typed runtime variables.
+//! - `contract`: Typed variable contract and authority restrictions.
+//! - `registry`: Path registration and lookup for typed runtime variables.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::{
     AppConsoleExt, ConsoleArgumentCompletion, ConsoleCommandInvocation, ConsoleCommandResult,

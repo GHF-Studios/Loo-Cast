@@ -11,9 +11,9 @@ use crate::{
     game::{
         control::LocalControlSubject,
         flight::FlightContactState,
+        flight::{FlightControlCommand, FlightControlRequest},
         locomotion::{
-            ControlledSubjectLocomotion, FlightActuation, LocomotionInhibition,
-            LocomotionInhibitionReason,
+            ControlledSubjectLocomotion, LocomotionInhibition, LocomotionInhibitionReason,
         },
     },
     physics::{
@@ -24,7 +24,7 @@ use crate::{
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfCanonicalMotion, UsfInteractionScaleAffinity,
         UsfPosition, UsfRuntimeChartState, UsfScaleLayer, UsfSemanticFrame, UsfSpatialTransition,
-        UsfSpatialTransitionQueue, UsfTransitionVelocity,
+        UsfSpatialTransitions, UsfTransitionVelocity,
     },
     voxel::CelestialVoxelField,
 };
@@ -115,7 +115,8 @@ pub(super) fn prepare_controlled_subject(
     arrival_site: Res<FixtureArrivalSite>,
     frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
-    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+    mut transitions: ResMut<UsfSpatialTransitions>,
+    mut flight_requests: MessageWriter<FlightControlRequest>,
     mut positions: ParamSet<(
         Query<&mut UsfPosition>,
         Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
@@ -130,7 +131,6 @@ pub(super) fn prepare_controlled_subject(
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
-            &mut FlightActuation,
             Option<&mut FlightContactState>,
             Option<&mut LocomotionInhibition>,
             &mut CharacterControlFrame,
@@ -150,7 +150,6 @@ pub(super) fn prepare_controlled_subject(
         mut velocity,
         mut motion,
         mut locomotion,
-        mut actuation,
         mut flight_contact,
         mut inhibition,
         mut control,
@@ -242,7 +241,7 @@ pub(super) fn prepare_controlled_subject(
     let required_roles = affinity.required_roles();
 
     refinement.request_through(interaction_scale);
-    transitions.request(placement.transition(semantic_entity, affinity, *hull));
+    transitions.relocate(placement.transition(semantic_entity, affinity, *hull));
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
@@ -251,8 +250,14 @@ pub(super) fn prepare_controlled_subject(
     // Safe fixture spacecraft begin clear of terrain and immediately usable.
     if let Some(contact) = flight_contact.as_deref_mut() {
         contact.launch();
-        actuation.set_thrusters_enabled(true);
-        actuation.set_rcs_enabled(true);
+        flight_requests.write(FlightControlRequest::new(
+            realization,
+            FlightControlCommand::SetMainPropulsion(true),
+        ));
+        flight_requests.write(FlightControlRequest::new(
+            realization,
+            FlightControlCommand::SetReactionControl(true),
+        ));
     }
     if let Some(inhibition) = inhibition.as_deref_mut() {
         inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);

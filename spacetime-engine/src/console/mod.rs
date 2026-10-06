@@ -1,4 +1,4 @@
-//! Shared developer-console command and diagnostic transport.
+//! Shared developer command ingress and structured diagnostic transport.
 //!
 //! The console has one command registry/dispatcher and multiple frontends:
 //! - the in-game egui overlay;
@@ -11,6 +11,22 @@
 //!
 //! Raw process stdout/stderr are deliberately not intercepted. Engine code that
 //! should participate in the shared diagnostic stream should use tracing.
+//!
+//! ## Integration
+//!
+//! The console parses and transports developer commands. Domain adapters turn them into typed
+//! requests; the console does not take ownership of gameplay state.
+//!
+//! ## Module map
+//!
+//! - `command`: Command contracts, registration, parsing and built-ins.
+//! - `completion`: Input completion over registered command paths and runtime variables.
+//! - `overlay`: Developer overlay presentation, history, and input handling.
+//! - `runtime_variables`: Typed runtime-variable adapters for the shared developer console.
+//! - `transport`: Structured diagnostic transport with tracing and terminal adapters.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use crate::input_focus::{InputFocus, InputFocusSet};
 use bevy::prelude::*;
@@ -51,8 +67,8 @@ impl Plugin for DeveloperConsolePlugin {
             .init_resource::<RuntimeVariableRegistry>()
             .init_resource::<InputFocus>()
             .add_systems(PreUpdate, toggle_console.before(InputFocusSet::Resolve))
-            .add_systems(Update, dispatch_console_commands)
-            .add_systems(PostUpdate, flush_console_records)
+            .add_systems(Update, dispatch_console_submissions)
+            .add_systems(PostUpdate, flush_console_output)
             .add_systems(EguiPrimaryContextPass, draw_console);
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -90,7 +106,7 @@ impl Plugin for DeveloperConsolePlugin {
     }
 }
 
-fn dispatch_console_commands(world: &mut World) {
+fn dispatch_console_submissions(world: &mut World) {
     let submissions = world.resource::<ConsoleTransport>().drain_commands();
 
     for submission in submissions {
@@ -158,7 +174,7 @@ fn apply_focus_disposition(
     input_focus.request_gameplay_resume();
 }
 
-fn flush_console_records(transport: Res<ConsoleTransport>, mut overlay: ResMut<ConsoleOverlay>) {
+fn flush_console_output(transport: Res<ConsoleTransport>, mut overlay: ResMut<ConsoleOverlay>) {
     for record in transport.drain_records() {
         if record.origin == ConsoleRecordOrigin::Command {
             write_terminal_record(&record);

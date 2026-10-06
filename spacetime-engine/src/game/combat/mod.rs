@@ -1,6 +1,16 @@
 //! Weapons, projectiles and manifestation-space hit detection.
 //!
 //! `Projectile -> Hit -> health::Damage`
+//!
+//! ## Module map
+//!
+//! - `assets`: Presentation assets used by ordinary combat projectiles.
+//! - `damage`: Hit-to-damage conversion.
+//! - `projectile`: Projectile motion and manifestation-space hit detection.
+//! - `weapon`: Weapon-fire request realization into projectile entities.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
@@ -35,7 +45,7 @@ impl Default for Weapon {
 }
 
 #[derive(Message, Debug, Clone, Copy)]
-pub struct FireWeapon {
+pub struct FireWeaponRequest {
     pub wielder: Entity,
     pub origin: Vec3,
     pub direction: Vec3,
@@ -71,7 +81,7 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<FireWeapon>()
+        app.add_message::<FireWeaponRequest>()
             .add_message::<Hit>()
             .add_systems(Startup, setup_combat_assets)
             .add_systems(Update, fire_weapons.in_set(GameSet::Action))

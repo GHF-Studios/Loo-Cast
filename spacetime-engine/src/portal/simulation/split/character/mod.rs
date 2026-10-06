@@ -3,13 +3,19 @@
 //! The character adapter owns kinematic query exclusions, character ground/control
 //! state, destination-space remainder simulation and character peer colliders.
 //! Candidate selection and aperture geometry remain shared split policy.
+//!
+//! ## Module map
+//!
+//! - `materialization`: Character authority/peer collider materialization.
+//! - `preparation`: Predictive character split activation before motor simulation.
+//! - `resolution`: Character split resolution after ordinary motor movement.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::*;
 
-use crate::{
-    portal::PortalSplitTraveler,
-    physics::character::CharacterLocomotionFrame,
-};
+use crate::{physics::character::CharacterLocomotionFrame, portal::PortalSplitTraveler};
 
 use super::retire_split_partition;
 

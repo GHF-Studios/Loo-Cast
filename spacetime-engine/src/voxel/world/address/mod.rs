@@ -1,13 +1,13 @@
-//! Canonical voxel materialization addressing and compatibility coordinates.
+//! Canonical voxel materialization addressing.
 
 use super::*;
 
-/// Transitional coordinate in the original `VoxelWorld`-local sampling lattice.
+/// Compact nearby-grid offset in one `VoxelScaleRealization` lattice.
 ///
 /// Pass B no longer uses this as semantic identity, edit/query authority,
 /// streaming identity, or generation input. It remains only as a compact
 /// compatibility adapter for authored/tests that still describe a nearby grid
-/// offset from [`VoxelWorld::origin`].
+/// offset from [`VoxelScaleRealization::origin`].
 #[doc(hidden)]
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -44,11 +44,11 @@ impl VoxelChunkCoord {
     }
 }
 
-/// Compact cache-local identity of one materialization in a [`VoxelWorld`].
+/// Compact cache-local identity of one materialization in a [`VoxelScaleRealization`].
 ///
 /// The key is an integer offset in the world's 10-native-unit lattice. It is
 /// deliberately *not* canonical semantic authority: crossing a USF/semantic
-/// boundary converts it through the owning `VoxelWorld`.
+/// boundary converts it through the owning `VoxelScaleRealization`.
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::voxel) struct VoxelMaterializationKey([i64; 3]);
@@ -67,18 +67,30 @@ impl VoxelMaterializationKey {
         delta: IVec3,
     ) -> Result<Self, UsfPositionError> {
         Ok(Self([
-            self.0[0].checked_add(i64::from(delta.x)).ok_or(UsfPositionError::TranslationTooLarge)?,
-            self.0[1].checked_add(i64::from(delta.y)).ok_or(UsfPositionError::TranslationTooLarge)?,
-            self.0[2].checked_add(i64::from(delta.z)).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[0]
+                .checked_add(i64::from(delta.x))
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[1]
+                .checked_add(i64::from(delta.y))
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[2]
+                .checked_add(i64::from(delta.z))
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
         ]))
     }
 
     pub(in crate::voxel) fn native_offset(self) -> Result<[i64; 3], UsfPositionError> {
         let size = i64::from(MATERIALIZATION_CHUNK_SIZE);
         Ok([
-            self.0[0].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
-            self.0[1].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
-            self.0[2].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[0]
+                .checked_mul(size)
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[1]
+                .checked_mul(size)
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[2]
+                .checked_mul(size)
+                .ok_or(UsfPositionError::TranslationTooLarge)?,
         ])
     }
 }
@@ -181,7 +193,3 @@ impl VoxelMaterializationChunkAddress {
         )
     }
 }
-
-/// Compatibility alias for the M7.1a name.
-#[doc(hidden)]
-pub type VoxelChunkAddress = VoxelMaterializationChunkAddress;

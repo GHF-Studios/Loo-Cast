@@ -2,11 +2,8 @@
 
 use bevy::prelude::*;
 
+use super::{PortalSplitTraveler, PortalTraveler, simulation::split::retire_split_partition};
 use crate::spatial::{UsfOriginRebased, UsfSpatialTransitionApplied};
-use super::{
-    PortalSplitTraveler, PortalTraveler,
-    simulation::split::retire_split_partition,
-};
 
 pub(super) fn refresh_portal_local_caches_after_rebase(
     mut rebases: MessageReader<UsfOriginRebased>,

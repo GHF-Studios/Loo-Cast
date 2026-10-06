@@ -1,9 +1,6 @@
 //! Collision- and portal-aware third-person boom resolution.
 
-use crate::{
-    physics::topology::UsfRuntimeOwnershipQuery,
-    spatial::SpatialScale,
-};
+use crate::{physics::topology::UsfRuntimeOwnershipQuery, spatial::SpatialScale};
 
 use super::*;
 
@@ -23,7 +20,7 @@ struct CameraPortalCrossing {
 
 pub(super) fn resolve_third_person_boom(
     spatial_query: &SpatialQuery,
-    physics_charts: &UsfPhysicsSlices<'_, '_>,
+    physics_charts: &UsfPhysicsSliceQuery<'_, '_>,
     runtime_ownership: &UsfRuntimeOwnershipQuery<'_, '_>,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
@@ -66,12 +63,8 @@ pub(super) fn resolve_third_person_boom(
             break;
         };
         let end = transform.translation + back * remaining;
-        let crossing = nearest_camera_portal_crossing(
-            portals,
-            transform.translation,
-            end,
-            remaining,
-        );
+        let crossing =
+            nearest_camera_portal_crossing(portals, transform.translation, end, remaining);
         let segment_distance = crossing
             .as_ref()
             .map_or(remaining, |crossing| crossing.distance);
@@ -90,8 +83,7 @@ pub(super) fn resolve_third_person_boom(
             &cast_config,
             &filter,
         ) {
-            let travel =
-                (hit.distance - collision_padding).clamp(0.0, segment_distance);
+            let travel = (hit.distance - collision_padding).clamp(0.0, segment_distance);
             transform.translation += back * travel;
             resolved_distance += travel;
             return ResolvedThirdPersonBoom {

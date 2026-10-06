@@ -1,13 +1,13 @@
 //! Resolve one flight velocity from intent, motion, and navigation policy.
 
 use super::cruise::{CruiseStep, step_cruise};
-use crate::game::locomotion::{
-    FlightActuation, FlightAttitudeCommand, FlightControlIntent, LocomotionCapabilities,
-    MotionKernel,
-};
 use crate::game::navigation::{
     AdaptiveCruise, TravelAssistance, TravelAssistanceState, TravelEnvelope, TravelProfile,
     TravelState,
+};
+use crate::game::{
+    flight::FlightCapabilities,
+    locomotion::{FlightActuation, FlightAttitudeCommand, FlightControlIntent, MotionKernel},
 };
 use crate::spatial::UsfCanonicalMotion;
 use bevy::{math::DVec3, prelude::*};
@@ -126,7 +126,7 @@ fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f6
 pub(super) struct FlightVelocityStep<'a> {
     pub(super) kernel: MotionKernel,
     pub(super) actuation: &'a FlightActuation,
-    pub(super) capabilities: &'a LocomotionCapabilities,
+    pub(super) capabilities: &'a FlightCapabilities,
     pub(super) intent: &'a FlightControlIntent,
     pub(super) profile: &'a TravelProfile,
     pub(super) envelope: &'a TravelEnvelope,

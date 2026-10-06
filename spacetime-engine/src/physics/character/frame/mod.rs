@@ -1,3 +1,12 @@
+//! Maintain character control and locomotion frames from gravity and contact.
+//!
+//! ## Module map
+//!
+//! - `systems`: Gravity alignment and transient control-basis synchronization.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
+
 use bevy::prelude::*;
 
 mod systems;

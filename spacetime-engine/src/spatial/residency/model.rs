@@ -39,27 +39,27 @@ impl UsfResidentContext {
     }
 }
 
-/// Per-frame aggregation point for runtime context residency requirements.
+/// Per-frame entrypoint for runtime context residency requirements.
 ///
 /// Spatial interest is copied here automatically. Capability planners may add
-/// derived scopes in [`UsfResidencySet::Collect`]. Requesting residency does not
+/// derived scopes in [`crate::spatial::UsfResidencySet::Collect`]. Requesting residency does not
 /// prescribe which representation a subsystem must build inside that context.
 #[derive(Resource, Debug, Default)]
-pub struct UsfResidencyRequestBuffer {
-    scopes: Vec<SpatialDemandScope>,
+pub struct UsfResidencyRequests {
+    requirements: Vec<SpatialDemandScope>,
 }
 
-impl UsfResidencyRequestBuffer {
+impl UsfResidencyRequests {
     pub fn request(&mut self, scope: SpatialDemandScope) {
-        self.scopes.push(scope);
+        self.requirements.push(scope);
     }
 
     pub(super) fn clear(&mut self) {
-        self.scopes.clear();
+        self.requirements.clear();
     }
 
     pub(super) fn iter(&self) -> impl ExactSizeIterator<Item = SpatialDemandScope> + '_ {
-        self.scopes.iter().copied()
+        self.requirements.iter().copied()
     }
 }
 

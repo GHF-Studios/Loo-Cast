@@ -1,11 +1,6 @@
 //! ECS realization of observer-relative USF presentation state.
 
 use super::*;
-use bevy::{
-    camera::visibility::RenderLayers,
-    math::DVec3,
-    light::{NotShadowCaster, NotShadowReceiver},
-};
 use crate::{
     ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery, UsfPresentationProjectionOf},
     spatial::{
@@ -13,6 +8,11 @@ use crate::{
         UsfScaleCoverageSnapshot, UsfScaleRoleMask,
     },
     view::USF_PRESENTATION_LAYER,
+};
+use bevy::{
+    camera::visibility::RenderLayers,
+    light::{NotShadowCaster, NotShadowReceiver},
+    math::DVec3,
 };
 
 /// Keeps the view anchored to an ordinary bounded runtime transform while
@@ -25,32 +25,36 @@ pub(in crate::spatial) fn sync_view_context(
     semantic_motions: Query<&UsfCanonicalMotion>,
     observer: Single<(&Transform, &mut UsfViewContext), With<UsfViewRenderAnchor>>,
 ) {
-    let (canonical, runtime_translation, velocity_metres_per_second) =
-        if let Some((anchor, runtime_anchor)) = observation_override.current() {
-            (anchor, runtime_anchor, DVec3::ZERO)
-        } else {
-            let mut semantic_anchors = semantic_anchors.iter();
-            let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
-                return;
-            };
-            if semantic_anchors.next().is_some() {
-                error!("primary USF view has multiple semantic anchors");
-                return;
-            }
-            let Some(subject) = ownership.semantic_for(realization) else {
-                error!(partition = ?realization.0, "USF semantic view anchor has no semantic owner");
-                return;
-            };
-            let Ok(&canonical) = semantic_positions.get(subject) else {
-                error!(subject = ?subject, "USF semantic view anchor has no canonical position");
-                return;
-            };
-            let velocity = semantic_motions
-                .get(subject)
-                .map(|motion| motion.velocity_metres_per_second())
-                .unwrap_or(DVec3::ZERO);
-            (canonical, runtime_anchor.translation, velocity)
+    let (canonical, runtime_translation, velocity_metres_per_second) = if let Some((
+        anchor,
+        runtime_anchor,
+    )) =
+        observation_override.current()
+    {
+        (anchor, runtime_anchor, DVec3::ZERO)
+    } else {
+        let mut semantic_anchors = semantic_anchors.iter();
+        let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
+            return;
         };
+        if semantic_anchors.next().is_some() {
+            error!("primary USF view has multiple semantic anchors");
+            return;
+        }
+        let Some(subject) = ownership.semantic_for(realization) else {
+            error!(partition = ?realization.0, "USF semantic view anchor has no semantic owner");
+            return;
+        };
+        let Ok(&canonical) = semantic_positions.get(subject) else {
+            error!(subject = ?subject, "USF semantic view anchor has no canonical position");
+            return;
+        };
+        let velocity = semantic_motions
+            .get(subject)
+            .map(|motion| motion.velocity_metres_per_second())
+            .unwrap_or(DVec3::ZERO);
+        (canonical, runtime_anchor.translation, velocity)
+    };
 
     let (render_anchor, mut view) = observer.into_inner();
     view.sync_observer(
@@ -60,7 +64,6 @@ pub(in crate::spatial) fn sync_view_context(
         velocity_metres_per_second,
     );
 }
-
 
 /// Projects scale-authored presentation geometry around the observer without
 /// modifying logical/physics transforms.
@@ -113,13 +116,10 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         // adapter. Capability-local presentations instead follow observer demand
         // and realized PRESENTATION readiness; interaction scale is not a global
         // rendering owner.
-        let view_requested =
-            view.contribution(layer.scale()) > CONTRIBUTION_EPSILON;
-        let presentation_ready = capability.is_none_or(|realization| {
-            realization.roles().contains(UsfScaleRoleMask::PRESENTATION)
-        });
-        let should_render =
-            follows_active.is_some() || (view_requested && presentation_ready);
+        let view_requested = view.contribution(layer.scale()) > CONTRIBUTION_EPSILON;
+        let presentation_ready = capability
+            .is_none_or(|realization| realization.roles().contains(UsfScaleRoleMask::PRESENTATION));
+        let should_render = follows_active.is_some() || (view_requested && presentation_ready);
 
         if !should_render {
             if !matches!(*visibility, Visibility::Hidden) {
@@ -185,10 +185,7 @@ fn fallback_should_render(
 /// Scenery projections are presentation state. Their parent hierarchy may move
 /// for runtime-chart reasons, but that movement must not be applied a second
 /// time to a projection that was already computed from canonical/view state.
-fn local_translation_from_global(
-    desired_global: Vec3,
-    parent_translation: Option<Vec3>,
-) -> Vec3 {
+fn local_translation_from_global(desired_global: Vec3, parent_translation: Option<Vec3>) -> Vec3 {
     parent_translation.map_or(desired_global, |parent| desired_global - parent)
 }
 
@@ -210,7 +207,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    probe: Res<UsfPresentationProbe>,
+    probe: Res<UsfPresentationDomainProbe>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     ownership: UsfOwnershipQuery,
     parents: Query<&Transform, Without<UsfSceneryPresentation>>,
@@ -290,11 +287,15 @@ pub(in crate::spatial) fn project_scenery_presentations(
         } else {
             None
         };
-        let Some((translation, scale)) = scenery_projection_pose(&view, presentation, parent_translation) else {
+        let Some((translation, scale)) =
+            scenery_projection_pose(&view, presentation, parent_translation)
+        else {
             *visibility = Visibility::Hidden;
             continue;
         };
-        if transform.translation != translation { transform.translation = translation; }
+        if transform.translation != translation {
+            transform.translation = translation;
+        }
         transform.scale = Vec3::splat(scale);
         *visibility = Visibility::Inherited;
     }
@@ -307,25 +308,39 @@ fn scenery_projection_pose(
     presentation: &UsfSceneryPresentation,
     parent_translation: Option<Vec3>,
 ) -> Option<(Vec3, f32)> {
-    let relative = presentation.anchor().relative_at_scale_bounded(
-        view.anchor(), presentation.scale(), SCENERY_RELATIVE_BOUND,
-    ).ok()?;
-    if scenery_is_inside_near_field_exclusion(*presentation, relative) { return None; }
+    let relative = presentation
+        .anchor()
+        .relative_at_scale_bounded(view.anchor(), presentation.scale(), SCENERY_RELATIVE_BOUND)
+        .ok()?;
+    if scenery_is_inside_near_field_exclusion(*presentation, relative) {
+        return None;
+    }
     let native_to_view = view.projection_factor_f64(presentation.scale())?;
     let raw_relative = view.project_relative_native_from_eye(relative, presentation.scale())?;
     let raw_distance = raw_relative.length();
-    if !raw_distance.is_finite() { return None; }
+    if !raw_distance.is_finite() {
+        return None;
+    }
     let shell = presentation.render_shell_radius();
     let compression = if raw_distance > f64::EPSILON {
         shell / (shell + raw_distance)
-    } else { 1.0 };
+    } else {
+        1.0
+    };
     let scale = (native_to_view * compression) as f32;
-    if !scale.is_finite() || scale <= f32::EPSILON { return None; }
+    if !scale.is_finite() || scale <= f32::EPSILON {
+        return None;
+    }
     let projected = raw_relative * compression;
     let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
-    if !projected.is_finite() { return None; }
+    if !projected.is_finite() {
+        return None;
+    }
     let global = view.presentation_origin() + projected;
-    Some((local_translation_from_global(global, parent_translation), scale))
+    Some((
+        local_translation_from_global(global, parent_translation),
+        scale,
+    ))
 }
 
 /// Contextual Scale presentation is view-owned; physical interaction Scale
@@ -335,18 +350,34 @@ fn contextual_scale_projection_pose(
     presentation: &UsfScalePresentation,
     parent_translation: Option<Vec3>,
 ) -> Option<(Vec3, f32)> {
-    if !view.context_scale_eligible(presentation.scale()) { return None; }
-    let relative = presentation.anchor().relative_at_scale_bounded(
-        view.anchor(), presentation.scale(), PRESENTATION_RELATIVE_BOUND,
-    ).ok()?;
+    if !view.context_scale_eligible(presentation.scale()) {
+        return None;
+    }
+    let relative = presentation
+        .anchor()
+        .relative_at_scale_bounded(
+            view.anchor(),
+            presentation.scale(),
+            PRESENTATION_RELATIVE_BOUND,
+        )
+        .ok()?;
     let factor = view.direct_projection_factor(presentation.scale())?;
     let projected = view.project_relative_native_from_eye(relative, presentation.scale())?;
-    if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) { return None; }
+    if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) {
+        return None;
+    }
     let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
-    if !projected.is_finite() { return None; }
+    if !projected.is_finite() {
+        return None;
+    }
     let global = view.presentation_origin() + projected;
-    if !global.is_finite() { return None; }
-    Some((local_translation_from_global(global, parent_translation), factor))
+    if !global.is_finite() {
+        return None;
+    }
+    Some((
+        local_translation_from_global(global, parent_translation),
+        factor,
+    ))
 }
 
 fn capability_terrain_uses_physical_projection(
@@ -361,11 +392,8 @@ pub(in crate::spatial) fn project_scale_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    probe: Res<UsfPresentationProbe>,
-    parents: Query<
-        (&Transform, Option<&UsfCapabilityRealization>),
-        Without<UsfScalePresentation>,
-    >,
+    probe: Res<UsfPresentationDomainProbe>,
+    parents: Query<(&Transform, Option<&UsfCapabilityRealization>), Without<UsfScalePresentation>>,
     mut presentations: Query<(
         Entity,
         &UsfScalePresentation,
@@ -399,8 +427,7 @@ pub(in crate::spatial) fn project_scale_presentations(
         } else {
             None
         };
-        let capability =
-            parent_state.and_then(|(_, capability)| capability);
+        let capability = parent_state.and_then(|(_, capability)| capability);
 
         if capability.is_some_and(|realization| {
             !realization.roles().contains(UsfScaleRoleMask::PRESENTATION)
@@ -471,12 +498,18 @@ pub(in crate::spatial) fn project_scale_presentations(
         }
 
         let parent_translation = parent_state.map(|(transform, _)| transform.translation);
-        let Some((translation, scale)) = contextual_scale_projection_pose(&view, presentation, parent_translation) else {
+        let Some((translation, scale)) =
+            contextual_scale_projection_pose(&view, presentation, parent_translation)
+        else {
             *visibility = Visibility::Hidden;
             continue;
         };
-        if transform.translation != translation { transform.translation = translation; }
-        if transform.scale != Vec3::splat(scale) { transform.scale = Vec3::splat(scale); }
+        if transform.translation != translation {
+            transform.translation = translation;
+        }
+        if transform.scale != Vec3::splat(scale) {
+            transform.scale = Vec3::splat(scale);
+        }
         if !matches!(*visibility, Visibility::Inherited) {
             *visibility = Visibility::Inherited;
         }

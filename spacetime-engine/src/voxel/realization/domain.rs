@@ -11,9 +11,9 @@ const DEFAULT_LOCAL_PATCH_HALF_EXTENT_NATIVE: f32 = 32.0;
 /// are representation policy, not semantic body identity.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct VoxelScaleDomain {
-    realization_slices: UsfChartMask,
-    collision_slices: UsfChartMask,
-    editing_slices: UsfChartMask,
+    realization_slices: UsfScaleSliceMask,
+    collision_slices: UsfScaleSliceMask,
+    editing_slices: UsfScaleSliceMask,
     refinement_activation_native: f32,
     local_patch_half_extent_native: f32,
 }
@@ -21,23 +21,23 @@ pub struct VoxelScaleDomain {
 impl VoxelScaleDomain {
     pub fn contiguous(lower: SpatialScale, upper: SpatialScale) -> Self {
         Self {
-            realization_slices: UsfChartMask::inclusive_range(lower, upper),
-            collision_slices: UsfChartMask::NONE,
-            editing_slices: UsfChartMask::NONE,
+            realization_slices: UsfScaleSliceMask::inclusive_range(lower, upper),
+            collision_slices: UsfScaleSliceMask::NONE,
+            editing_slices: UsfScaleSliceMask::NONE,
             refinement_activation_native: DEFAULT_REFINEMENT_ACTIVATION_NATIVE,
             local_patch_half_extent_native: DEFAULT_LOCAL_PATCH_HALF_EXTENT_NATIVE,
         }
     }
 
-    pub const fn realization_slices(self) -> UsfChartMask {
+    pub const fn realization_slices(self) -> UsfScaleSliceMask {
         self.realization_slices
     }
 
-    pub const fn collision_slices(self) -> UsfChartMask {
+    pub const fn collision_slices(self) -> UsfScaleSliceMask {
         self.collision_slices
     }
 
-    pub const fn editing_slices(self) -> UsfChartMask {
+    pub const fn editing_slices(self) -> UsfScaleSliceMask {
         self.editing_slices
     }
 
@@ -61,12 +61,12 @@ impl VoxelScaleDomain {
         self.editing_slices.contains(scale)
     }
 
-    pub fn with_collision_slices(mut self, slices: UsfChartMask) -> Self {
+    pub fn with_collision_slices(mut self, slices: UsfScaleSliceMask) -> Self {
         self.collision_slices = slices;
         self
     }
 
-    pub fn with_editing_slices(mut self, slices: UsfChartMask) -> Self {
+    pub fn with_editing_slices(mut self, slices: UsfScaleSliceMask) -> Self {
         self.editing_slices = slices;
         self
     }

@@ -1,3 +1,5 @@
+//! Install runtime component-conflict diagnostics.
+
 use std::{any::TypeId, collections::HashSet};
 
 use bevy::app::{App, Plugin};

@@ -1,27 +1,27 @@
-//! Resolve semantic authority/Scale intent to disposable voxel worlds.
+//! Resolve semantic authority/Scale intent to disposable voxel scale realizations.
 
 use super::*;
 
-/// Resolve authority+Scale intent to the disposable world entity consumed by
+/// Resolve authority+Scale intent to the disposable realization entity consumed by
 /// the existing dense materialization backend.
-pub(in crate::voxel) fn resolve_voxel_realization_demand(
+pub(in crate::voxel) fn resolve_voxel_realization_demands(
     intents: Res<VoxelRealizationIntentSnapshot>,
-    registry: Res<CelestialVoxelRealizationRegistry>,
+    registry: Res<CelestialVoxelRealizations>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
     let mut next = VoxelRealizationDemandSnapshot::default();
 
     for intent in intents.iter() {
-        let target_world = match intent.target {
-            VoxelRealizationIntentTarget::ExistingWorld(world) => Some(world),
-            VoxelRealizationIntentTarget::Celestial(target) => registry.world_for(target),
+        let target_realization = match intent.target {
+            VoxelRealizationIntentTarget::ExistingRealization(world) => Some(world),
+            VoxelRealizationIntentTarget::Celestial(target) => registry.realization_for(target),
         };
-        let Some(target_world) = target_world else {
+        let Some(target_realization) = target_realization else {
             continue;
         };
 
         next.push(
-            target_world,
+            target_realization,
             intent.scope,
             intent.roles,
             intent.view_source,

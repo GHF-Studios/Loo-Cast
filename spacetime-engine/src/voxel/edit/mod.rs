@@ -1,4 +1,14 @@
 //! Constructive edits over the authoritative voxel field.
+//!
+//! ## Module map
+//!
+//! - `bounds`: Finite canonical voxel scopes represented by bounded local offsets.
+//! - `brush`: Analytic local shapes used as semantic voxel-edit brushes.
+//! - `operation`: Semantic voxel mutations and disposable bounded dense-chart projections.
+//! - `position`: Canonical semantic positions used by voxel queries and edits.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::Vec3;
 

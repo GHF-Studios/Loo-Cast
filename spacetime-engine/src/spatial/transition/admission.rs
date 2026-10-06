@@ -58,12 +58,12 @@ pub(super) struct ResolvedTransition {
 
 impl ResolvedTransition {
     pub(super) fn take(
-        queue: &mut UsfSpatialTransitionQueue,
+        transitions: &mut UsfSpatialTransitions,
         subject: Entity,
         current_position: UsfPosition,
         previous_scale: SpatialScale,
     ) -> Option<Self> {
-        if let Some(request) = queue.take_latest_relocation_for(subject) {
+        if let Some(request) = transitions.take_latest_relocation_for(subject) {
             return Some(Self {
                 position: request.position,
                 target_scale: request.target_scale.unwrap_or(previous_scale),
@@ -75,7 +75,7 @@ impl ResolvedTransition {
                 requeue: Some(request),
             });
         }
-        let requirement = queue.interaction_requirement_for(subject)?;
+        let requirement = transitions.interaction_requirement_for(subject)?;
         Some(Self {
             position: current_position,
             target_scale: requirement.target_scale,
@@ -96,7 +96,7 @@ impl ResolvedTransition {
         subject: Entity,
         previous_scale: SpatialScale,
         active: &mut UsfPrimaryInteractionSlice,
-        queue: &mut UsfSpatialTransitionQueue,
+        transitions: &mut UsfSpatialTransitions,
         coverage: &UsfScaleCoverageSnapshot,
         guards: &UsfInteractionHandoffGuards,
         wait_fingerprint: &mut Option<InteractionHandoffWaitFingerprint>,
@@ -118,7 +118,7 @@ impl ResolvedTransition {
             CoverageEvidence::collect(coverage, &self.position, self.target_scale, self.coverage);
         if !self.coverage_ready(subject, &evidence, wait_fingerprint) {
             if let Some(request) = self.requeue {
-                queue.request(request);
+                transitions.relocate(request);
             }
             return None;
         }

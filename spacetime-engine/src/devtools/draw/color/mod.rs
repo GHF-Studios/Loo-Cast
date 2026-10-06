@@ -1,3 +1,5 @@
+//! Map scalar ranges to reusable diagnostic color ramps.
+
 use bevy::{color::LinearRgba, prelude::Color};
 
 /// Maps a scalar quantity into normalized visualization space.

@@ -1,4 +1,13 @@
 //! Rectangular subtractive-stencil fitting against immutable collision sources.
+//!
+//! ## Module map
+//!
+//! - `axes`: Face-axis projections shared by fit and strict support checks.
+//! - `placement`: Corrects a rectangle onto one cuboid face and its tangent bounds.
+//! - `support`: Strict uncorrected support predicate for a rectangular aperture.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use bevy::prelude::*;
 

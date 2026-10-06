@@ -171,23 +171,28 @@ impl UsfInteractionRequirement {
     }
 }
 
+/// Canonical spatial-transition facility.
+///
+/// Callers submit relocation commands or continuously refresh interaction
+/// requirements through this resource. Queueing/coalescing/retry state is
+/// internal to the transition domain and must not be interpreted externally.
 #[derive(Resource, Default)]
-pub struct UsfSpatialTransitionQueue {
+pub struct UsfSpatialTransitions {
     pending: VecDeque<UsfSpatialTransition>,
     interaction_requirements: HashMap<Entity, UsfInteractionRequirement>,
 }
 
-impl UsfSpatialTransitionQueue {
+impl UsfSpatialTransitions {
     /// Queues a one-shot canonical relocation/rechart command.
     ///
     /// A discontinuous command invalidates any continuous requirement sampled
     /// at the old location. The planner publishes a fresh one afterward.
-    pub fn request(&mut self, transition: UsfSpatialTransition) {
+    pub fn relocate(&mut self, transition: UsfSpatialTransition) {
         self.interaction_requirements.remove(&transition.subject);
         self.pending.push_back(transition);
     }
 
-    pub fn set_interaction_requirement(&mut self, requirement: UsfInteractionRequirement) {
+    pub fn require_interaction(&mut self, requirement: UsfInteractionRequirement) {
         self.interaction_requirements
             .insert(requirement.subject, requirement);
     }

@@ -1,3 +1,13 @@
+//! Project health state into player and world presentation.
+//!
+//! ## Module map
+//!
+//! - `player`: Local-player HUD health presentation.
+//! - `world`: Disposable world-space health-bar manifestations and their cache.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
+
 use std::collections::{HashMap, HashSet};
 
 use bevy::{
@@ -38,7 +48,7 @@ mod player;
 mod world;
 
 use player::{spawn_player_health_bar, sync_player_health_bar};
-use world::{setup_world_health_bar_assets, sync_world_health_bars, WorldHealthBarCache};
+use world::{WorldHealthBarCache, setup_world_health_bar_assets, sync_world_health_bars};
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<WorldHealthBarCache>()

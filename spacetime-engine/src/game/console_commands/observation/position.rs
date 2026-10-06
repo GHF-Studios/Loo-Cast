@@ -36,7 +36,7 @@ pub(in crate::game::console_commands) fn where_command(
         .get::<ControlledSubjectLocomotion>(controlled_entity)
         .copied();
     let execution = world.get::<MotionExecution>(controlled_entity).copied();
-    let probe = *world.resource::<UsfPresentationProbe>();
+    let probe = *world.resource::<UsfPresentationDomainProbe>();
     let coverage_status = semantic_position.map_or_else(
         || "coverage = <canonical position unavailable>".to_string(),
         |position| {

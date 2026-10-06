@@ -1,3 +1,16 @@
+//! Compose creative catalog, selection, cursor, layout, and hotbar state.
+//!
+//! ## Module map
+//!
+//! - `catalog`: Catalog paging, slot synchronization and catalog-item picking.
+//! - `cursor`: Presentation and positioning of the item currently held by the UI cursor.
+//! - `hotbar`: Creative hotbar interaction, shortcuts and slot presentation.
+//! - `layout`: Construction of the creative inventory menu and cursor-item presentation roots.
+//! - `state`: Creative inventory UI state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
+
 use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
 
 use crate::{

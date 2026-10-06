@@ -1,23 +1,32 @@
 //! Ordinary geometric portals.
 //!
-//! Responsibility split:
-//!
-//! - `domain`: persistent portal data and the public [`PortalCommand`] protocol;
-//! - `topology`: pure mapping/crossing/clipping math;
-//! - `simulation`: applies commands and owns runtime traversal/splitting;
-//! - `rendering`: the recursive visual portal illusion.
-//!
 //! Gameplay and mods should normally mutate portals by sending
 //! [`PortalCommand`] rather than editing portal entities directly. Rendering
 //! details remain private to this module.
+//!
+//! ## Integration
+//!
+//! PortalCommand enters through domain state; topology supplies crossing math, simulation applies
+//! movement and splitting, and rendering consumes the result for derived views.
+//!
+//! ## Module map
+//!
+//! - `devtools`: Portal topology developer visualization.
+//! - `domain`: Portal domain types and public mutation protocol.
+//! - `rendering`: Portal presentation.
+//! - `simulation`: Runtime mutation and traversal of physical portals.
+//! - `systems`: Portal runtime adapters for cross-cutting engine events.
+//! - `topology`: Pure portal crossing and coordinate-mapping geometry.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 pub(crate) mod devtools;
 mod domain;
 mod rendering;
 mod simulation;
-mod topology;
 mod systems;
-
+mod topology;
 
 pub use domain::{
     Portal, PortalActive, PortalCommand, PortalConfig, PortalEndpoint, PortalEndpointConfig,
@@ -41,15 +50,9 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-use crate::{
-    physics::character::CharacterMovementSet,
-    spatial::UsfSpatialSet,
-};
+use crate::{physics::character::CharacterMovementSet, spatial::UsfSpatialSet};
 
-use systems::{
-    refresh_portal_local_caches_after_rebase,
-    reset_portal_spatial_transition_caches,
-};
+use systems::{refresh_portal_local_caches_after_rebase, reset_portal_spatial_transition_caches};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortalUpdateSet {
@@ -90,7 +93,7 @@ impl Plugin for PortalPlugin {
                 Update,
                 (
                     simulation::control::apply_portal_commands,
-                    simulation::traversal::teleport_travelers,
+                    simulation::traversal::resolve_portal_traversal,
                 )
                     .chain()
                     .in_set(PortalUpdateSet::Topology),
@@ -158,8 +161,7 @@ impl Plugin for PortalPlugin {
             )
             .add_systems(
                 PostUpdate,
-                refresh_portal_local_caches_after_rebase
-                    .in_set(UsfSpatialSet::RuntimeProjection),
+                refresh_portal_local_caches_after_rebase.in_set(UsfSpatialSet::RuntimeProjection),
             );
     }
 }

@@ -10,7 +10,7 @@ const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 
 pub(super) fn spawn_reference_spacecraft(
-    world: Res<State<GameWorld>>,
+    world: Res<State<GameScenario>>,
     existing_ships: Query<(), With<SpacecraftManifestation>>,
     ownership: UsfOwnershipQuery,
     mut commands: Commands,
@@ -50,7 +50,7 @@ pub(super) fn spawn_reference_spacecraft(
     // Fixture bootstrap owns the arrival transaction. Do not steal local
     // control or disable its spatial demand until the player's detailed chart
     // and actual local collision realization are ready.
-    if *world.get() == GameWorld::CelestialFixture
+    if *world.get() == GameScenario::CelestialFixture
         && (body_layer.scale() != detailed_body.0 || !surface.collision_ready())
     {
         return;
@@ -113,9 +113,7 @@ fn spawn_ship_manifestation(
 ) -> Entity {
     let mut locomotion = ControlledSubjectLocomotion::default();
     locomotion.request_automatic();
-    let mut actuation = FlightActuation::default();
-    actuation.set_thrusters_enabled(true);
-    actuation.set_rcs_enabled(true);
+    let actuation = FlightActuation::initially_enabled();
 
     // Human body S0 -> small spacecraft S+1. Spawn placement may initially use
     // the player's current chart; control transfer explicitly recharts it.
@@ -140,6 +138,8 @@ fn spawn_ship_manifestation(
             (
                 ViewCameraProfile::spacecraft(14.0),
                 LocomotionCapabilities::spacecraft(),
+                FlightCapabilities::spacecraft(),
+                NavigationCapabilities::spacecraft(),
                 LocomotionEnabled(true),
                 (
                     PhysicalBoxHull::from_size_metres(SHIP_SIZE),
@@ -150,6 +150,8 @@ fn spawn_ship_manifestation(
                 UsfCanonicalMotion::default(),
                 locomotion,
                 DetailedBodyScale(ship_interaction_scale),
+            ),
+            (
                 TravelProfile::spacecraft(),
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
@@ -165,7 +167,7 @@ fn spawn_ship_manifestation(
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
                 CharacterMovementConfig::default(),
-                CharacterMovementInput::default(),
+                CharacterMovementIntent::default(),
                 CharacterGroundState::default(),
                 SpacecraftOrbit::default(),
                 RigidBody::Kinematic,

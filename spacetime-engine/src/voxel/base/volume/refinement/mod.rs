@@ -4,12 +4,12 @@ use bevy::prelude::{Vec2, Vec3};
 
 use crate::spatial::{SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SpatialScale};
 
+use super::super::super::{VoxelMaterialId, VoxelSample};
 use super::super::{
     EMPTY_DISTANCE,
     noise::{value_noise, value_noise_3d},
     terrain::ProceduralTerrain,
 };
-use super::super::super::{VoxelMaterialId, VoxelSample};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) struct ScaleRefinementHierarchy {
@@ -17,7 +17,10 @@ pub(super) struct ScaleRefinementHierarchy {
     pub(super) seeds: [u32; SPATIAL_SCALE_COUNT],
 }
 
-pub(super) fn sample_refinement_hierarchy(local: Vec3, hierarchy: ScaleRefinementHierarchy) -> VoxelSample {
+pub(super) fn sample_refinement_hierarchy(
+    local: Vec3,
+    hierarchy: ScaleRefinementHierarchy,
+) -> VoxelSample {
     let current = hierarchy.current_scale;
     let mut distance = 0.0_f64;
 

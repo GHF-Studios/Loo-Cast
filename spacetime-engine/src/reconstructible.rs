@@ -1,7 +1,7 @@
 //! Generic pacing for disposable/reconstructible main-thread work.
 
-use std::time::Instant;
 use bevy::prelude::*;
+use std::time::Instant;
 
 const WORK_CLASS_COUNT: usize = 3;
 const DEFAULT_TARGET_FRAME_SECONDS: f64 = 1.0 / 60.0;
@@ -42,7 +42,10 @@ impl Default for ReconstructibleWorkPolicy {
 impl ReconstructibleWorkPolicy {
     pub fn for_target_hz(hz: f64) -> Self {
         let hz = if hz.is_finite() && hz > 1.0 { hz } else { 60.0 };
-        Self { target_frame_seconds: 1.0 / hz, ..default() }
+        Self {
+            target_frame_seconds: 1.0 / hz,
+            ..default()
+        }
     }
     pub fn with_reserved_seconds(mut self, seconds: f64) -> Self {
         if seconds.is_finite() && seconds >= 0.0 {
@@ -62,7 +65,10 @@ struct WorkClassState {
 }
 impl Default for WorkClassState {
     fn default() -> Self {
-        Self { predicted_seconds: 0.000_25, started_units: 0 }
+        Self {
+            predicted_seconds: 0.000_25,
+            started_units: 0,
+        }
     }
 }
 
@@ -96,11 +102,15 @@ pub struct ReconstructibleWorkToken {
 impl ReconstructibleFrameBudget {
     fn begin_frame(&mut self, policy: ReconstructibleWorkPolicy) {
         let now = Instant::now();
-        let previous = now.duration_since(self.previous_frame_started).as_secs_f64();
+        let previous = now
+            .duration_since(self.previous_frame_started)
+            .as_secs_f64();
         self.previous_frame_started = now;
         self.frame_started = now;
 
-        let target = policy.target_frame_seconds.max(MINIMUM_DISCRETIONARY_SECONDS);
+        let target = policy
+            .target_frame_seconds
+            .max(MINIMUM_DISCRETIONARY_SECONDS);
         let overshoot = (previous - target).max(0.0);
         let slack = (target - previous).max(0.0);
         self.overshoot_debt_seconds =
@@ -124,7 +134,10 @@ impl ReconstructibleFrameBudget {
         }
         self.classes[class.index()].started_units =
             self.classes[class.index()].started_units.saturating_add(1);
-        Some(ReconstructibleWorkToken { class, started: Instant::now() })
+        Some(ReconstructibleWorkToken {
+            class,
+            started: Instant::now(),
+        })
     }
 
     pub fn finish(&mut self, token: ReconstructibleWorkToken) {
@@ -134,6 +147,18 @@ impl ReconstructibleFrameBudget {
         }
         let state = &mut self.classes[token.class.index()];
         state.predicted_seconds += (sample - state.predicted_seconds) * EWMA_ALPHA;
+    }
+
+    /// Run one synchronous reconstructible work unit when the frame budget admits it.
+    pub fn try_run<T>(
+        &mut self,
+        class: ReconstructibleWorkClass,
+        work: impl FnOnce() -> T,
+    ) -> Option<T> {
+        let token = self.begin(class)?;
+        let result = work();
+        self.finish(token);
+        Some(result)
     }
 
     pub fn predicted_unit_seconds(&self, class: ReconstructibleWorkClass) -> f64 {

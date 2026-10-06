@@ -11,12 +11,12 @@ use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 
 use crate::spatial::{
-    SpatialScale, UsfCapabilityRealization, UsfCapabilitySet,
-    UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+    SpatialScale, UsfCapabilityRealization, UsfCapabilitySet, UsfScaleCoverageSnapshot,
+    UsfScaleRoleMask,
 };
 
-use super::VoxelMaterializationRuntime;
 use super::super::VoxelMaterializationKey;
+use super::VoxelPresentationManifestation;
 
 const NEG_X: u8 = 1 << 0;
 const POS_X: u8 = 1 << 1;
@@ -36,7 +36,7 @@ const NEIGHBORS: [(IVec3, u8); 6] = [
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct FrontierKey {
-    world: Entity,
+    realization: Entity,
     authority: Entity,
     fine_scale: SpatialScale,
     key: VoxelMaterializationKey,
@@ -73,7 +73,7 @@ impl VoxelRefinementFaceMask {
 /// to 2:1 neighbors and only then ask a transition-cell mesher for geometry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct VoxelRefinementFrontierCell {
-    world: Entity,
+    realization: Entity,
     authority: Entity,
     fine_scale: SpatialScale,
     key: VoxelMaterializationKey,
@@ -81,8 +81,8 @@ pub(super) struct VoxelRefinementFrontierCell {
 }
 
 impl VoxelRefinementFrontierCell {
-    pub(super) const fn world(self) -> Entity {
-        self.world
+    pub(super) const fn realization(self) -> Entity {
+        self.realization
     }
 
     pub(super) const fn authority(self) -> Entity {
@@ -121,18 +121,16 @@ pub(super) struct VoxelRefinementFrontierSnapshot {
 }
 
 impl VoxelRefinementFrontierSnapshot {
-    pub(super) fn iter(
-        &self,
-    ) -> impl Iterator<Item = VoxelRefinementFrontierCell> + '_ {
-        self.cells.iter().map(|(key, &exposed_faces)| {
-            VoxelRefinementFrontierCell {
-                world: key.world,
+    pub(super) fn iter(&self) -> impl Iterator<Item = VoxelRefinementFrontierCell> + '_ {
+        self.cells
+            .iter()
+            .map(|(key, &exposed_faces)| VoxelRefinementFrontierCell {
+                realization: key.realization,
                 authority: key.authority,
                 fine_scale: key.fine_scale,
                 key: key.key,
                 exposed_faces,
-            }
-        })
+            })
     }
 
     pub(super) const fn source_coverage_revision(&self) -> u64 {
@@ -145,14 +143,14 @@ impl VoxelRefinementFrontierSnapshot {
     /// coarse support band.
     pub(super) fn exposed_faces(
         &self,
-        world: Entity,
+        realization: Entity,
         authority: Entity,
         fine_scale: SpatialScale,
         key: VoxelMaterializationKey,
     ) -> VoxelRefinementFaceMask {
         self.cells
             .get(&FrontierKey {
-                world,
+                realization,
                 authority,
                 fine_scale,
                 key,
@@ -164,10 +162,7 @@ impl VoxelRefinementFrontierSnapshot {
 
 fn sync_refinement_frontier(
     coverage: Res<UsfScaleCoverageSnapshot>,
-    runtimes: Query<(
-        &VoxelMaterializationRuntime,
-        &UsfCapabilityRealization,
-    )>,
+    runtimes: Query<(&VoxelPresentationManifestation, &UsfCapabilityRealization)>,
     mut frontier: ResMut<VoxelRefinementFrontierSnapshot>,
 ) {
     let coverage_revision = coverage.revision();
@@ -180,10 +175,7 @@ fn sync_refinement_frontier(
         if !runtime.active() {
             continue;
         }
-        if !realization
-            .roles()
-            .contains(UsfScaleRoleMask::PRESENTATION)
-        {
+        if !realization.roles().contains(UsfScaleRoleMask::PRESENTATION) {
             continue;
         }
 
@@ -198,7 +190,7 @@ fn sync_refinement_frontier(
         }
 
         ready.insert(FrontierKey {
-            world: runtime.world(),
+            realization: runtime.realization(),
             authority: realization.authority(),
             fine_scale,
             key: runtime.key(),
@@ -217,7 +209,7 @@ fn sync_refinement_frontier(
                 .ok()
                 .is_some_and(|neighbor| {
                     ready.contains(&FrontierKey {
-                        world: key.world,
+                        realization: key.realization,
                         authority: key.authority,
                         fine_scale: key.fine_scale,
                         key: neighbor,

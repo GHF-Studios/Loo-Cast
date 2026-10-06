@@ -6,12 +6,12 @@ use bevy::prelude::*;
 use crate::portal::simulation::split::active_portal_pair;
 
 use crate::{
+    physics::topology::SpatialSplitBox,
     portal::{
         Portal, PortalActive, PortalSplitTraveler,
         domain::ActivePortalSplit,
         topology::mapping::{map_transform, portal_mapping},
     },
-    physics::topology::SpatialSplitBox,
 };
 
 use super::super::super::split::{box_fits_aperture_at, center_crossing_fraction};

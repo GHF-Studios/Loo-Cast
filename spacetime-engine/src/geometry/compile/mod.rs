@@ -1,3 +1,15 @@
+//! Compile authored map definitions into runtime geometry and lighting inputs.
+//!
+//! ## Module map
+//!
+//! - `model`: Compiled geometry intermediate representation consumed by runtime spawning.
+//! - `generators`: Expansion of repeated/parametric authored geometry.
+//! - `lighting`: Compilation of authored light definitions.
+//! - `primitives`: Compilation of directly-authored primitive geometry.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
+
 use bevy::prelude::*;
 
 use super::asset::{
@@ -21,7 +33,7 @@ use primitives::{
     compile_ramp, compile_sphere,
 };
 
-pub(super) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {
+pub(super) fn compile_authored_map(map: &AuthoredMap) -> Vec<CompiledNode> {
     let mut output = Vec::new();
 
     for object in &map.objects {

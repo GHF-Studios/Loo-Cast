@@ -1,4 +1,14 @@
-//! Loo Cast adapters for developer focus, inspection and domain tooling.
+//! Loo Cast adapters into generic developer focus, inspection and tooling facilities.
+//!
+//! ## Module map
+//!
+//! - `focus`: Game-specific spatial focus resolution, portal aperture hits and focus pinning.
+//! - `inspection`: Identity/manifestation inspection contributed by the test game.
+//! - `lab`: Live developer override/preset composition.
+//! - `view`: Resolution of the game camera/cursor into the generic developer interaction view.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use avian3d::prelude::SpatialQuery;
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -15,7 +25,7 @@ use crate::{
 
 use super::player::{Player, cursor::CursorCapture};
 
-const FOCUS_RANGE_METERS: f32 = 250.0;
+const FOCUS_RANGE_METRES: f32 = 250.0;
 const IDENTITY_SECTION: InspectSectionId = InspectSectionId("identity");
 
 mod focus;
@@ -27,9 +37,9 @@ use focus::{handle_focus_pin, resolve_player_focus};
 use inspection::collect_identity_inspection;
 use view::resolve_developer_view;
 
-pub struct LooCastDeveloperToolsPlugin;
+pub struct LooCastDeveloperAdaptersPlugin;
 
-impl Plugin for LooCastDeveloperToolsPlugin {
+impl Plugin for LooCastDeveloperAdaptersPlugin {
     fn build(&self, app: &mut App) {
         crate::portal::devtools::configure(app);
         crate::thermal::devtools::configure(app);

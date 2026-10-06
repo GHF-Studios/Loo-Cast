@@ -78,6 +78,6 @@ impl InspectionFrame {
     }
 }
 
-pub(in crate::devtools) fn clear_inspection_frame(mut frame: ResMut<InspectionFrame>) {
+pub(in crate::devtools) fn begin_inspection_frame(mut frame: ResMut<InspectionFrame>) {
     frame.clear();
 }

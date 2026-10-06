@@ -1,3 +1,5 @@
+//! Character movement and support-query math.
+
 use bevy::prelude::*;
 
 /// Reject a vector's component along `axis`.

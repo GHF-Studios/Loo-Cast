@@ -1,14 +1,30 @@
 //! Engine-owned maintenance of the current bounded runtime chart.
+//!
+//! ## Module map
+//!
+//! - `membership`: Scale membership shared by runtime rebase preflight and backend application.
+//! - `rebase`: Floating-origin rebasing of the bounded local runtime chart.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::*;
 
 use super::{SpatialScale, UsfChart, UsfChartDelta, UsfPosition, UsfPositionError};
 
-mod rebase;
 mod membership;
+mod rebase;
 
-pub(in crate::spatial) use rebase::rebase_local_frame;
+/// Logical runtime projection that anchors the current bounded chart.
+///
+/// This is independent from semantic manifestation authority and presentation
+/// projection. Other simultaneous projections may exist without becoming the
+/// chart anchor.
+#[derive(Component, Debug, Default)]
+pub struct UsfSpatialAnchor;
+
 pub(crate) use membership::resolved_rebase_scale;
+pub(in crate::spatial) use rebase::rebase_local_frame;
 
 /// Runtime-maintained canonical origin shared by the current local chart stack.
 ///
@@ -54,10 +70,7 @@ impl UsfRuntimeChartState {
             .unwrap_or(Vec3::ZERO)
     }
 
-    pub(crate) fn apply_rebase(
-        &mut self,
-        delta: UsfChartDelta,
-    ) -> Result<(), UsfPositionError> {
+    pub(crate) fn apply_rebase(&mut self, delta: UsfChartDelta) -> Result<(), UsfPositionError> {
         self.origin = delta.apply_to(self.origin)?;
         self.rebase_count = self.rebase_count.wrapping_add(1);
         self.last_delta = Some(delta);

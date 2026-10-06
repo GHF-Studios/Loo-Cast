@@ -4,8 +4,8 @@ use bevy::prelude::*;
 
 use crate::physics::topology::UsfRuntimeOwnershipQuery;
 
-use super::{ThermalField, ThermalMaterial};
 use super::super::{ThermalBody, ThermalSet};
+use super::{ThermalField, ThermalMaterial};
 
 const CONDUCTION_STEP_SECONDS: f32 = 1.0 / 60.0;
 const MAX_ACCUMULATED_SECONDS: f32 = 0.25;

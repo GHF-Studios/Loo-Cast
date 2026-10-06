@@ -1,9 +1,18 @@
-//! Runtime-generated presentation assets.
+//! Replaceable runtime-generated presentation assets.
 //!
 //! Procedural assets are recipes and disposable generated representations. They
 //! deliberately do not own semantic world state. A world/Phenomenon may choose
 //! recipe parameters or seeds later, but texture/model/audio generation remains
 //! a separate replaceable layer.
+//!
+//! ## Module map
+//!
+//! - `debug_grid`: Analytical development-grid procedural asset contract.
+//! - `systems`: Lifecycle for stable-handle procedural presentation assets.
+//! - `texture`: Generate disposable texture assets from procedural presentation recipes.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod debug_grid;
 pub(crate) use debug_grid::DEBUG_GRID_BASE_UV_METRES_PER_UNIT;
@@ -32,9 +41,9 @@ pub struct ProceduralPbrMaterial {
     pub orm: Handle<Image>,
 }
 
-/// Built-in generated assets currently used by the game vertical slice.
+/// Stable handles for built-in generated presentation assets.
 #[derive(Resource, Debug, Clone)]
-pub struct ProceduralAssetLibrary {
+pub struct ProceduralPresentationAssets {
     pub cracked_clay: ProceduralPbrMaterial,
     /// Analytical GPU development-grid base/marker material. The handle
     /// carries authored PBR state; voxel shaders generate the grid function.
@@ -48,16 +57,16 @@ pub struct ProceduralAssetLibrary {
     pub lunar_surface: Handle<StandardMaterial>,
 }
 
-use systems::{initialize_procedural_assets, regenerate_changed_procedural_assets};
+use systems::{initialize_procedural_presentation_assets, regenerate_changed_presentation_assets};
 
-pub struct ProceduralAssetsPlugin;
+pub struct ProceduralPresentationAssetsPlugin;
 
-impl Plugin for ProceduralAssetsPlugin {
+impl Plugin for ProceduralPresentationAssetsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CrackedClayRecipe>()
             .init_resource::<CrackedClayRecipe>()
-            .add_systems(PreStartup, initialize_procedural_assets)
-            .add_systems(Update, regenerate_changed_procedural_assets);
+            .add_systems(PreStartup, initialize_procedural_presentation_assets)
+            .add_systems(Update, regenerate_changed_presentation_assets);
     }
 }
 

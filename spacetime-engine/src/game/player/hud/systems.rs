@@ -49,7 +49,7 @@ fn clear_text_if_needed(text: &mut Text) {
     }
 }
 
-pub(in crate::game::player) fn update_flight_hud(
+pub(in crate::game::player) fn project_flight_hud(
     time: Res<Time>,
     bindings: Res<PlayerInputBindings>,
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,

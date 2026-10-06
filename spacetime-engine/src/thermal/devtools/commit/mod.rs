@@ -55,7 +55,7 @@ pub(super) fn apply_thermal_inspection_edits(
                         material.environmental_transfer_fraction = value;
                     }
                     TRANSFER_RADIUS_FIELD if value >= 0.0 => {
-                        material.heat_transfer_radius_meters = value;
+                        material.heat_transfer_radius_metres = value;
                     }
                     _ => {}
                 }

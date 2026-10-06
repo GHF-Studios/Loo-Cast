@@ -27,7 +27,7 @@ pub(in crate::game::player) fn sync_view_camera_profile(
 pub(in crate::game::player) fn sync_player_camera(
     freecam: Res<DebugFreecam>,
     spatial_query: SpatialQuery,
-    physics_charts: UsfPhysicsSlices,
+    physics_charts: UsfPhysicsSliceQuery,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     controller: Single<&PlayerAim, With<Player>>,
     subject: Single<
@@ -88,7 +88,7 @@ pub(in crate::game::player) fn sync_player_camera(
                 &profile.third_person,
             );
             profile.third_person.resolved_distance_metres =
-                (f64::from(resolved.distance) * layer.scale().scale0_units_per_native()) as f32;
+                (f64::from(resolved.distance) * layer.scale().metres_per_native()) as f32;
             resolved.transform
         }
     };

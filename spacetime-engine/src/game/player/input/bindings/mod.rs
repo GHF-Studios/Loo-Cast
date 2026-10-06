@@ -2,6 +2,15 @@
 //!
 //! Bindings translate hardware buttons to semantic player actions or explicit
 //! console commands. They do not decide whether gameplay currently has focus.
+//!
+//! ## Module map
+//!
+//! - `dispatch`: Console bind dispatch after focus/cursor arbitration.
+//! - `model`: Mutable binding state and semantic action lookup.
+//! - `registry`: Action-target vocabulary and authored default hardware map.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::{
     PlayerAction,

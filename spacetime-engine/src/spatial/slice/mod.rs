@@ -8,7 +8,6 @@ use bevy::prelude::*;
 
 use super::{SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MIN, SpatialScale};
 
-
 /// One of the 71 fundamental spatial Scale Slices.
 ///
 /// A slice is not an LOD level and not a separate universe. It is one
@@ -18,8 +17,12 @@ pub struct UsfScaleSlice {
     scale: SpatialScale,
 }
 impl UsfScaleSlice {
-    pub const fn new(scale: SpatialScale) -> Self { Self { scale } }
-    pub const fn scale(self) -> SpatialScale { self.scale }
+    pub const fn new(scale: SpatialScale) -> Self {
+        Self { scale }
+    }
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
 }
 
 /// Runtime registry of the 71 Scale Slice roots.
@@ -28,16 +31,20 @@ pub struct UsfScaleSlices {
     roots: [Option<Entity>; SPATIAL_SCALE_COUNT],
 }
 impl Default for UsfScaleSlices {
-    fn default() -> Self { Self { roots: [None; SPATIAL_SCALE_COUNT] } }
+    fn default() -> Self {
+        Self {
+            roots: [None; SPATIAL_SCALE_COUNT],
+        }
+    }
 }
 impl UsfScaleSlices {
     pub fn root(&self, scale: SpatialScale) -> Option<Entity> {
         self.roots[scale.index_from_top()]
     }
-    pub fn iter(&self) -> impl Iterator<Item=(SpatialScale, Entity)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (SpatialScale, Entity)> + '_ {
         (SPATIAL_SCALE_MIN..=super::SPATIAL_SCALE_MAX).filter_map(|raw| {
-            let scale=SpatialScale::new(raw)?;
-            self.root(scale).map(|entity|(scale,entity))
+            let scale = SpatialScale::new(raw)?;
+            self.root(scale).map(|entity| (scale, entity))
         })
     }
 }
@@ -46,14 +53,18 @@ pub(in crate::spatial) fn spawn_scale_slices(
     mut slices: ResMut<UsfScaleSlices>,
 ) {
     for raw in SPATIAL_SCALE_MIN..=super::SPATIAL_SCALE_MAX {
-        let scale=SpatialScale::new(raw).expect("validated USF scale");
-        let index=scale.index_from_top();
-        if slices.roots[index].is_some() { continue; }
-        let entity=commands.spawn((
-            Name::new(format!("USF Scale Slice S{scale}")),
-            UsfScaleSlice::new(scale),
-        )).id();
-        slices.roots[index]=Some(entity);
+        let scale = SpatialScale::new(raw).expect("validated USF scale");
+        let index = scale.index_from_top();
+        if slices.roots[index].is_some() {
+            continue;
+        }
+        let entity = commands
+            .spawn((
+                Name::new(format!("USF Scale Slice S{scale}")),
+                UsfScaleSlice::new(scale),
+            ))
+            .id();
+        slices.roots[index] = Some(entity);
     }
 }
 
@@ -74,8 +85,12 @@ impl UsfScaleSliceMembers {
         self.0.iter().copied()
     }
 
-    pub fn len(&self) -> usize { self.0.len() }
-    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -92,8 +107,8 @@ impl UsfScaleLayer {
         self.scale
     }
 
-    pub const fn chart_mask(self) -> UsfChartMask {
-        UsfChartMask::from_scale(self.scale)
+    pub const fn scale_slice_mask(self) -> UsfScaleSliceMask {
+        UsfScaleSliceMask::from_scale(self.scale)
     }
 
     pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
@@ -106,9 +121,9 @@ impl UsfScaleLayer {
 /// There are 71 spatial scales, so one `u128` contains the entire chart set
 /// without borrowing Avian's finite collision-category layer mask.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct UsfChartMask(u128);
+pub struct UsfScaleSliceMask(u128);
 
-impl UsfChartMask {
+impl UsfScaleSliceMask {
     pub const NONE: Self = Self(0);
     pub const ALL: Self = Self((1_u128 << SPATIAL_SCALE_COUNT) - 1);
 

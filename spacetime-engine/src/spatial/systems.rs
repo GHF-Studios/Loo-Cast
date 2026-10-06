@@ -20,7 +20,7 @@ pub(super) fn sync_semantic_positions(
     let frame_changed = frame.is_changed();
 
     for (transform, realization, layer, motion) in &anchors {
-        if motion.is_some_and(|motion| motion.canonical_authority()) {
+        if motion.is_some_and(|motion| motion.is_canonical_kinematic()) {
             continue;
         }
         if !frame_changed

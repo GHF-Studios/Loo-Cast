@@ -1,24 +1,24 @@
 //! Predictive character split activation before motor simulation.
 
-use bevy::prelude::*;
 use avian3d::prelude::LinearVelocity;
+use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
-    portal::{Portal, PortalActive, PortalSplitTraveler},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterLocomotionFrame,
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    portal::{Portal, PortalActive, PortalSplitTraveler},
     spatial::UsfScaleLayer,
 };
 
-use super::finish_character_split;
 use super::super::{
     activate_split_partition, active_pair_is_valid, box_reaches_portal_this_tick,
     find_split_candidate,
 };
+use super::finish_character_split;
 
 /// Predictively opens portal-host collision before the character motor runs.
 ///

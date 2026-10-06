@@ -1,3 +1,5 @@
+//! Configuration for portal-domain behavior and supported portal states.
+
 use bevy::prelude::*;
 
 use super::PortalSidedness;

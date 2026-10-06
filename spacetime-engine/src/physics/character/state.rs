@@ -1,3 +1,5 @@
+//! Persistent contact and movement state for character physics.
+
 use bevy::prelude::*;
 
 /// One walkable support contact currently held by the character motor.

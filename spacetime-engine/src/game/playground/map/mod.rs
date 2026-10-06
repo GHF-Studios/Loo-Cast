@@ -8,13 +8,13 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
-    game::{GameSet, GameWorld, player::Player},
+    game::{GameScenario, GameSet, player::Player},
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
     portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
-    spatial::{UsfScaleLayer, UsfRuntimeChartState},
+    spatial::{UsfRuntimeChartState, UsfScaleLayer},
     voxel::{
         VoxelBase, VoxelChunkCoord, VoxelMaterialId, VoxelPresentationMaterial, VoxelQueryPosition,
-        VoxelWorld,
+        VoxelScaleRealization,
     },
 };
 
@@ -28,18 +28,18 @@ pub(super) struct PlaygroundMapPlugin;
 impl Plugin for PlaygroundMapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameWorld::Playground),
+            OnEnter(GameScenario::Playground),
             (load_campus, spawn_voxel_test_rock),
         )
         .add_systems(
             Update,
-            place_player_at_spawn_marker.run_if(in_state(GameWorld::Playground)),
+            place_player_at_spawn_marker.run_if(in_state(GameScenario::Playground)),
         )
         .add_systems(
             Update,
             initialize_demo_portals_from_markers
                 .in_set(GameSet::Action)
-                .run_if(in_state(GameWorld::Playground)),
+                .run_if(in_state(GameScenario::Playground)),
         );
     }
 }
@@ -66,7 +66,7 @@ fn spawn_voxel_test_rock(
         perceptual_roughness: 1.0,
         ..default()
     });
-    let mut world = VoxelWorld::new_at(
+    let mut world = VoxelScaleRealization::new_at(
         VoxelBase::sphere(semantic_center, 6.0, VoxelMaterialId::ROCK),
         world_origin,
     );
@@ -78,7 +78,7 @@ fn spawn_voxel_test_rock(
                 let address = world
                     .chunk_address(coord)
                     .expect("playground voxel materialization must translate canonically");
-                let chunk = world.materialize_chunk(address);
+                let chunk = world.materialize_dense(address);
                 world.insert_active_materialization(address, chunk);
             }
         }

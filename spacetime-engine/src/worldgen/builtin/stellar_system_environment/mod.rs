@@ -21,7 +21,7 @@ impl PhenomenonRule for StellarSystemEnvironmentRule {
     fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        parent: Option<&WorldgenNode>,
+        parent: Option<&WorldgenEvaluation>,
         current: &[PhenomenonSnapshot],
     ) -> Option<PhenomenonSnapshot> {
         let scale = context.spatial_scale().exponent();

@@ -269,7 +269,7 @@ pub(super) fn collect_combustion_inspection(
                 InspectField::new(
                     "Heat transfer radius",
                     InspectValue::quantity(
-                        material.heat_transfer_radius_meters as f64,
+                        material.heat_transfer_radius_metres as f64,
                         InspectUnit::METER,
                     ),
                 )

@@ -3,18 +3,25 @@
 //! The visible halves are generated from the exact same local convex point sets
 //! used for split physics colliders. For reference box geometry this keeps the
 //! rendered cut and physical cut identical, including the portal-plane cap.
+//!
+//! ## Module map
+//!
+//! - `mesh`: Convex mesh construction for portal-partitioned box manifestations.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology, prelude::*};
 
 use crate::{
     ecs::UsfPresentationProjectionOf,
-    portal::{Portal, PortalActive, PortalSplitTraveler, topology::mapping::portal_plane},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         topology::{
             SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive, partition_box_by_plane,
         },
     },
+    portal::{Portal, PortalActive, PortalSplitTraveler, topology::mapping::portal_plane},
     spatial::{SpatialScale, UsfScaleLayer},
 };
 

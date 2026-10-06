@@ -1,7 +1,10 @@
 //! Observer-local navigation context and refinement capability.
 
+use super::{
+    SpatialScale, UsfPosition, UsfTravelInfluenceKind, UsfTravelInfluenceMeasure,
+    UsfTravelNeighborhood,
+};
 use bevy::prelude::*;
-use super::{SpatialScale, UsfPosition, UsfTravelInfluenceKind, UsfTravelInfluenceMeasure, UsfTravelNeighborhood};
 
 const NAVIGATION_FALLBACK_CHARACTERISTIC_METRES: f64 = 10_000.0;
 const NAVIGATION_LOCAL_STRUCTURE_RADIUS_LIMIT: f64 = 12.0;
@@ -36,8 +39,12 @@ pub struct UsfApproachRefinement {
 }
 
 impl UsfApproachRefinement {
-    pub const fn new(minimum_scale: SpatialScale) -> Self { Self { minimum_scale } }
-    pub const fn minimum_scale(self) -> SpatialScale { self.minimum_scale }
+    pub const fn new(minimum_scale: SpatialScale) -> Self {
+        Self { minimum_scale }
+    }
+    pub const fn minimum_scale(self) -> SpatialScale {
+        self.minimum_scale
+    }
 }
 
 /// Observer-local navigation scale derived from semantic spatial structure.
@@ -56,7 +63,7 @@ pub struct UsfNavigationContext {
     kind: UsfNavigationContextKind,
     interaction_scale: SpatialScale,
     source_scale: Option<SpatialScale>,
-    characteristic_length_scale0: f64,
+    characteristic_length_metres: f64,
 }
 
 impl Default for UsfNavigationContext {
@@ -71,7 +78,7 @@ impl UsfNavigationContext {
             kind: UsfNavigationContextKind::Fallback,
             interaction_scale,
             source_scale: None,
-            characteristic_length_scale0: NAVIGATION_FALLBACK_CHARACTERISTIC_METRES,
+            characteristic_length_metres: NAVIGATION_FALLBACK_CHARACTERISTIC_METRES,
         }
     }
 
@@ -85,7 +92,7 @@ impl UsfNavigationContext {
             kind: UsfNavigationContextKind,
             source_scale: SpatialScale,
             relative_proximity: f64,
-            characteristic_length_scale0: f64,
+            characteristic_length_metres: f64,
         }
 
         let mut local = None::<Candidate>;
@@ -101,11 +108,9 @@ impl UsfNavigationContext {
                 UsfTravelInfluenceKind::Region => UsfNavigationContextKind::Region,
             };
 
-            let characteristic_length_scale0 =
-                navigation_length_scale0(influence.kind(), measurement);
-            if !characteristic_length_scale0.is_finite()
-                || characteristic_length_scale0 <= 0.0
-            {
+            let characteristic_length_metres =
+                navigation_length_metres(influence.kind(), measurement);
+            if !characteristic_length_metres.is_finite() || characteristic_length_metres <= 0.0 {
                 continue;
             }
 
@@ -113,13 +118,12 @@ impl UsfNavigationContext {
                 kind,
                 source_scale: influence.scale(),
                 relative_proximity: measurement.relative_proximity(),
-                characteristic_length_scale0,
+                characteristic_length_metres,
             };
 
             let should_replace = |current: Option<Candidate>| {
-                current.is_none_or(|current| {
-                    candidate.relative_proximity < current.relative_proximity
-                })
+                current
+                    .is_none_or(|current| candidate.relative_proximity < current.relative_proximity)
             };
 
             if should_replace(any_structure) {
@@ -154,7 +158,7 @@ impl UsfNavigationContext {
             kind: selected.kind,
             interaction_scale: observer_scale,
             source_scale: Some(selected.source_scale),
-            characteristic_length_scale0: selected.characteristic_length_scale0,
+            characteristic_length_metres: selected.characteristic_length_metres,
         }
     }
 
@@ -170,25 +174,22 @@ impl UsfNavigationContext {
         self.source_scale
     }
 
-    pub const fn characteristic_length_scale0(self) -> f64 {
-        self.characteristic_length_scale0
+    pub const fn characteristic_length_metres(self) -> f64 {
+        self.characteristic_length_metres
     }
-
 }
 
-fn navigation_length_scale0(
+fn navigation_length_metres(
     kind: UsfTravelInfluenceKind,
     measurement: UsfTravelInfluenceMeasure,
 ) -> f64 {
     match kind {
-        UsfTravelInfluenceKind::HardBody => {
-            measurement.boundary_clearance_scale0().max(1.0)
-        }
+        UsfTravelInfluenceKind::HardBody => measurement.boundary_clearance_metres().max(1.0),
         UsfTravelInfluenceKind::Medium(_) => measurement
-            .boundary_clearance_scale0()
-            .max(measurement.characteristic_scale0()),
+            .boundary_clearance_metres()
+            .max(measurement.characteristic_length_metres()),
         UsfTravelInfluenceKind::Region => measurement
-            .boundary_clearance_scale0()
-            .max(measurement.extent_radius_scale0() * 2.0),
+            .boundary_clearance_metres()
+            .max(measurement.extent_radius_metres() * 2.0),
     }
 }

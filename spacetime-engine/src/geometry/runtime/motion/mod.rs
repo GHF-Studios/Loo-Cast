@@ -28,7 +28,7 @@ pub(super) fn motion_state(motion: &AuthoredMotion) -> (Vec3, Vec3) {
     )
 }
 
-pub(in crate::geometry) fn animate_authored_movers(
+pub(in crate::geometry) fn simulate_authored_motion(
     time: Res<Time<Fixed>>,
     mut movers: Query<(&mut Transform, &mut LinearVelocity, &mut AuthoredMotion)>,
 ) {
@@ -45,7 +45,7 @@ pub(in crate::geometry) fn animate_authored_movers(
 /// Keep the stored motion origin in the same runtime chart as its transform.
 /// The rebase system shifts root transforms; the next fixed tick must not
 /// restore the pre-rebase translation from `AuthoredMotion::base`.
-pub(in crate::geometry) fn rebase_authored_movers(
+pub(in crate::geometry) fn rebase_authored_motion_origins(
     mut rebases: MessageReader<UsfOriginRebased>,
     anchor: Single<&UsfScaleLayer, With<UsfSpatialAnchor>>,
     mut movers: Query<(Entity, &mut AuthoredMotion, Option<&UsfScaleLayer>), Without<ChildOf>>,
@@ -55,8 +55,12 @@ pub(in crate::geometry) fn rebase_authored_movers(
             let scale = layer.map_or(anchor.scale(), |layer| layer.scale());
             match rebase.delta.at_scale(scale) {
                 Ok(shift) => motion.base.translation -= shift,
-                Err(error) => error!(?entity, ?scale, ?error,
-                    "authored motion base could not follow runtime chart rebase"),
+                Err(error) => error!(
+                    ?entity,
+                    ?scale,
+                    ?error,
+                    "authored motion base could not follow runtime chart rebase"
+                ),
             }
         }
     }

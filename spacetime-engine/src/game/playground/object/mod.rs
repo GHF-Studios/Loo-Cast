@@ -1,3 +1,5 @@
+//! Tag playground objects and describe pick/erase operations.
+
 use bevy::prelude::*;
 
 use crate::game::item::AimRay;

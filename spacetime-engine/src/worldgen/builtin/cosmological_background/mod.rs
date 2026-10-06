@@ -22,7 +22,7 @@ impl PhenomenonRule for CosmologicalBackgroundRule {
     fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        parent: Option<&WorldgenNode>,
+        parent: Option<&WorldgenEvaluation>,
         _current: &[PhenomenonSnapshot],
     ) -> Option<PhenomenonSnapshot> {
         let scale = context.spatial_scale().exponent();

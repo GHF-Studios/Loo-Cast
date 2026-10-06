@@ -9,6 +9,14 @@
 //! boundary is retained; speculative generic cache/multipole machinery is not.
 //! A hierarchical representation can be added behind the same query once real
 //! source count, accuracy and performance requirements define that contract.
+//!
+//! ## Module map
+//!
+//! - `query`: Typed gravity-field query and exact reference evaluator.
+//! - `source`: Canonical gravity source primitives.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod query;
 mod source;
@@ -18,14 +26,14 @@ pub use source::RadialGravitySource;
 
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
-use crate::spatial::{UsfScaleLayer, UsfRuntimeChartState};
+use crate::spatial::{UsfRuntimeChartState, UsfScaleLayer};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GravitySet {
     Sample,
 }
 
-fn sample_gravity_receivers(
+fn project_gravity_samples_to_runtime(
     frame: Res<UsfRuntimeChartState>,
     gravity: GravityFieldQuery,
     mut receivers: Query<(&Transform, &UsfScaleLayer, &mut GravitySample)>,
@@ -50,7 +58,7 @@ impl Plugin for GravityPlugin {
         app.configure_sets(RunFixedMainLoop, GravitySet::Sample)
             .add_systems(
                 RunFixedMainLoop,
-                sample_gravity_receivers.in_set(GravitySet::Sample),
+                project_gravity_samples_to_runtime.in_set(GravitySet::Sample),
             );
     }
 }

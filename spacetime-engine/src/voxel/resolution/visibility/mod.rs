@@ -7,12 +7,9 @@ use crate::voxel::CelestialVoxelField;
 
 use super::topology::CelestialClipmapBlockKey;
 
-const CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS: f64 =
-    0.261_799_387_799_149_4;
-const CLIPMAP_FRUSTUM_REPLAN_RADIANS: f64 =
-    0.130_899_693_899_574_7;
-const CLIPMAP_HORIZON_MARGIN_RADIANS: f64 =
-    0.008_726_646_259_971_648;
+const CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS: f64 = 0.261_799_387_799_149_4;
+const CLIPMAP_FRUSTUM_REPLAN_RADIANS: f64 = 0.130_899_693_899_574_7;
+const CLIPMAP_HORIZON_MARGIN_RADIANS: f64 = 0.008_726_646_259_971_648;
 const CLIPMAP_OCCLUDER_SAFETY_METRES: f64 = 128.0;
 
 #[derive(Debug, Clone, Copy)]
@@ -33,13 +30,9 @@ impl ClipmapBodyFrustum {
         let forward = forward_local.try_normalize()?;
         let right = right_local.try_normalize()?;
         let up = up_local.try_normalize()?;
-        let horizontal = (
-            horizontal_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
-        )
+        let horizontal = (horizontal_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS)
             .min(std::f64::consts::PI - 1.0e-4);
-        let vertical = (
-            vertical_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS
-        )
+        let vertical = (vertical_half_angle + CLIPMAP_FRUSTUM_PREFETCH_MARGIN_RADIANS)
             .min(std::f64::consts::PI - 1.0e-4);
 
         let (sh, ch) = horizontal.sin_cos();
@@ -62,10 +55,7 @@ impl ClipmapBodyFrustum {
     }
 
     fn intersects_sphere(&self, relative_center: DVec3, radius: f64) -> bool {
-        if !relative_center.is_finite()
-            || !radius.is_finite()
-            || radius < 0.0
-        {
+        if !relative_center.is_finite() || !radius.is_finite() || radius < 0.0 {
             return true;
         }
 
@@ -82,14 +72,10 @@ impl ClipmapBodyFrustum {
             .iter()
             .zip(next.side_normals_local.iter())
             .any(|(current, next)| {
-                current.dot(*next).clamp(-1.0, 1.0)
-                    < CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos()
+                current.dot(*next).clamp(-1.0, 1.0) < CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos()
             });
-        let shape_changed =
-            (self.horizontal_half_angle - next.horizontal_half_angle).abs()
-                > 0.02
-            || (self.vertical_half_angle - next.vertical_half_angle).abs()
-                > 0.02;
+        let shape_changed = (self.horizontal_half_angle - next.horizontal_half_angle).abs() > 0.02
+            || (self.vertical_half_angle - next.vertical_half_angle).abs() > 0.02;
 
         basis_changed || shape_changed
     }
@@ -100,15 +86,12 @@ impl ClipmapBodyFrustum {
             .iter()
             .zip(next.side_normals_local.iter())
             .all(|(current, next)| {
-                current.dot(*next).clamp(-1.0, 1.0)
-                    >= CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos()
+                current.dot(*next).clamp(-1.0, 1.0) >= CLIPMAP_FRUSTUM_REPLAN_RADIANS.cos()
             });
 
         basis_ok
-            && next.horizontal_half_angle
-                <= self.horizontal_half_angle + 0.02
-            && next.vertical_half_angle
-                <= self.vertical_half_angle + 0.02
+            && next.horizontal_half_angle <= self.horizontal_half_angle + 0.02
+            && next.vertical_half_angle <= self.vertical_half_angle + 0.02
     }
 }
 
@@ -133,9 +116,8 @@ impl ClipmapVisibilityDemand {
         let actual_eye_local = actual_observer_local + eye_offset;
         let prefetch_eye_local = predicted_observer_local + eye_offset;
 
-        let frustum = view
-            .perspective_basis_and_half_angles()
-            .and_then(|(forward, right, up, horizontal, vertical)| {
+        let frustum = view.perspective_basis_and_half_angles().and_then(
+            |(forward, right, up, horizontal, vertical)| {
                 ClipmapBodyFrustum::new(
                     local_from_world * forward,
                     local_from_world * right,
@@ -143,15 +125,13 @@ impl ClipmapVisibilityDemand {
                     horizontal,
                     vertical,
                 )
-            });
+            },
+        );
 
-        let (surface_minimum, _) =
-            field.conservative_surface_radius_bounds_metres();
-        let solid_occluder_radius_metres = (
-            surface_minimum
-                - field.volumetric_surface_inward_support_metres()
-                - CLIPMAP_OCCLUDER_SAFETY_METRES
-        )
+        let (surface_minimum, _) = field.conservative_surface_radius_bounds_metres();
+        let solid_occluder_radius_metres = (surface_minimum
+            - field.volumetric_surface_inward_support_metres()
+            - CLIPMAP_OCCLUDER_SAFETY_METRES)
             .max(0.0);
 
         debug_assert!(actual_eye_local.is_finite());
@@ -193,9 +173,7 @@ impl ClipmapVisibilityDemand {
     ) -> bool {
         let occluder = self.solid_occluder_radius_metres;
         let observer_radius = eye_local.length();
-        if occluder <= 0.0
-            || observer_radius <= occluder + target_radius
-        {
+        if occluder <= 0.0 || observer_radius <= occluder + target_radius {
             return false;
         }
 
@@ -207,26 +185,18 @@ impl ClipmapVisibilityDemand {
 
         let body_direction = -eye_local / observer_radius;
         let target_direction = relative / target_distance;
-        let occluder_angle =
-            (occluder / observer_radius).clamp(0.0, 1.0).asin();
-        let target_angle =
-            (target_radius / target_distance).clamp(0.0, 1.0).asin();
-        let containment = occluder_angle
-            - target_angle
-            - CLIPMAP_HORIZON_MARGIN_RADIANS;
+        let occluder_angle = (occluder / observer_radius).clamp(0.0, 1.0).asin();
+        let target_angle = (target_radius / target_distance).clamp(0.0, 1.0).asin();
+        let containment = occluder_angle - target_angle - CLIPMAP_HORIZON_MARGIN_RADIANS;
         if containment <= 0.0 {
             return false;
         }
 
-        let angularly_hidden =
-            body_direction.dot(target_direction) >= containment.cos();
-        let tangent_distance = (
-            observer_radius * observer_radius - occluder * occluder
-        )
+        let angularly_hidden = body_direction.dot(target_direction) >= containment.cos();
+        let tangent_distance = (observer_radius * observer_radius - occluder * occluder)
             .max(0.0)
             .sqrt();
-        let behind_tangent =
-            target_distance - target_radius > tangent_distance;
+        let behind_tangent = target_distance - target_radius > tangent_distance;
 
         angularly_hidden && behind_tangent
     }
@@ -234,8 +204,7 @@ impl ClipmapVisibilityDemand {
     pub(super) fn requires_refresh(&self, next: &Self, fine_extent: f64) -> bool {
         let eye_moved = (self.actual_eye_local - next.actual_eye_local).length()
             > fine_extent.max(1.0)
-            || (self.prefetch_eye_local - next.prefetch_eye_local).length()
-                > fine_extent.max(1.0);
+            || (self.prefetch_eye_local - next.prefetch_eye_local).length() > fine_extent.max(1.0);
         let frustum_changed = match (&self.frustum, &next.frustum) {
             (Some(current), Some(next)) => current.requires_refresh(next),
             (None, None) => false,
@@ -253,4 +222,3 @@ impl ClipmapVisibilityDemand {
         }
     }
 }
-

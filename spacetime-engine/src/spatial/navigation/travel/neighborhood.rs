@@ -11,7 +11,7 @@ const NEIGHBORHOOD_REGION_BY_RELATIVE_PROXIMITY: usize = 4;
 const NEIGHBORHOOD_MAX_AGE_SECONDS: f32 = 0.5;
 const NEIGHBORHOOD_PROXIMITY_REFRESH_FRACTION: f64 = 0.10;
 const NEIGHBORHOOD_FEATURE_REFRESH_FRACTION: f64 = 0.05;
-const NEIGHBORHOOD_MIN_REFRESH_DISTANCE_SCALE0: f64 = 1.0;
+const NEIGHBORHOOD_MIN_REFRESH_DISTANCE_METRES: f64 = 1.0;
 
 #[derive(Debug, Clone)]
 struct CachedTravelInfluence {
@@ -19,7 +19,7 @@ struct CachedTravelInfluence {
     anchor: UsfPosition,
     frame: UsfSemanticFrame,
     influence: UsfTravelInfluence,
-    boundary: Option<UsfTravelBoundaryResolver>,
+    boundary: Option<UsfTravelBoundaryProvider>,
 }
 
 #[derive(Debug, Clone)]
@@ -44,8 +44,8 @@ fn append_nearest(
     sorted.sort_by(|a, b| match order {
         CandidateOrder::Absolute => a
             .measurement
-            .boundary_clearance_scale0()
-            .total_cmp(&b.measurement.boundary_clearance_scale0()),
+            .boundary_clearance_metres()
+            .total_cmp(&b.measurement.boundary_clearance_metres()),
         CandidateOrder::Relative => a
             .measurement
             .relative_proximity()
@@ -77,7 +77,7 @@ fn append_nearest(
 pub struct UsfTravelNeighborhood {
     sampled_position: Option<UsfPosition>,
     sampled_scale: Option<SpatialScale>,
-    refresh_distance_scale0: f64,
+    refresh_distance_metres: f64,
     age_seconds: f32,
     influences: Vec<CachedTravelInfluence>,
 }
@@ -91,11 +91,11 @@ impl UsfTravelNeighborhood {
         self.influences.is_empty()
     }
 
-    pub fn advance(&mut self, dt_seconds: f32) {
+    fn advance(&mut self, dt_seconds: f32) {
         self.age_seconds += dt_seconds.max(0.0);
     }
 
-    pub fn needs_refresh(&self, observer: &UsfPosition, observer_scale: SpatialScale) -> bool {
+    fn needs_refresh(&self, observer: &UsfPosition, observer_scale: SpatialScale) -> bool {
         let (Some(sampled), Some(sampled_scale)) = (self.sampled_position, self.sampled_scale)
         else {
             return true;
@@ -112,22 +112,22 @@ impl UsfTravelNeighborhood {
             return true;
         }
 
-        if !self.refresh_distance_scale0.is_finite() {
+        if !self.refresh_distance_metres.is_finite() {
             return false;
         }
 
-        let bound_native = (self.refresh_distance_scale0 / observer_scale.scale0_units_per_native())
+        let bound_native = (self.refresh_distance_metres / observer_scale.metres_per_native())
             .max(1.0)
             .min(f64::from(f32::MAX)) as f32;
         let Ok(delta) = observer.relative_at_scale_bounded(&sampled, observer_scale, bound_native)
         else {
             return true;
         };
-        let moved_scale0 = f64::from(delta.length()) * observer_scale.scale0_units_per_native();
-        moved_scale0 >= self.refresh_distance_scale0
+        let moved_scale0 = f64::from(delta.length()) * observer_scale.metres_per_native();
+        moved_scale0 >= self.refresh_distance_metres
     }
 
-    pub fn refresh<I>(&mut self, observer: UsfPosition, observer_scale: SpatialScale, influences: I)
+    fn refresh<I>(&mut self, observer: UsfPosition, observer_scale: SpatialScale, influences: I)
     where
         I: IntoIterator<
             Item = (
@@ -135,16 +135,48 @@ impl UsfTravelNeighborhood {
                 UsfPosition,
                 UsfSemanticFrame,
                 UsfTravelInfluence,
-                Option<UsfTravelBoundaryResolver>,
+                Option<UsfTravelBoundaryProvider>,
             ),
         >,
     {
         let candidates = measured_candidates(observer, observer_scale, influences);
-        self.refresh_distance_scale0 = refresh_distance(&candidates);
+        self.refresh_distance_metres = refresh_distance(&candidates);
         self.influences = selected_influences(&candidates);
         self.sampled_position = Some(observer);
         self.sampled_scale = Some(observer_scale);
         self.age_seconds = 0.0;
+    }
+
+    /// Advance and refresh the observer-local cache when its validity horizon expires.
+    ///
+    /// `influences` is a closure so callers do not build/clone refresh input
+    /// unless a refresh is actually required.
+    pub fn refresh_if_needed<I, F>(
+        &mut self,
+        dt_seconds: f32,
+        observer: UsfPosition,
+        observer_scale: SpatialScale,
+        influences: F,
+    ) -> bool
+    where
+        F: FnOnce() -> I,
+        I: IntoIterator<
+            Item = (
+                Entity,
+                UsfPosition,
+                UsfSemanticFrame,
+                UsfTravelInfluence,
+                Option<UsfTravelBoundaryProvider>,
+            ),
+        >,
+    {
+        self.advance(dt_seconds);
+        if !self.needs_refresh(&observer, observer_scale) {
+            return false;
+        }
+
+        self.refresh(observer, observer_scale, influences());
+        true
     }
 
     pub fn influences(&self) -> impl Iterator<Item = UsfTravelInfluence> + '_ {
@@ -198,7 +230,7 @@ where
             UsfPosition,
             UsfSemanticFrame,
             UsfTravelInfluence,
-            Option<UsfTravelBoundaryResolver>,
+            Option<UsfTravelBoundaryProvider>,
         ),
     >,
 {
@@ -234,24 +266,24 @@ fn refresh_distance(candidates: &[TravelInfluenceCandidate]) -> f64 {
         })
         .min_by(|a, b| {
             a.measurement
-                .boundary_clearance_scale0()
-                .total_cmp(&b.measurement.boundary_clearance_scale0())
+                .boundary_clearance_metres()
+                .total_cmp(&b.measurement.boundary_clearance_metres())
         })
         .or_else(|| {
             candidates.iter().min_by(|a, b| {
                 a.measurement
-                    .boundary_clearance_scale0()
-                    .total_cmp(&b.measurement.boundary_clearance_scale0())
+                    .boundary_clearance_metres()
+                    .total_cmp(&b.measurement.boundary_clearance_metres())
             })
         });
     nearest.map_or(f64::INFINITY, |candidate| {
-        (candidate.measurement.boundary_clearance_scale0()
+        (candidate.measurement.boundary_clearance_metres()
             * NEIGHBORHOOD_PROXIMITY_REFRESH_FRACTION)
             .max(
-                candidate.measurement.characteristic_scale0()
+                candidate.measurement.characteristic_length_metres()
                     * NEIGHBORHOOD_FEATURE_REFRESH_FRACTION,
             )
-            .max(NEIGHBORHOOD_MIN_REFRESH_DISTANCE_SCALE0)
+            .max(NEIGHBORHOOD_MIN_REFRESH_DISTANCE_METRES)
     })
 }
 

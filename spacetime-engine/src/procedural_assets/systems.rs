@@ -1,14 +1,14 @@
-//! Initialization and in-place regeneration of procedural presentation assets.
+//! Lifecycle for stable-handle procedural presentation assets.
 
 use bevy::{color::LinearRgba, prelude::*};
 
-use super::{ProceduralAssetLibrary, ProceduralPbrMaterial};
 use super::texture::{
     CrackedClayRecipe, generate_cracked_clay, generate_planet_surface_image,
     generate_star_surface_image,
 };
+use super::{ProceduralPbrMaterial, ProceduralPresentationAssets};
 
-pub(super) fn initialize_procedural_assets(
+pub(super) fn initialize_procedural_presentation_assets(
     mut commands: Commands,
     recipe: Res<CrackedClayRecipe>,
     mut images: ResMut<Assets<Image>>,
@@ -73,7 +73,7 @@ pub(super) fn initialize_procedural_assets(
         ..default()
     });
 
-    commands.insert_resource(ProceduralAssetLibrary {
+    commands.insert_resource(ProceduralPresentationAssets {
         cracked_clay: ProceduralPbrMaterial {
             material,
             albedo,
@@ -93,9 +93,9 @@ pub(super) fn initialize_procedural_assets(
 /// Recipe mutation updates already-instantiated users in place because asset
 /// handles remain stable. Scheduling/cache policy can evolve independently of
 /// the recipe/output contract.
-pub(super) fn regenerate_changed_procedural_assets(
+pub(super) fn regenerate_changed_presentation_assets(
     recipe: Res<CrackedClayRecipe>,
-    library: Option<Res<ProceduralAssetLibrary>>,
+    library: Option<Res<ProceduralPresentationAssets>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     if !recipe.is_changed() {

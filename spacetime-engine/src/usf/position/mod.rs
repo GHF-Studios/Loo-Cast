@@ -1,4 +1,15 @@
 //! Canonical position value, balanced digit arithmetic, and bounded projection.
+//!
+//! ## Module map
+//!
+//! - `arithmetic`: Precision-preserving scale conversion, translation and balanced carries.
+//! - `construction`: Canonical construction and axis access.
+//! - `decimal`: Plain decimal formatting of balanced Scale Stack coordinates.
+//! - `display`: Plain decimal and stack representation of canonical coordinates.
+//! - `relative`: Bounded relative projections that retain canonical position authority.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use self::decimal::{format_decimal_terms, push_float_decimal_terms};
 use crate::usf::{

@@ -1,31 +1,28 @@
-//! One semantic celestial authority with demand-created voxel realizations.
+//! Semantic celestial construction from authored fixture input.
 //!
-//! Semantic body authority exists independently of scale-local voxel worlds.
-//! Those worlds are disposable representations created only for demanded Scales.
+//! Construction creates semantic body authority only. Scale-local voxel realizations
+//! remain disposable downstream representations created from demand.
 
 use bevy::prelude::*;
 
+use crate::game::world::ScenarioMemberOf;
 use crate::{
-    ecs::{
-        UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity,
-    },
+    ecs::{UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity},
     physics::gravity::RadialGravitySource,
-    procedural_assets::ProceduralAssetLibrary,
+    procedural_assets::ProceduralPresentationAssets,
     spatial::{
-        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
-        UsfCanonicalMotion, UsfPosition, UsfSemanticFrame, UsfTravelBoundaryResolver,
-        UsfTravelInfluence,
+        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfCanonicalMotion, UsfPosition,
+        UsfScaleSliceMask, UsfSemanticFrame, UsfTravelBoundaryProvider, UsfTravelInfluence,
     },
     voxel::{
-        CelestialVoxelField, CelestialVoxelRealizationPolicy, VoxelAuthority,
-        VoxelScaleDomain,
+        CelestialVoxelField, CelestialVoxelRealizationPolicy, VoxelScaleDomain,
+        VoxelSemanticAuthority,
     },
 };
-use crate::game::world::WorldMemberOf;
 
 use super::super::{
-    BodySurfaceSite, FixtureArrivalSite,
-    definition::BodyDefinition, landmarks::UniverseLandmarkIndex,
+    BodySurfaceSite, FixtureArrivalSite, definition::AuthoredCelestialBody,
+    landmarks::UniverseLandmarkIndex,
 };
 
 const SYSTEM_SCALE: i8 = 8;
@@ -36,11 +33,11 @@ const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
 #[derive(Component, Debug, Clone, Copy)]
 pub(in crate::game::world::fixture) struct CelestialBodyAuthority;
 
-pub(super) fn spawn_body(
+pub(super) fn construct_authored_celestial_body(
     commands: &mut Commands,
     parent: Entity,
-    definition: &BodyDefinition,
-    assets: &ProceduralAssetLibrary,
+    definition: &AuthoredCelestialBody,
+    assets: &ProceduralPresentationAssets,
     landmarks: &mut UniverseLandmarkIndex,
     arrival_site: &mut FixtureArrivalSite,
 ) -> Entity {
@@ -58,7 +55,7 @@ pub(super) fn spawn_body(
         radius_metres,
         detail_root,
         scale(definition.surface_detail_scale),
-        definition.seed,
+        definition.terrain_noise_key,
         definition.profile,
     );
     let name = definition.name;
@@ -74,8 +71,7 @@ pub(super) fn spawn_body(
     // incapable of ever receiving terrain collision. Every supported terrain
     // chart may provide physical capability, but only the current controlled
     // interaction Scale is granted COLLISION/EDITING roles.
-    let physical_slices =
-        UsfChartMask::inclusive_range(SpatialScale::MIN, detail_root);
+    let physical_slices = UsfScaleSliceMask::inclusive_range(SpatialScale::MIN, detail_root);
     let scale_domain = VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root)
         .with_collision_slices(physical_slices)
         .with_editing_slices(physical_slices);
@@ -84,23 +80,18 @@ pub(super) fn spawn_body(
     let semantic = commands
         .spawn((
             Name::new(name),
-            WorldMemberOf(parent),
+            ScenarioMemberOf(parent),
             CelestialBodyAuthority,
             UsfEntity,
             center,
             frame,
-            UsfCanonicalMotion::canonical_at_rest(),
+            UsfCanonicalMotion::canonical_kinematic_at_rest(),
             field,
             scale_domain,
-            CelestialVoxelRealizationPolicy::new(
-                assets.debug_grid.clone(),
-            ),
-            VoxelAuthority::default(),
-            UsfTravelInfluence::hard_body(
-                nav_scale,
-                nav_scale.metres_to_native_f64(radius_metres),
-            ),
-            UsfTravelBoundaryResolver::new(field),
+            CelestialVoxelRealizationPolicy::new(assets.debug_grid.clone()),
+            VoxelSemanticAuthority::default(),
+            UsfTravelInfluence::hard_body(nav_scale, nav_scale.metres_to_native_f64(radius_metres)),
+            UsfTravelBoundaryProvider::new(field),
             RadialGravitySource::new(
                 radius_metres,
                 nav_scale,
@@ -145,10 +136,7 @@ pub(super) fn spawn_body(
     semantic
 }
 
-fn audit_canonical_surface_relief(
-    name: &str,
-    field: CelestialVoxelField,
-) {
+fn audit_canonical_surface_relief(name: &str, field: CelestialVoxelField) {
     let mut minimum = f64::INFINITY;
     let mut maximum = f64::NEG_INFINITY;
     let mut valid = 0usize;
@@ -161,12 +149,8 @@ fn audit_canonical_surface_relief(
         let y = 1.0 - 2.0 * i / n;
         let horizontal = (1.0 - y * y).max(0.0).sqrt();
         let theta = std::f32::consts::TAU * index as f32 / golden_ratio;
-        let direction = Vec3::new(
-            theta.cos() * horizontal,
-            y,
-            theta.sin() * horizontal,
-        )
-        .normalize();
+        let direction =
+            Vec3::new(theta.cos() * horizontal, y, theta.sin() * horizontal).normalize();
 
         let Ok(surface) = field.surface_local_metres(direction) else {
             continue;
@@ -230,14 +214,14 @@ fn scale(raw: i8) -> SpatialScale {
     SpatialScale::new(raw).expect("celestial scale is valid")
 }
 
-pub(in crate::game::world::fixture) fn audit_world_authority(
+pub(in crate::game::world::fixture) fn audit_fixture_semantic_authority(
     bodies: Query<
         (
             Entity,
             &Name,
             Option<&UsfPosition>,
             Option<&CelestialVoxelField>,
-            Option<&VoxelAuthority>,
+            Option<&VoxelSemanticAuthority>,
             Option<&UsfTravelInfluence>,
             Option<&RadialGravitySource>,
             Option<&UsfApproachRefinement>,
@@ -257,17 +241,8 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
     }
 
     let mut invalid = 0usize;
-    for (
-        entity,
-        name,
-        position,
-        field,
-        voxel_authority,
-        travel,
-        gravity,
-        refinement,
-        partitions,
-    ) in entries.iter().copied()
+    for (entity, name, position, field, voxel_authority, travel, gravity, refinement, partitions) in
+        entries.iter().copied()
     {
         let partition_count = partitions.map_or(0, UsfAuthorityPartitions::len);
         let valid = position.is_some()
@@ -290,7 +265,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
                 has_gravity = gravity.is_some(),
                 has_refinement = refinement.is_some(),
                 partitions = partition_count,
-                "Earth authority invariant violation"
+                "celestial fixture authority invariant violation"
             );
         }
     }
@@ -299,7 +274,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth semantic/partition invariants healthy; dense voxel and regional presentation realizations are demand-owned"
+            "celestial fixture semantic/partition invariants healthy; dense voxel and presentation realizations are demand-owned"
         );
         *completed = true;
     }

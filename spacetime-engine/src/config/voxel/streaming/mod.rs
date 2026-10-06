@@ -2,8 +2,8 @@
 
 use serde::Deserialize;
 
-use super::{require_positive, validate_generation_group_edge};
 use super::overrides::VoxelStreamingConfigOverrides;
+use super::{require_positive, validate_generation_group_edge};
 
 /// Demand/residency and background-generation policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

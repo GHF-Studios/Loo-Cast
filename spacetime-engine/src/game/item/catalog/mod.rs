@@ -1,7 +1,7 @@
 //! Registered semantic item definitions.
 //!
 //! The catalog is metadata, not behavior. Item behavior is supplied by ordinary
-//! Bevy plugins/systems that consume [`super::UseItem`] messages.
+//! Bevy plugins/systems that consume [`super::UseItemRequest`] messages.
 
 use bevy::prelude::*;
 

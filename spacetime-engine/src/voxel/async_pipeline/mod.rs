@@ -1,7 +1,7 @@
-//! Asynchronous derivation of disposable CPU geometry caches.
+//! Surface-derivation pipeline from dense materializations to disposable CPU geometry.
 
 //!
-//! Dense voxel atoms live in [`VoxelWorld`]'s compact store. Worker jobs are ECS
+//! Dense voxel atoms live in [`VoxelScaleRealization`]'s compact store. Worker jobs are ECS
 //! entities only while work is in flight; finished surface caches return to the
 //! store. Rendering and physics consume each materialization cache independently.
 
@@ -15,39 +15,39 @@ use crate::{
 };
 
 use super::{
-    presentation_palette::debug_band_rgb,
-    VoxelBase, VoxelMaterializationKey, VoxelWorld,
-    streaming::VoxelStreamingTelemetry,
+    VoxelBase, VoxelMaterializationKey, VoxelScaleRealization,
     mesh::{self, VoxelSurface},
+    presentation_palette::debug_band_rgb,
     store::VoxelSurfaceCache,
-    worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
+    streaming::VoxelMaterializationTelemetry,
+    worker::{VoxelWorkExecutor, VoxelWorkLane, VoxelWorkTask, VoxelWorkTicket},
 };
 
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 32;
 const DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME: usize = 64;
 
-struct VoxelDerivedOutput {
+struct VoxelSurfaceDerivationOutput {
     surface: VoxelSurface,
     debug_color: [f32; 4],
 }
 
-/// One in-flight surface extraction for one materialization revision.
+/// One in-flight surface derivation for one materialization revision.
 #[derive(Component)]
-pub(super) struct VoxelDerivedTask {
+pub(super) struct VoxelSurfaceDerivationTask {
     world: Entity,
     key: VoxelMaterializationKey,
     revision: u64,
-    task: VoxelWorkerTicket<VoxelDerivedOutput>,
+    task: VoxelWorkTicket<VoxelSurfaceDerivationOutput>,
 }
 
 /// Polls completed worker jobs and returns derived caches to the materialization
 /// store. Stale results never overwrite a newer edit revision.
-pub(super) fn publish_completed_chunk_builds(
+pub(super) fn publish_completed_surface_derivations(
     mut commands: Commands,
-    mut worlds: Query<(Option<&Name>, &mut VoxelWorld)>,
-    mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
+    mut worlds: Query<(Option<&Name>, &mut VoxelScaleRealization)>,
+    mut tasks: Query<(Entity, &mut VoxelSurfaceDerivationTask)>,
     mut announced_celestial_surfaces: Local<HashSet<Entity>>,
-    mut telemetry: ResMut<VoxelStreamingTelemetry>,
+    mut telemetry: ResMut<VoxelMaterializationTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     let mut published = 0;
@@ -55,9 +55,7 @@ pub(super) fn publish_completed_chunk_builds(
         if published >= DERIVED_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
-        let Some(work_token) =
-            frame_budget.begin(ReconstructibleWorkClass::Publication)
-        else {
+        let Some(work_token) = frame_budget.begin(ReconstructibleWorkClass::Publication) else {
             break;
         };
         let output = match build.task.try_take() {
@@ -69,7 +67,8 @@ pub(super) fn publish_completed_chunk_builds(
             Err(failure) => {
                 warn!(?failure, world = ?build.world, key = ?build.key, "voxel surface worker failed");
                 if let Ok((_, mut world)) = worlds.get_mut(build.world) {
-                    world.materializations_mut()
+                    world
+                        .materializations_mut()
                         .fail_surface_build(build.key, build.revision);
                 }
                 commands.entity(task_entity).despawn();
@@ -109,13 +108,12 @@ pub(super) fn publish_completed_chunk_builds(
     }
 }
 
-
 /// Cancels Surface-Nets work once its source materialization is no longer active.
-pub(super) fn retire_stale_chunk_builds(
+pub(super) fn retire_stale_surface_derivations(
     mut commands: Commands,
-    mut worlds: Query<&mut VoxelWorld>,
-    tasks: Query<(Entity, &VoxelDerivedTask)>,
-    mut telemetry: ResMut<VoxelStreamingTelemetry>,
+    mut worlds: Query<&mut VoxelScaleRealization>,
+    tasks: Query<(Entity, &VoxelSurfaceDerivationTask)>,
+    mut telemetry: ResMut<VoxelMaterializationTelemetry>,
 ) {
     for (entity, build) in &tasks {
         let stale = match worlds.get_mut(build.world) {
@@ -142,22 +140,21 @@ pub(super) fn retire_stale_chunk_builds(
 ///
 /// This is deliberately O(changes), not O(resident materializations). Quiet
 /// cached terrain does no per-frame geometry scheduling work.
-pub(super) fn queue_dirty_chunk_builds(
+pub(super) fn schedule_surface_derivations(
     mut commands: Commands,
-    workers: Res<VoxelWorkerPool>,
+    workers: Res<VoxelWorkExecutor>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     mut worlds: Query<(
         Entity,
-        &mut VoxelWorld,
+        &mut VoxelScaleRealization,
         &UsfScaleLayer,
-        Option<&super::streaming::VoxelStreaming>,
+        Option<&super::streaming::VoxelMaterializationResidency>,
     )>,
-    mut telemetry: ResMut<VoxelStreamingTelemetry>,
+    mut telemetry: ResMut<VoxelMaterializationTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
     mut round_robin_cursor: Local<usize>,
 ) {
-    let task_budget =
-        workers.available_slots(VoxelWorkerLane::Derivation);
+    let task_budget = workers.available_slots(VoxelWorkLane::Derivation);
     let mut started = 0usize;
     let mut empty_published = 0usize;
 
@@ -173,32 +170,23 @@ pub(super) fn queue_dirty_chunk_builds(
     world_entities.rotate_left(rotate);
     let mut exhausted = HashSet::<Entity>::new();
 
-    while started < task_budget
-        || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
-    {
+    while started < task_budget || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME {
         let mut progressed = false;
 
         for world_entity in world_entities.iter().copied() {
             if exhausted.contains(&world_entity) {
                 continue;
             }
-            if started >= task_budget
-                && empty_published >= DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
-            {
+            if started >= task_budget && empty_published >= DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME {
                 break;
             }
 
-            let Some(work_token) =
-                frame_budget.begin(ReconstructibleWorkClass::Maintenance)
-            else {
-                *round_robin_cursor =
-                    (*round_robin_cursor).wrapping_add(1);
+            let Some(work_token) = frame_budget.begin(ReconstructibleWorkClass::Maintenance) else {
+                *round_robin_cursor = (*round_robin_cursor).wrapping_add(1);
                 return;
             };
 
-            let Ok((_, mut world, layer, streaming)) =
-                worlds.get_mut(world_entity)
-            else {
+            let Ok((_, mut world, layer, streaming)) = worlds.get_mut(world_entity) else {
                 exhausted.insert(world_entity);
                 frame_budget.finish(work_token);
                 continue;
@@ -210,9 +198,7 @@ pub(super) fn queue_dirty_chunk_builds(
             let key = match streaming {
                 Some(streaming) => world
                     .materializations_mut()
-                    .pop_dirty_derived_best_by(|a, b| {
-                        streaming.compare_work_keys(a, b)
-                    }),
+                    .pop_dirty_derived_best_by(|a, b| streaming.compare_work_keys(a, b)),
                 None => world.materializations_mut().pop_dirty_derived(),
             };
             let Some(key) = key else {
@@ -233,8 +219,7 @@ pub(super) fn queue_dirty_chunk_builds(
                     || roles.contains(crate::spatial::UsfScaleRoleMask::EDITING)
             });
 
-            let Some((revision, snapshot)) =
-                world.materializations_mut().begin_surface_build(key)
+            let Some((revision, snapshot)) = world.materializations_mut().begin_surface_build(key)
             else {
                 frame_budget.finish(work_token);
                 progressed = true;
@@ -242,7 +227,9 @@ pub(super) fn queue_dirty_chunk_builds(
             };
 
             if !snapshot.has_surface_transition() {
-                world.materializations_mut().publish_surface(key, revision, None);
+                world
+                    .materializations_mut()
+                    .publish_surface(key, revision, None);
                 telemetry.derived_skipped_empty();
                 empty_published += 1;
                 frame_budget.finish(work_token);
@@ -251,7 +238,9 @@ pub(super) fn queue_dirty_chunk_builds(
             }
 
             if started >= task_budget {
-                world.materializations_mut().cancel_surface_build(key, revision);
+                world
+                    .materializations_mut()
+                    .cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
                 continue;
             }
@@ -263,24 +252,23 @@ pub(super) fn queue_dirty_chunk_builds(
             // +5=purple, +6=magenta, then repeat.
             //
             // This is deliberately a Scale diagnostic, not presentation LOD.
-            let debug_color = debug_scale_band_color(
-                layer.scale(),
-                interaction.target_scale(),
-            );
+            let debug_color = debug_scale_band_color(layer.scale(), interaction.target_scale());
             let build = move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
-                VoxelDerivedOutput {
+                VoxelSurfaceDerivationOutput {
                     surface,
                     debug_color,
                 }
             };
             let task = if critical {
-                workers.try_submit_critical(VoxelWorkerLane::Derivation, build)
+                workers.try_submit_critical(VoxelWorkLane::Derivation, build)
             } else {
-                workers.try_submit(VoxelWorkerLane::Derivation, build)
+                workers.try_submit(VoxelWorkLane::Derivation, build)
             };
             let Some(task) = task else {
-                world.materializations_mut().cancel_surface_build(key, revision);
+                world
+                    .materializations_mut()
+                    .cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
                 continue;
             };
@@ -292,8 +280,8 @@ pub(super) fn queue_dirty_chunk_builds(
                 } else {
                     "Voxel Surface Derivation"
                 }),
-                VoxelWorkerTask,
-                VoxelDerivedTask {
+                VoxelWorkTask,
+                VoxelSurfaceDerivationTask {
                     world: world_entity,
                     key,
                     revision,
@@ -313,13 +301,8 @@ pub(super) fn queue_dirty_chunk_builds(
     *round_robin_cursor = (*round_robin_cursor).wrapping_add(1);
 }
 
-
-fn debug_scale_band_color(
-    scale: SpatialScale,
-    interaction_scale: SpatialScale,
-) -> [f32; 4] {
-    let relative = i16::from(scale.exponent())
-        - i16::from(interaction_scale.exponent());
+fn debug_scale_band_color(scale: SpatialScale, interaction_scale: SpatialScale) -> [f32; 4] {
+    let relative = i16::from(scale.exponent()) - i16::from(interaction_scale.exponent());
     rainbow_debug_color(relative)
 }
 

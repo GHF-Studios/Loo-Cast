@@ -1,5 +1,6 @@
-use proc_macro_crate::{FoundCrate, crate_name};
-use proc_macro2::{Span, TokenStream};
+//! Expand component-conflict declarations into registration code.
+
+use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
     Ident, Item, Result, Token, Type,
@@ -7,11 +8,6 @@ use syn::{
     punctuated::Punctuated,
     spanned::Spanned,
 };
-
-/// The Cargo package name of the runtime crate.
-///
-/// This must match `[package].name` in the runtime crate's Cargo.toml.
-const SPACETIME_ENGINE_CRATE: &str = "spacetime-engine";
 
 struct ConflictArguments {
     components: Punctuated<Type, Token![,]>,
@@ -34,14 +30,14 @@ impl Parse for ConflictArguments {
 /// The macro itself performs no runtime conflict handling. It only emits
 /// inventory registrations consumed by the spacetime engine's component-conflict
 /// subsystem.
-pub struct Conflict {
+pub(super) struct Conflict {
     item: Item,
     component_ident: Ident,
     conflicting_components: Vec<Type>,
 }
 
 impl Conflict {
-    pub fn parse(attr: TokenStream, item: TokenStream) -> Result<Self> {
+    pub(super) fn parse(attr: TokenStream, item: TokenStream) -> Result<Self> {
         let arguments = syn::parse2::<ConflictArguments>(attr)?;
         let item = syn::parse2::<Item>(item)?;
 
@@ -71,14 +67,14 @@ impl Conflict {
         })
     }
 
-    pub fn generate(self) -> TokenStream {
+    pub(super) fn generate(self) -> TokenStream {
         let Self {
             item,
             component_ident,
             conflicting_components,
         } = self;
 
-        let spacetime_engine = match spacetime_engine_path() {
+        let spacetime_engine = match crate::runtime_crate::path() {
             Ok(path) => path,
             Err(error) => return error.into_compile_error(),
         };
@@ -115,24 +111,4 @@ fn ensure_non_generic(generics: &syn::Generics) -> Result<()> {
         "#[conflict(...)] cannot be applied to a generic component definition; \
          inventory registrations require concrete component types",
     ))
-}
-
-/// Resolves the runtime crate from the consuming crate's Cargo manifest.
-///
-/// This allows the generated code to work both from within `spacetime_engine`
-/// itself and when `spacetime_engine` has been renamed as a dependency.
-fn spacetime_engine_path() -> Result<TokenStream> {
-    match crate_name(SPACETIME_ENGINE_CRATE) {
-        Ok(FoundCrate::Itself) => Ok(quote!(crate)),
-
-        Ok(FoundCrate::Name(name)) => {
-            let ident = Ident::new(&name, Span::call_site());
-            Ok(quote!(::#ident))
-        }
-
-        Err(error) => Err(syn::Error::new(
-            Span::call_site(),
-            format!("could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"),
-        )),
-    }
 }

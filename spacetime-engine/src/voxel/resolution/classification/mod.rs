@@ -1,11 +1,11 @@
 //! Field-owned shell exclusion and sparse boundary evidence for clipmap planning.
 //! View demand and moving focus are applied by the planner, outside this cache.
 
-use std::collections::HashMap;
 use bevy::math::{DVec3, Vec3};
+use std::collections::HashMap;
 
-use crate::voxel::{CelestialPresentationFieldSampler, CelestialVoxelField};
 use super::topology::CelestialClipmapBlockKey;
+use crate::voxel::{CelestialPresentationFieldSampler, CelestialVoxelField};
 
 //
 // Planner state is deliberately reusable. The broad shell result is a field
@@ -63,16 +63,11 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
         field: CelestialVoxelField,
         sampler: &'a CelestialPresentationFieldSampler,
     ) -> Self {
-        let (surface_minimum, surface_maximum) =
-            field.conservative_surface_radius_bounds_metres();
-        let radial_uncertainty = (
-            surface_maximum - surface_minimum
-                + field.volumetric_surface_inward_support_metres()
-        )
-            .max(0.0);
-        let exact_extent_metres = (
-            radial_uncertainty * EXACT_PLANNER_SHELL_MULTIPLIER
-        )
+        let (surface_minimum, surface_maximum) = field.conservative_surface_radius_bounds_metres();
+        let radial_uncertainty = (surface_maximum - surface_minimum
+            + field.volumetric_surface_inward_support_metres())
+        .max(0.0);
+        let exact_extent_metres = (radial_uncertainty * EXACT_PLANNER_SHELL_MULTIPLIER)
             .max(MIN_EXACT_PLANNER_BLOCK_EXTENT_METRES);
 
         assert!(
@@ -87,24 +82,15 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
         }
     }
 
-    fn needs_exact_boundary(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> bool {
+    fn needs_exact_boundary(&self, key: CelestialClipmapBlockKey) -> bool {
         key.extent_metres() <= self.exact_extent_metres
     }
 
-    fn root_intersects(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> bool {
+    fn root_intersects(&self, key: CelestialClipmapBlockKey) -> bool {
         block_may_intersect_presentation_shell(self.field, key)
     }
 
-    fn refinement_intersects(
-        &self,
-        key: CelestialClipmapBlockKey,
-    ) -> RefinementEvidence {
+    fn refinement_intersects(&self, key: CelestialClipmapBlockKey) -> RefinementEvidence {
         if !block_may_intersect_presentation_shell(self.field, key) {
             return RefinementEvidence::ProvenOutsideShell;
         }
@@ -112,11 +98,7 @@ impl<'a> ClipmapBoundaryClassifier<'a> {
             return RefinementEvidence::BroadShell;
         }
 
-        block_intersects_refinement_boundary_with_sampler(
-            self.field,
-            key,
-            self.sampler,
-        )
+        block_intersects_refinement_boundary_with_sampler(self.field, key, self.sampler)
     }
 }
 
@@ -131,7 +113,6 @@ impl CelestialClipmapSurfaceCache {
         self.misses = 0;
         self.cheap_rejects = 0;
     }
-
 
     pub(super) fn intersects(
         &mut self,
@@ -157,7 +138,6 @@ impl CelestialClipmapSurfaceCache {
         entry.touched_generation = self.generation;
         value
     }
-
 
     pub(super) fn refinement_intersects(
         &mut self,
@@ -191,12 +171,10 @@ impl CelestialClipmapSurfaceCache {
         let minimum_generation = self
             .generation
             .saturating_sub(PLANNER_CLASSIFICATION_RETENTION_GENERATIONS);
-        self.classifications.retain(|_, entry| {
-            entry.touched_generation >= minimum_generation
-        });
+        self.classifications
+            .retain(|_, entry| entry.touched_generation >= minimum_generation);
     }
 }
-
 
 fn center_surface_radial_delta(
     key: CelestialClipmapBlockKey,
@@ -228,7 +206,6 @@ fn center_surface_radial_delta(
     Some(radial - surface_radius)
 }
 
-
 /// Fine-refinement occupancy.
 ///
 /// Whole-body roots intentionally keep the broad conservative shell test.
@@ -246,9 +223,7 @@ fn block_intersects_refinement_boundary_with_sampler(
     }
 
     let radial_threshold =
-        key.half_extent_metres().length()
-            + key.extent_metres() * 0.20
-            + key.spacing_metres() * 2.0;
+        key.half_extent_metres().length() + key.extent_metres() * 0.20 + key.spacing_metres() * 2.0;
     if center_surface_radial_delta(key, sampler)
         .is_some_and(|delta| delta.abs() <= radial_threshold)
     {
@@ -281,11 +256,7 @@ fn block_intersects_refinement_boundary_with_sampler(
     for z in [0.0_f64, 1.0] {
         for y in [0.0_f64, 1.0] {
             for x in [0.0_f64, 1.0] {
-                observe(origin + DVec3::new(
-                    x * extent,
-                    y * extent,
-                    z * extent,
-                ));
+                observe(origin + DVec3::new(x * extent, y * extent, z * extent));
             }
         }
     }
@@ -298,8 +269,7 @@ fn block_intersects_refinement_boundary_with_sampler(
     }
 
     let evidence_margin =
-        (key.spacing_metres() * 2.0)
-            .max(key.half_extent_metres().length() * 0.30);
+        (key.spacing_metres() * 2.0).max(key.half_extent_metres().length() * 0.30);
     if minimum_abs <= evidence_margin {
         RefinementEvidence::BoundaryObserved
     } else if unavailable {
@@ -308,7 +278,6 @@ fn block_intersects_refinement_boundary_with_sampler(
         RefinementEvidence::NoBoundaryObserved
     }
 }
-
 
 fn block_may_intersect_presentation_shell(
     field: CelestialVoxelField,
@@ -324,8 +293,7 @@ fn block_may_intersect_presentation_shell(
             low.abs().min(high.abs())
         }
     };
-    let farthest_axis =
-        |low: f64, high: f64| low.abs().max(high.abs());
+    let farthest_axis = |low: f64, high: f64| low.abs().max(high.abs());
 
     let nearest = DVec3::new(
         nearest_axis(minimum.x, maximum.x),
@@ -340,14 +308,10 @@ fn block_may_intersect_presentation_shell(
     )
     .length();
 
-    let (surface_minimum, surface_maximum) =
-        field.conservative_surface_radius_bounds_metres();
-    let conservative_extra =
-        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-    let volumetric_minimum = (
-        surface_minimum - field.volumetric_surface_inward_support_metres()
-    )
-    .max(0.0);
+    let (surface_minimum, surface_maximum) = field.conservative_surface_radius_bounds_metres();
+    let conservative_extra = key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
+    let volumetric_minimum =
+        (surface_minimum - field.volumetric_surface_inward_support_metres()).max(0.0);
 
     nearest <= surface_maximum + conservative_extra
         && farthest >= (volumetric_minimum - conservative_extra).max(0.0)

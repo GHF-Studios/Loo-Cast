@@ -3,11 +3,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    portal::{
-        domain::PortalSide,
-        topology::mapping::portal_plane,
-    },
     physics::topology::{SpatialSplitBox, SplitPlane},
+    portal::{domain::PortalSide, topology::mapping::portal_plane},
 };
 
 /// Fit tolerance is positive: a hull exactly tangent to an aperture edge is a

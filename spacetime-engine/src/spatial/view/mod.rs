@@ -4,6 +4,19 @@
 //! currently owns physical interaction for the controlled subject.
 //! A representation authored at scale S stores bounded S-native geometry and a
 //! canonical anchor; it never needs a universe-wide float position.
+//!
+//! ## Module map
+//!
+//! - `anchor`: Semantic and render view anchors plus observer-only override.
+//! - `context`: View-owned observer state and bounded projection conversions.
+//! - `presentation`: Scale-local, scenery, and fallback presentation contracts.
+//! - `probe`: Diagnostic presentation filter; never semantic authority.
+//! - `demand`: Observer-derived sparse presentation demand over the USF Scale Stack.
+//! - `lod`: Distance-driven mesh refinement for scale-authored scenery.
+//! - `systems`: ECS realization of observer-relative USF presentation state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::{math::DVec3, prelude::*};
 
@@ -25,7 +38,7 @@ pub use presentation::{
     UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,
     UsfSceneryPresentation,
 };
-pub use probe::UsfPresentationProbe;
+pub use probe::UsfPresentationDomainProbe;
 
 mod demand;
 mod lod;

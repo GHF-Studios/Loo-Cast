@@ -1,3 +1,5 @@
+//! Register developer visualizations and expose their application extension.
+
 use std::collections::HashSet;
 
 use bevy::prelude::*;

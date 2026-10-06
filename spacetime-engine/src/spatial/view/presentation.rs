@@ -137,14 +137,6 @@ impl UsfLocalScalePresentation {
         }
     }
 
-    /// Backward-compatible constructor for scale-native representation geometry.
-    ///
-    /// New call sites should prefer [`Self::scale_native`] or [`Self::metres`]
-    /// so the authoring-space contract is visible at construction.
-    pub const fn new(scale: SpatialScale) -> Self {
-        Self::scale_native(scale)
-    }
-
     pub const fn scale(self) -> SpatialScale {
         self.scale
     }

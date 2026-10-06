@@ -5,21 +5,20 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
-        UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
-        health::{Health, DamageableBounds},
-        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        health::{DamageableBounds, Health},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItemRequest},
     },
     physics::topology::UsfRuntimeOwnershipQuery,
     spatial::SpatialDemandSource,
     voxel::VoxelMaterializationDemand,
 };
 
-use super::assets::PlaygroundItemPresentationAssets;
 use super::super::{PlaygroundPickable, PlaygroundRoot};
+use super::assets::PlaygroundItemPresentationAssets;
 
 pub const CHUNKLOADING_CUBE: ItemId = ItemId::new("chunkloading_cube");
 
@@ -57,7 +56,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 
 fn use_chunkloading_cube(
     mut commands: Commands,
-    mut uses: MessageReader<UseItem>,
+    mut uses: MessageReader<UseItemRequest>,
     assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
@@ -118,8 +117,6 @@ fn use_chunkloading_cube(
             .spawn((
                 (
                     Name::new(format!("Chunkloading Cube Manifestation {}", counter.0)),
-                    
-                    
                     UsfLogicalRealizationOf(chunkloading_partition),
                     PlaygroundPickable::cube(root, CUBE_SIZE),
                     DamageableBounds::cube(CUBE_SIZE),

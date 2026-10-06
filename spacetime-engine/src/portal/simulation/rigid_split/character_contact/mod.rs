@@ -6,16 +6,16 @@ use bevy::prelude::*;
 use crate::portal::simulation::split::active_portal_pair;
 
 use crate::{
-    portal::{
-        Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler,
-        topology::mapping::portal_mapping,
-    },
     physics::{
         character::{
             CharacterMotor, CharacterPush, MAX_DYNAMIC_CONTACT_DELTA_SPEED,
             dynamic_contact_delta_velocity,
         },
         topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    },
+    portal::{
+        Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler,
+        topology::mapping::portal_mapping,
     },
 };
 
@@ -98,7 +98,8 @@ pub(crate) fn receive_peer_dynamic_contact_pushes(
         let mut delta_velocity = Vec3::ZERO;
 
         for pair in collisions.collisions_with(peer_entity) {
-            let peer_is_first = if pair.body1 == Some(peer_entity) || pair.collider1 == peer_entity {
+            let peer_is_first = if pair.body1 == Some(peer_entity) || pair.collider1 == peer_entity
+            {
                 true
             } else if pair.body2 == Some(peer_entity) || pair.collider2 == peer_entity {
                 false
@@ -106,7 +107,11 @@ pub(crate) fn receive_peer_dynamic_contact_pushes(
                 continue;
             };
 
-            let other_body = if peer_is_first { pair.body2 } else { pair.body1 };
+            let other_body = if peer_is_first {
+                pair.body2
+            } else {
+                pair.body1
+            };
             let Some(other_body) = other_body else {
                 continue;
             };

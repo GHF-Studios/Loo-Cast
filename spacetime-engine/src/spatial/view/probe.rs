@@ -7,14 +7,14 @@ use super::*;
 /// This changes presentation output only. It never changes semantic state,
 /// capability coverage, residency, physics or interaction Scale Slice ownership.
 #[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum UsfPresentationProbe {
+pub enum UsfPresentationDomainProbe {
     #[default]
     All,
     Physical,
     Context,
 }
 
-impl UsfPresentationProbe {
+impl UsfPresentationDomainProbe {
     pub const fn physical_enabled(self) -> bool {
         matches!(self, Self::All | Self::Physical)
     }

@@ -24,10 +24,7 @@ pub(in crate::game::player) fn zoom_third_person(
     input: Res<PlayerInputFrame>,
     presentation: Res<crate::view::PrimaryViewPresentation>,
     camera: Single<&PlayerCamera>,
-    controlled_vehicle: Query<
-        (),
-        (With<LocalControlSubject>, Without<Player>),
-    >,
+    controlled_vehicle: Query<(), (With<LocalControlSubject>, Without<Player>)>,
     mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
     if presentation.is_embedded()

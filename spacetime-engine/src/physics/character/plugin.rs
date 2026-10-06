@@ -1,3 +1,5 @@
+//! Install character-physics systems and their schedule ordering.
+
 use avian3d::prelude::*;
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
@@ -5,8 +7,7 @@ use crate::physics::gravity::GravitySample;
 
 use super::{
     CharacterControlFrame, CharacterGroundContact, CharacterGroundState, CharacterLocomotionFrame,
-    CharacterMovementConfig,
-    CharacterMovementInput, GravityAlignedLocomotionFrame,
+    CharacterMovementConfig, CharacterMovementIntent, GravityAlignedLocomotionFrame,
     controller::{
         CharacterPush, apply_character_pushes, receive_dynamic_contact_pushes,
         simulate_character_motors,
@@ -31,7 +32,7 @@ use super::{
     Transform,
     LinearVelocity,
     CharacterMovementConfig,
-    CharacterMovementInput,
+    CharacterMovementIntent,
     CharacterGroundState,
     CharacterLocomotionFrame,
     CharacterControlFrame,
@@ -59,7 +60,7 @@ impl Plugin for CharacterMovementPlugin {
         app.add_message::<CharacterPush>()
             .register_type::<CharacterMotor>()
             .register_type::<CharacterMovementConfig>()
-            .register_type::<CharacterMovementInput>()
+            .register_type::<CharacterMovementIntent>()
             .register_type::<CharacterGroundContact>()
             .register_type::<CharacterGroundState>()
             .register_type::<CharacterLocomotionFrame>()

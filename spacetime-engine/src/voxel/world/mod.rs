@@ -1,4 +1,12 @@
-//! Scale-local voxel realization with store-owned materialization caches.
+//! One scale-local voxel realization over canonical semantic voxel authority.
+//!
+//! ## Module map
+//!
+//! - `address`: Canonical voxel materialization addressing.
+//! - `recipe`: Immutable dense-materialization recipe captured from semantic voxel state.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::collections::HashSet;
 
@@ -7,22 +15,20 @@ use bevy::prelude::{Component, IVec3, Vec3};
 use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelBounds, VoxelChunk,
-    VoxelEdit, VoxelFrameEdit, VoxelFrameSnapshot,
-    VoxelModificationLayer, VoxelQueryPosition, VoxelSample, VoxelScaleDomain, chunk::SAMPLE_PADDING,
+    DenseVoxelMaterialization, MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelBounds, VoxelEdit,
+    VoxelFrameEdit, VoxelFrameSnapshot, VoxelModificationLayer, VoxelQueryPosition, VoxelSample,
+    VoxelScaleDomain, VoxelSemanticAuthority, chunk::SAMPLE_PADDING,
     store::VoxelMaterializationStore,
 };
 
 mod address;
 mod recipe;
 
-pub use address::{
-    VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress,
-};
 pub(in crate::voxel) use address::VoxelMaterializationKey;
-pub(in crate::voxel) use recipe::VoxelChunkRecipe;
+pub use address::{VoxelChunkCoord, VoxelMaterializationChunkAddress};
+pub(in crate::voxel) use recipe::VoxelMaterializationRecipe;
 
-/// One scale-local voxel realization container.
+/// One reconstructible scale-local voxel realization.
 ///
 /// Standalone/authored worlds may own `base + modifications` directly. When this
 /// entity is a [`crate::ecs::UsfLogicalRealizationOf`] an authority partition,
@@ -30,7 +36,7 @@ pub(in crate::voxel) use recipe::VoxelChunkRecipe;
 /// persistent edits. Dense materializations/render/collision remain disposable
 /// local state.
 #[derive(Component, Debug)]
-pub struct VoxelWorld {
+pub struct VoxelScaleRealization {
     origin: UsfPosition,
     base: VoxelBase,
     modifications: VoxelModificationLayer,
@@ -38,13 +44,13 @@ pub struct VoxelWorld {
     linear_drag_materializations: HashSet<VoxelMaterializationKey>,
 }
 
-impl Default for VoxelWorld {
+impl Default for VoxelScaleRealization {
     fn default() -> Self {
         Self::new(VoxelBase::default())
     }
 }
 
-impl VoxelWorld {
+impl VoxelScaleRealization {
     pub fn new(base: VoxelBase) -> Self {
         Self::new_at(base, UsfPosition::default())
     }
@@ -65,9 +71,17 @@ impl VoxelWorld {
 
     /// Rigid-translation reanchor for reconstructible worlds. Cache-local keys
     /// remain valid; callers must rebuild instead if orientation changes.
-    pub(in crate::voxel) fn reanchor_reconstructible(&mut self, base: VoxelBase, origin: UsfPosition) -> Result<(), UsfPositionError> {
-        if origin.leaf_scale()!=self.origin.leaf_scale(){return Err(UsfPositionError::IncompatibleLeafScale);}
-        self.origin=origin; self.base=base; Ok(())
+    pub(in crate::voxel) fn reanchor_reconstructible(
+        &mut self,
+        base: VoxelBase,
+        origin: UsfPosition,
+    ) -> Result<(), UsfPositionError> {
+        if origin.leaf_scale() != self.origin.leaf_scale() {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        self.origin = origin;
+        self.base = base;
+        Ok(())
     }
 
     /// Compatibility adapter from a nearby bounded lattice offset. Core Pass-B
@@ -99,10 +113,9 @@ impl VoxelWorld {
         point: VoxelQueryPosition,
     ) -> Result<VoxelMaterializationKey, UsfPositionError> {
         let point = point.reexpressed_at(self.origin.leaf_scale())?;
-        let cells = point.usf().relative_native_lattice_cell(
-            &self.origin,
-            i64::from(MATERIALIZATION_CHUNK_SIZE),
-        )?;
+        let cells = point
+            .usf()
+            .relative_native_lattice_cell(&self.origin, i64::from(MATERIALIZATION_CHUNK_SIZE))?;
         Ok(VoxelMaterializationKey::new(cells))
     }
 
@@ -127,18 +140,13 @@ impl VoxelWorld {
             .map(VoxelMaterializationChunkAddress::new)
     }
 
-    pub(in crate::voxel) fn may_have_linear_drag_at(
-        &self,
-        point: VoxelQueryPosition,
-    ) -> bool {
+    pub(in crate::voxel) fn may_have_linear_drag_at(&self, point: VoxelQueryPosition) -> bool {
         if self.base.may_have_linear_drag() {
             return true;
         }
         self.materialization_key_containing(point)
             .is_ok_and(|key| self.linear_drag_materializations.contains(&key))
     }
-
-
 
     pub const fn base(&self) -> VoxelBase {
         self.base
@@ -150,7 +158,7 @@ impl VoxelWorld {
 
     /// Records one authoritative semantic edit and indexes it by the canonical
     /// base materialization scopes whose padded sample domains it can affect.
-    pub fn record_edit(&mut self, edit: VoxelEdit) -> Result<(), UsfPositionError> {
+    pub fn record_inline_edit(&mut self, edit: VoxelEdit) -> Result<(), UsfPositionError> {
         let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
         self.modifications.push(edit, addresses.iter().copied());
         let introduces_linear_drag = edit_introduces_linear_drag(edit);
@@ -167,11 +175,11 @@ impl VoxelWorld {
     /// Captures immutable canonical generation input for one chunk. This is
     /// deliberately cheap relative to dense generation: procedural bases are
     /// compact and only edits indexed for this semantic address are copied.
-    pub(in crate::voxel) fn chunk_recipe(
+    pub(in crate::voxel) fn materialization_recipe(
         &self,
         address: VoxelMaterializationChunkAddress,
-    ) -> VoxelChunkRecipe {
-        VoxelChunkRecipe {
+    ) -> VoxelMaterializationRecipe {
+        VoxelMaterializationRecipe {
             address,
             world_origin: VoxelQueryPosition::new(self.origin),
             base: self.base,
@@ -185,13 +193,13 @@ impl VoxelWorld {
     /// Only realizations declared editable by the semantic mechanism consume
     /// the raw canonical edit stream directly. Other slices intentionally ignore
     /// fine edits until a real cross-scale edit aggregation policy exists.
-pub(in crate::voxel) fn chunk_recipe_from_authority(
+    pub(in crate::voxel) fn materialization_recipe_from_authority(
         &self,
         address: VoxelMaterializationChunkAddress,
-        authority: &VoxelAuthority,
+        authority: &VoxelSemanticAuthority,
         domain: &VoxelScaleDomain,
         frame_snapshot: VoxelFrameSnapshot,
-    ) -> VoxelChunkRecipe {
+    ) -> VoxelMaterializationRecipe {
         let edits = if domain.editable(self.origin.leaf_scale()) {
             let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
             authority
@@ -208,7 +216,7 @@ pub(in crate::voxel) fn chunk_recipe_from_authority(
             Vec::new()
         };
 
-        VoxelChunkRecipe {
+        VoxelMaterializationRecipe {
             address,
             world_origin: VoxelQueryPosition::new(self.origin),
             base: self.base,
@@ -219,7 +227,7 @@ pub(in crate::voxel) fn chunk_recipe_from_authority(
 
     /// Applies a newly-recorded shared-authority edit to resident caches without
     /// duplicating it in this realization's inline modification log.
-pub(crate) fn apply_authority_edit(
+    pub(crate) fn apply_authority_edit(
         &mut self,
         edit: VoxelFrameEdit,
         frame_snapshot: VoxelFrameSnapshot,
@@ -243,8 +251,11 @@ pub(crate) fn apply_authority_edit(
 
     /// Reconstructs one dense chunk-local working cache from canonical semantic
     /// base + sparse edits.
-    pub fn materialize_chunk(&self, address: VoxelMaterializationChunkAddress) -> VoxelChunk {
-        self.chunk_recipe(address).materialize()
+    pub fn materialize_dense(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> DenseVoxelMaterialization {
+        self.materialization_recipe(address).materialize()
     }
 
     /// Resolves one arbitrary canonical sample without requiring a materialized
@@ -285,12 +296,16 @@ pub(crate) fn apply_authority_edit(
     /// direct access to currently realized voxel data.
     pub fn active_dense_materializations(
         &self,
-    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &VoxelChunk)> + '_ {
-        self.materializations.active_dense_entries().map(move |(key, chunk)| {
-            let address = self.materialization_address(key)
-                .expect("resident materialization key must map back to canonical address");
-            (address, chunk)
-        })
+    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &DenseVoxelMaterialization)> + '_
+    {
+        self.materializations
+            .active_dense_entries()
+            .map(move |(key, chunk)| {
+                let address = self
+                    .materialization_address(key)
+                    .expect("resident materialization key must map back to canonical address");
+                (address, chunk)
+            })
     }
 
     /// Inserts one already-materialized active chunk.
@@ -300,9 +315,10 @@ pub(crate) fn apply_authority_edit(
     pub fn insert_active_materialization(
         &mut self,
         address: VoxelMaterializationChunkAddress,
-        chunk: VoxelChunk,
+        chunk: DenseVoxelMaterialization,
     ) {
-        let key = self.materialization_key(address)
+        let key = self
+            .materialization_key(address)
             .expect("inserted materialization address must belong to this voxel world");
         self.materializations.insert_dense_active(key, chunk);
     }

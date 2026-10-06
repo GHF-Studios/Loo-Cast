@@ -23,8 +23,6 @@ pub struct UsfViewRenderAnchor;
 
 /// Optional view-only observer override.
 ///
-/// #40/#57 observer-view-demand-policy-v1
-///
 /// This changes only where the presentation observer is projected. It does not
 /// modify the canonical gameplay subject, interaction Scale Slice, refinement,
 /// collision/editing authority or generic `SpatialDemandSource` ownership.

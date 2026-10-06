@@ -10,8 +10,8 @@ use bevy::prelude::*;
 
 use crate::{
     console::{
-        AppConsoleExt, ConsoleArgumentCompletion, ConsoleCommandInvocation,
-        ConsoleCommandResult, ConsoleCommandSpec,
+        AppConsoleExt, ConsoleArgumentCompletion, ConsoleCommandInvocation, ConsoleCommandResult,
+        ConsoleCommandSpec,
     },
     game::player::{BINDABLE_INPUT_NAMES, PLAYER_BIND_TARGETS, PlayerInputBindings},
 };
@@ -64,7 +64,10 @@ fn bind_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> Con
 
     if args.len() == 1 {
         let key = &args[0];
-        return match world.resource::<PlayerInputBindings>().binding_for_name(key) {
+        return match world
+            .resource::<PlayerInputBindings>()
+            .binding_for_name(key)
+        {
             Ok(Some(target)) => ConsoleCommandResult::success(format!("{key} = {target}")),
             Ok(None) => ConsoleCommandResult::success(format!("{key} is unbound")),
             Err(error) => ConsoleCommandResult::error(error),
@@ -90,10 +93,13 @@ fn unbind_command(
         return ConsoleCommandResult::error("usage: unbind <key>");
     }
     let key = &invocation.args()[0];
-    match world.resource_mut::<PlayerInputBindings>().unbind_named(key) {
-        Ok(Some(previous)) => ConsoleCommandResult::success(format!(
-            "{key} unbound (was {previous})"
-        )),
+    match world
+        .resource_mut::<PlayerInputBindings>()
+        .unbind_named(key)
+    {
+        Ok(Some(previous)) => {
+            ConsoleCommandResult::success(format!("{key} unbound (was {previous})"))
+        }
         Ok(None) => ConsoleCommandResult::success(format!("{key} was already unbound")),
         Err(error) => ConsoleCommandResult::error(error),
     }

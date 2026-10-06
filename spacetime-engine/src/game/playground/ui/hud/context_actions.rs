@@ -7,14 +7,14 @@ use bevy::prelude::*;
 
 use crate::game::{
     control::LocalControlSubject,
-    flight::{AttitudeAutopilot, AttitudeAutopilotMode, PilotAttitudeLaw},
+    flight::{AttitudeAutopilot, AttitudeAutopilotMode, FlightCapabilities, PilotAttitudeLaw},
     inventory::Hotbar,
     item::{ItemAction, ItemCatalog},
     locomotion::{
         ControlledSubjectLocomotion, FlightActuation, LocomotionCapabilities, LocomotionRegime,
         MotionExecution, MotionKernel,
     },
-    navigation::{TravelAssistance, TravelAssistanceState, TravelState},
+    navigation::{NavigationCapabilities, TravelAssistance, TravelAssistanceState, TravelState},
     player::{CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings},
 };
 
@@ -45,6 +45,8 @@ pub(super) fn update_context_actions(
             &MotionExecution,
             &FlightActuation,
             &LocomotionCapabilities,
+            &FlightCapabilities,
+            &NavigationCapabilities,
             &TravelAssistanceState,
             &PilotAttitudeLaw,
             &AttitudeAutopilot,
@@ -70,6 +72,8 @@ pub(super) fn update_context_actions(
         execution,
         actuation,
         capabilities,
+        flight_capabilities,
+        navigation_capabilities,
         assistance,
         attitude_law,
         autopilot,
@@ -84,6 +88,8 @@ pub(super) fn update_context_actions(
         execution,
         actuation,
         capabilities,
+        flight_capabilities,
+        navigation_capabilities,
         assistance,
         attitude_law,
         autopilot,
@@ -104,6 +110,8 @@ fn context_action_text(
     execution: &MotionExecution,
     actuation: &FlightActuation,
     capabilities: &LocomotionCapabilities,
+    flight_capabilities: &FlightCapabilities,
+    navigation_capabilities: &NavigationCapabilities,
     assistance: &TravelAssistanceState,
     attitude_law: &PilotAttitudeLaw,
     autopilot: &AttitudeAutopilot,
@@ -120,6 +128,8 @@ fn context_action_text(
         locomotion,
         actuation,
         capabilities,
+        flight_capabilities,
+        navigation_capabilities,
         assistance,
         attitude_law,
         bindings,
@@ -185,12 +195,14 @@ fn append_travel_actions(
     locomotion: &ControlledSubjectLocomotion,
     actuation: &FlightActuation,
     capabilities: &LocomotionCapabilities,
+    flight_capabilities: &FlightCapabilities,
+    navigation_capabilities: &NavigationCapabilities,
     assistance: &TravelAssistanceState,
     attitude_law: &PilotAttitudeLaw,
     bindings: &PlayerInputBindings,
 ) {
     let cruising = assistance.mode() == TravelAssistance::Cruise;
-    if capabilities.cruise() {
+    if navigation_capabilities.cruise() {
         if cruising {
             lines.push(format!(
                 "{}/{}      Throttle",
@@ -216,20 +228,24 @@ fn append_travel_actions(
             attitude_law.label(),
         ));
 
-        lines.push(format!(
-            "{:<10}Thrusters {}",
-            bindings.label(PlayerAction::ToggleThrusters),
-            if actuation.thrusters_enabled() {
-                "off"
-            } else {
-                "on"
-            }
-        ));
-        lines.push(format!(
-            "{:<10}RCS {}",
-            bindings.label(PlayerAction::ToggleRcs),
-            if actuation.rcs_enabled() { "off" } else { "on" }
-        ));
+        if flight_capabilities.main_propulsion() {
+            lines.push(format!(
+                "{:<10}Thrusters {}",
+                bindings.label(PlayerAction::ToggleThrusters),
+                if actuation.thrusters_enabled() {
+                    "off"
+                } else {
+                    "on"
+                }
+            ));
+        }
+        if flight_capabilities.reaction_control() {
+            lines.push(format!(
+                "{:<10}RCS {}",
+                bindings.label(PlayerAction::ToggleRcs),
+                if actuation.rcs_enabled() { "off" } else { "on" }
+            ));
+        }
     }
 }
 

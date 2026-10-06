@@ -8,6 +8,15 @@
 //! Runtime Scale Slices, residency/refinement, semantic realization, physics,
 //! rendering and world policy remain downstream responsibilities. Bevy derives
 //! on canonical value types are host metadata, not ownership of those policies.
+//!
+//! ## Module map
+//!
+//! - `chunk_address`: Canonical identity and traversal of one USF chunk at one spatial scale.
+//! - `chart`: Pure bounded chart algebra over canonical USF space.
+//! - `position`: Canonical position value, balanced digit arithmetic, and bounded projection.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::fmt::{Display, Formatter};
 
@@ -76,24 +85,6 @@ impl SpatialScale {
     pub fn native_to_metres_f32(self, value: f32) -> f32 {
         (f64::from(value) * self.metres_per_native()).clamp(-(f32::MAX as f64), f32::MAX as f64)
             as f32
-    }
-
-    // Compatibility aliases while older code migrates. They describe the same
-    // metre-unit convention; they do not establish S0 as USF's origin.
-    pub fn scale0_units_per_native(self) -> f64 {
-        self.metres_per_native()
-    }
-
-    pub fn scale0_to_native_f64(self, value: f64) -> f64 {
-        self.metres_to_native_f64(value)
-    }
-
-    pub fn scale0_to_native_f32(self, value: f32) -> f32 {
-        self.metres_to_native_f32(value)
-    }
-
-    pub fn native_to_scale0_f32(self, value: f32) -> f32 {
-        self.native_to_metres_f32(value)
     }
 }
 

@@ -1,4 +1,13 @@
 //! Observation and diagnostic console commands for the current world view.
+//!
+//! ## Module map
+//!
+//! - `position`: Canonical position and authored landmark inspection.
+//! - `presentation`: View, interaction and coverage diagnostic projection.
+//! - `runtime`: Bounded navigation history and worker telemetry commands.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::super::{
     control::LocalControlSubject,
@@ -11,12 +20,13 @@ use crate::{
     console::{ConsoleCommandInvocation, ConsoleCommandResult},
     physics::topology::runtime_semantic_of_world,
     spatial::{
-        UsfCapabilityRealization, UsfInteractionScaleAffinity, UsfPosition, UsfPresentationProbe,
-        UsfPrimaryInteractionSlice, UsfRuntimeChartState, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfScalePresentation, UsfScaleRoleMask, UsfSceneryPresentation, UsfViewRenderAnchor,
+        UsfCapabilityRealization, UsfInteractionScaleAffinity, UsfPosition,
+        UsfPresentationDomainProbe, UsfPrimaryInteractionSlice, UsfRuntimeChartState,
+        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
+        UsfSceneryPresentation, UsfViewRenderAnchor,
     },
     view::PrimaryGameView,
-    voxel::VoxelStreamingTelemetry,
+    voxel::VoxelMaterializationTelemetry,
 };
 use bevy::prelude::*;
 use std::collections::BTreeMap;

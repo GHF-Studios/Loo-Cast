@@ -11,8 +11,8 @@ use avian3d::{
 use bevy::prelude::*;
 
 use crate::{
-    portal::topology::mapping::portal_plane,
     physics::topology::{SpatialSplitBox, partition_box_by_plane},
+    portal::topology::mapping::portal_plane,
 };
 
 const DESTINATION_REMAINDER_SUBSTEPS: usize = 4;

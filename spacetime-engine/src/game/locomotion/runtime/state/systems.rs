@@ -18,7 +18,7 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
             &LocomotionEnabled,
             &LocomotionInhibition,
             Option<&DeveloperMotionOverride>,
-            &mut TravelAssistanceState,
+            &TravelAssistanceState,
             Option<&LocomotionRegimeOverride>,
             &mut ControlledSubjectLocomotion,
             &mut MotionExecution,
@@ -37,7 +37,7 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         enabled,
         inhibition,
         developer_motion,
-        mut assistance,
+        assistance,
         regime_override,
         mut locomotion,
         mut execution,
@@ -63,12 +63,6 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
         control_intent: *intent,
     };
 
-    if assistance.mode() == TravelAssistance::Cruise
-        && (travel.critical_dropout || !capabilities.cruise())
-    {
-        assistance.disengage(TravelAssistanceTransitionReason::CriticalApproach);
-    }
-
     let decision = decide_motion_policy(
         MotionPolicyInputs {
             entity,
@@ -91,17 +85,25 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
             runtime_velocity.0 = Vec3::ZERO;
         }
         VelocitySemantics::PreserveCanonical => {
-            if !motion.canonical_authority() && decision.canonical_authority {
+            if !motion.is_canonical_kinematic()
+                && decision.authority == UsfMotionAuthority::CanonicalKinematics
+            {
                 motion.set_from_native_velocity(layer.scale(), runtime_velocity.0);
-            } else if motion.canonical_authority() && !decision.canonical_authority {
+            } else if motion.is_canonical_kinematic()
+                && decision.authority == UsfMotionAuthority::RuntimePhysics
+            {
                 runtime_velocity.0 = motion.native_velocity(layer.scale());
             }
         }
     }
     let regime_changed = locomotion.resolve(decision.regime);
-    let execution_changed =
-        execution.resolve(decision.kernel, decision.collision, decision.velocity);
-    motion.set_canonical_authority(decision.canonical_authority);
+    let execution_changed = execution.resolve(
+        decision.kernel,
+        decision.collision,
+        decision.velocity,
+        decision.authority_reason,
+    );
+    motion.set_authority(decision.authority);
 
     if regime_changed || execution_changed || previous_authority != motion.authority() {
         let reason = if decision.reason == LocomotionTransitionReason::AutomaticPolicy
@@ -141,7 +143,7 @@ pub(in crate::game::locomotion) fn sync_locomotion_runtime(
             Option<&CharacterMotor>,
             Option<&Collider>,
             Option<&DetailedBodyCollision>,
-            &mut CharacterMovementInput,
+            &mut CharacterMovementIntent,
             &mut CharacterGroundState,
         ),
         With<LocalControlSubject>,

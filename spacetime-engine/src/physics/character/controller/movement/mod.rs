@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 use super::super::{
-    CharacterGroundState, CharacterMovementInput, ResolvedCharacterMovementConfig, accelerate,
+    CharacterGroundState, CharacterMovementIntent, ResolvedCharacterMovementConfig, accelerate,
     air_accelerate, apply_friction, reject,
 };
 
@@ -18,7 +18,7 @@ pub(super) fn reset_transition_flags(ground: &mut CharacterGroundState) {
 /// jump as grounded movement.
 pub(super) fn integrate_pre_move_velocity(
     config: &ResolvedCharacterMovementConfig,
-    input: &CharacterMovementInput,
+    input: &CharacterMovementIntent,
     ground: &mut CharacterGroundState,
     up: Vec3,
     dt: f32,
@@ -89,9 +89,6 @@ pub(super) fn apply_post_move_gravity(
     }
 }
 
-pub(super) fn finish_transition_flags(
-    ground: &mut CharacterGroundState,
-    was_grounded: bool,
-) {
+pub(super) fn finish_transition_flags(ground: &mut CharacterGroundState, was_grounded: bool) {
     ground.finish_tick(was_grounded);
 }

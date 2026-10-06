@@ -5,15 +5,25 @@
 //! topology. This module tracks only the sparse subset of canonical contexts
 //! that currently have runtime responsibility.
 //!
-//! Primary spatial interest is copied from [`SpatialDemandSnapshot`].
+//! Primary spatial interest is copied from [`crate::spatial::SpatialDemandSnapshot`].
 //! Capability planners may add derived requirements through
-//! [`UsfResidencyRequestBuffer`]. The resulting [`UsfContextResidency`] is
+//! [`UsfResidencyRequests`]. The resulting [`UsfContextResidency`] is
 //! ancestor-closed: a resident child always retains every canonical ancestor up
 //! to the Scale-Slice ceiling.
 //!
 //! Residency is lifecycle/context fact, not realization authority. Voxel,
 //! field, physics and render systems remain free to choose their own
 //! capability-local representations beneath the resident contexts.
+//!
+//! ## Module map
+//!
+//! - `model`: Resident context facts and request-buffer API.
+//! - `plan`: Turns canonical demand ranges into an ancestor-closed resident graph.
+//! - `range`: Bounded conversion from continuous demand to canonical context addresses.
+//! - `systems`: ECS ordering for request collection and residency reconciliation.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::{
     SPATIAL_SCALE_MAX, SpatialDemandScope, SpatialScale, UsfChunkAddress, UsfPosition,
@@ -25,7 +35,7 @@ mod plan;
 mod range;
 mod systems;
 
-pub use model::{UsfContextResidency, UsfResidencyRequestBuffer, UsfResidentContext};
+pub use model::{UsfContextResidency, UsfResidencyRequests, UsfResidentContext};
 pub use systems::UsfResidencySet;
 pub(in crate::spatial) use systems::configure;
 

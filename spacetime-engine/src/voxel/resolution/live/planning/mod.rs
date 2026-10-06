@@ -6,7 +6,7 @@
 use super::*;
 
 pub(super) fn poll_plan_tasks(
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
     telemetry: &mut CelestialClipmapTelemetry,
     current_inputs: &HashMap<Entity, (CelestialClipmapPlanInput, CelestialVoxelField)>,
 ) -> (HashSet<Entity>, bool) {
@@ -126,7 +126,7 @@ pub(super) fn poll_plan_tasks(
         );
 
         {
-            let CelestialClipmapRegistry {
+            let CelestialClipmapRealizations {
                 plans,
                 active_entities,
                 ..
@@ -145,15 +145,15 @@ pub(super) fn poll_plan_tasks(
 }
 
 pub(super) fn schedule_plan_tasks(
-    registry: &mut CelestialClipmapRegistry,
+    registry: &mut CelestialClipmapRealizations,
     telemetry: &mut CelestialClipmapTelemetry,
     current_inputs: &HashMap<Entity, (CelestialClipmapPlanInput, CelestialVoxelField)>,
     planning_authorities: &mut HashSet<Entity>,
-    workers: &VoxelWorkerPool,
+    workers: &VoxelWorkExecutor,
     frame_budget: &mut ReconstructibleFrameBudget,
 ) {
     let _schedule_plan_span = bevy::log::info_span!("celestial_clipmap.schedule_plans").entered();
-    let mut planning_slots = workers.available_slots(VoxelWorkerLane::PresentationPlanning);
+    let mut planning_slots = workers.available_slots(VoxelWorkLane::PresentationPlanning);
     let committed_focus_lag = current_inputs
         .iter()
         .filter_map(|(authority, (input, _))| {
@@ -184,7 +184,7 @@ pub(super) fn schedule_plan_tasks(
             .remove(&authority)
             .unwrap_or_default();
 
-        let Some(task) = workers.try_submit(VoxelWorkerLane::PresentationPlanning, move || {
+        let Some(task) = workers.try_submit(VoxelWorkLane::PresentationPlanning, move || {
             let stages = build_plan(field, input, &mut surface_cache, warm_replan);
             CelestialClipmapPlanBuildOutput {
                 stages,

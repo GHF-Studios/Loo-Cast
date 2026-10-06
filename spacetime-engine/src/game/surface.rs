@@ -13,8 +13,8 @@ use crate::{
     ecs::UsfOwnershipQuery,
     physics::PhysicalBoxHull,
     spatial::{
-        UsfPosition, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
-        UsfSemanticFrame, UsfSpatialSet,
+        UsfPosition, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask, UsfSemanticFrame,
+        UsfSpatialSet,
     },
     voxel::{CelestialVoxelField, VoxelScaleDomain},
 };
@@ -113,11 +113,7 @@ fn sample_surface_candidate(
     // range to normalize robustly from any observer interaction Scale.
     let measurement_scale = field.coarsest_detail_scale();
     let relative = position
-        .relative_at_scale_bounded_f64(
-            &body_origin,
-            measurement_scale,
-            f64::MAX,
-        )
+        .relative_at_scale_bounded_f64(&body_origin, measurement_scale, f64::MAX)
         .ok()?;
     let radial = relative.length();
     if !radial.is_finite() || radial <= f64::EPSILON {
@@ -134,8 +130,7 @@ fn sample_surface_candidate(
         return None;
     }
 
-    let center_distance_metres =
-        radial * measurement_scale.metres_per_native();
+    let center_distance_metres = radial * measurement_scale.metres_per_native();
 
     let (center_altitude_metres, reference) = if domain.realizes(subject_scale) {
         // Surface telemetry consumes the same canonical procedural surface as
@@ -146,11 +141,7 @@ fn sample_surface_candidate(
             .surface_position(&body_origin, body_frame, local_outward)
             .ok()?;
         let relative_to_surface = position
-            .relative_at_scale_bounded_f64(
-                &surface,
-                measurement_scale,
-                f64::MAX,
-            )
+            .relative_at_scale_bounded_f64(&surface, measurement_scale, f64::MAX)
             .ok()?;
 
         let world_outward = DVec3::new(
@@ -201,8 +192,7 @@ fn sync_surface_contexts(
     for (entity, transform, layer, hull, mut surface) in &mut subjects {
         *surface = SurfaceContext::default();
 
-        let _candidate_span =
-            bevy::log::info_span!("surface_context.candidate").entered();
+        let _candidate_span = bevy::log::info_span!("surface_context.candidate").entered();
 
         // Surface telemetry observes semantic position directly. Runtime
         // Transform is a bounded/rebased projection and may intentionally
@@ -237,18 +227,17 @@ fn sync_surface_contexts(
             continue;
         };
 
-        let support_metres = f64::from(
-            hull.projection_radius_metres(transform.rotation, candidate.radial_outward),
-        );
+        let support_metres =
+            f64::from(hull.projection_radius_metres(transform.rotation, candidate.radial_outward));
         let clearance_metres = candidate.center_altitude_metres - support_metres;
 
         let collision_probe_metres = (support_metres + 0.5).max(0.5);
-        let collision_probe_native =
-            layer.scale().metres_to_native_f32(collision_probe_metres as f32);
+        let collision_probe_native = layer
+            .scale()
+            .metres_to_native_f32(collision_probe_metres as f32);
 
         drop(_candidate_span);
-        let _coverage_span =
-            bevy::log::info_span!("surface_context.coverage").entered();
+        let _coverage_span = bevy::log::info_span!("surface_context.coverage").entered();
         let collision_ready = coverage.has_near_for_authority(
             candidate.body,
             layer.scale(),

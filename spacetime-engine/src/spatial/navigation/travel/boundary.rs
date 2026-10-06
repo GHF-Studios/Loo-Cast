@@ -36,7 +36,7 @@ impl UsfTravelBoundarySample {
     }
 }
 
-/// Capability adapter for refinable semantic hard-body boundaries.
+/// Component-owned provider for refinable semantic hard-body boundaries.
 ///
 /// The coarse `UsfTravelInfluence` sphere remains the far-field fallback.
 /// Capability-specific code can provide an actual semantic surface without
@@ -52,19 +52,19 @@ pub trait UsfTravelBoundary: fmt::Debug + Send + Sync + 'static {
 }
 
 #[derive(Component, Clone)]
-pub struct UsfTravelBoundaryResolver {
+pub struct UsfTravelBoundaryProvider {
     provider: Arc<dyn UsfTravelBoundary>,
 }
 
-impl fmt::Debug for UsfTravelBoundaryResolver {
+impl fmt::Debug for UsfTravelBoundaryProvider {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("UsfTravelBoundaryResolver")
+            .debug_struct("UsfTravelBoundaryProvider")
             .finish_non_exhaustive()
     }
 }
 
-impl UsfTravelBoundaryResolver {
+impl UsfTravelBoundaryProvider {
     pub fn new<T: UsfTravelBoundary>(provider: T) -> Self {
         Self {
             provider: Arc::new(provider),

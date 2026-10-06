@@ -2,17 +2,17 @@
 
 use super::*;
 
-impl VoxelChunk {
+impl DenseVoxelMaterialization {
     /// Applies one canonical semantic edit by projecting it into this chunk's
     /// bounded local chart. The canonical edit remains the authoritative state.
     pub fn apply_edit(
         &mut self,
         address: VoxelMaterializationChunkAddress,
         edit: VoxelEdit,
-    ) -> VoxelChunkEditResult {
+    ) -> VoxelMaterializationEditResult {
         let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
         let Some(edit) = edit.localized(address.query_origin(), extra_extent) else {
-            return VoxelChunkEditResult {
+            return VoxelMaterializationEditResult {
                 changed_samples: 0,
                 revision: self.revision,
             };
@@ -26,7 +26,7 @@ impl VoxelChunk {
         let edit_max = bounds.max.floor().as_ivec3().min(stored_max);
 
         if edit_min.cmpgt(edit_max).any() {
-            return VoxelChunkEditResult {
+            return VoxelMaterializationEditResult {
                 changed_samples: 0,
                 revision: self.revision,
             };
@@ -67,7 +67,7 @@ impl VoxelChunk {
             self.surface_transition = detect_surface_transition(&self.distances);
         }
 
-        VoxelChunkEditResult {
+        VoxelMaterializationEditResult {
             changed_samples,
             revision: self.revision,
         }

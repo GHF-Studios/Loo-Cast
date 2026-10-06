@@ -4,16 +4,14 @@ use std::collections::HashSet;
 
 use bevy::{ecs::lifecycle::RemovedComponents, prelude::*};
 
-use super::{
-    VoxelMaterializationRuntime, VoxelMaterializationRuntimeRegistry,
-};
-use super::super::VoxelWorld;
+use super::super::VoxelScaleRealization;
+use super::{VoxelPresentationManifestation, VoxelPresentationManifestationRegistry};
 
-pub(in crate::voxel) fn retire_removed_world_manifestations(
+pub(in crate::voxel) fn retire_orphaned_presentation_manifestations(
     mut commands: Commands,
-    mut removed_worlds: RemovedComponents<VoxelWorld>,
-    runtimes: Query<&VoxelMaterializationRuntime>,
-    mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
+    mut removed_worlds: RemovedComponents<VoxelScaleRealization>,
+    runtimes: Query<&VoxelPresentationManifestation>,
+    mut registry: ResMut<VoxelPresentationManifestationRegistry>,
 ) {
     let removed = removed_worlds.read().collect::<HashSet<_>>();
     if removed.is_empty() {
@@ -23,17 +21,16 @@ pub(in crate::voxel) fn retire_removed_world_manifestations(
     let dead_entities = registry
         .entities
         .iter()
-        .filter_map(|(key, &entity)| removed.contains(&key.world).then_some((*key, entity)))
+        .filter_map(|(key, &entity)| removed.contains(&key.realization).then_some((*key, entity)))
         .collect::<Vec<_>>();
 
     for (key, entity) in dead_entities {
         registry.entities.remove(&key);
         match runtimes.get(entity) {
             Ok(runtime) => {
-                commands.entity(entity).insert((
-                    (*runtime).parked(),
-                    Visibility::Hidden,
-                ));
+                commands
+                    .entity(entity)
+                    .insert(((*runtime).parked(), Visibility::Hidden));
                 if !registry.recycle(entity) {
                     commands.entity(entity).despawn();
                 }
@@ -42,6 +39,10 @@ pub(in crate::voxel) fn retire_removed_world_manifestations(
         }
     }
 
-    registry.revisions.retain(|key, _| !removed.contains(&key.world));
-    registry.dirty.retain(|key| !removed.contains(&key.world));
+    registry
+        .revisions
+        .retain(|key, _| !removed.contains(&key.realization));
+    registry
+        .dirty
+        .retain(|key| !removed.contains(&key.realization));
 }

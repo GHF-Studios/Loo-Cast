@@ -27,11 +27,7 @@ impl UsfChart {
         self.scale
     }
 
-    pub fn project(
-        self,
-        position: &UsfPosition,
-        max_abs: f32,
-    ) -> Result<Vec3, UsfPositionError> {
+    pub fn project(self, position: &UsfPosition, max_abs: f32) -> Result<Vec3, UsfPositionError> {
         position.relative_at_scale_bounded(&self.origin, self.scale, max_abs)
     }
 

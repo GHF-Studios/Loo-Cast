@@ -1,4 +1,12 @@
 //! Regime resolution and runtime collision/motor realization.
+//!
+//! ## Module map
+//!
+//! - `policy`: Resolve regime eligibility, canonical authority, and collision contract.
+//! - `systems`: Apply locomotion policy to the controlled ECS subject and its runtime body.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::super::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
@@ -11,15 +19,13 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
-        navigation::{
-            TravelAssistance, TravelAssistanceState, TravelAssistanceTransitionReason, TravelState,
-        },
+        navigation::{TravelAssistance, TravelAssistanceState, TravelState},
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
-        character::{CharacterGroundState, CharacterMotor, CharacterMovementInput},
+        character::{CharacterGroundState, CharacterMotor, CharacterMovementIntent},
     },
-    spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer},
+    spatial::{SpatialScale, UsfCanonicalMotion, UsfMotionAuthority, UsfPosition, UsfScaleLayer},
 };
 use avian3d::prelude::{Collider, LinearVelocity};
 use bevy::prelude::*;

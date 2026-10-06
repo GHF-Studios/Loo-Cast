@@ -3,6 +3,26 @@
 use crate::spatial::{SpatialScale, UsfPosition};
 use bevy::prelude::*;
 
+/// Navigation facilities installed on a subject.
+///
+/// Cruise is travel assistance over an existing movement subject, not a
+/// locomotion identity or a physical actuator.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct NavigationCapabilities {
+    cruise: bool,
+}
+
+impl NavigationCapabilities {
+    pub const fn spacecraft() -> Self {
+        Self { cruise: true }
+    }
+
+    pub const fn cruise(self) -> bool {
+        self.cruise
+    }
+}
+
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct ManualTravelProfile {
     pub fallback_metres_per_second: f64,
@@ -225,9 +245,9 @@ impl Default for TravelEnvelope {
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct TravelState {
-    pub nearest_body_clearance_scale0: Option<f64>,
-    pub nearest_body_radius_scale0: Option<f64>,
-    pub planetary_handoff_clearance_scale0: Option<f64>,
+    pub nearest_body_clearance_metres: Option<f64>,
+    pub nearest_body_radius_metres: Option<f64>,
+    pub planetary_handoff_clearance_metres: Option<f64>,
     pub planetary_handoff_available: bool,
     pub critical_dropout: bool,
     pub cruise_entry_available: bool,
@@ -236,9 +256,9 @@ pub struct TravelState {
 impl Default for TravelState {
     fn default() -> Self {
         Self {
-            nearest_body_clearance_scale0: None,
-            nearest_body_radius_scale0: None,
-            planetary_handoff_clearance_scale0: None,
+            nearest_body_clearance_metres: None,
+            nearest_body_radius_metres: None,
+            planetary_handoff_clearance_metres: None,
             planetary_handoff_available: false,
             critical_dropout: false,
             cruise_entry_available: true,
@@ -330,6 +350,44 @@ pub enum TravelAssistance {
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TravelAssistanceCommand {
+    ToggleCruise,
+    Set(TravelAssistance),
+}
+
+/// Stable navigation-assistance entrypoint.
+///
+/// Controllers, scripts and developer adapters request assistance here.
+/// Navigation alone owns the resulting state and dropout lifecycle.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct TravelAssistanceRequest {
+    entity: Entity,
+    command: TravelAssistanceCommand,
+}
+
+impl TravelAssistanceRequest {
+    pub const fn new(entity: Entity, command: TravelAssistanceCommand) -> Self {
+        Self { entity, command }
+    }
+
+    pub const fn set(entity: Entity, assistance: TravelAssistance) -> Self {
+        Self::new(entity, TravelAssistanceCommand::Set(assistance))
+    }
+
+    pub const fn toggle_cruise(entity: Entity) -> Self {
+        Self::new(entity, TravelAssistanceCommand::ToggleCruise)
+    }
+
+    pub const fn entity(self) -> Entity {
+        self.entity
+    }
+
+    pub const fn command(self) -> TravelAssistanceCommand {
+        self.command
+    }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TravelAssistanceTransitionReason {
     PilotRequest,
     PilotDisengaged,
@@ -353,12 +411,12 @@ impl TravelAssistanceState {
         self.last_transition
     }
 
-    pub fn engage_cruise(&mut self) {
+    pub(super) fn engage_cruise(&mut self) {
         self.mode = TravelAssistance::Cruise;
         self.last_transition = Some(TravelAssistanceTransitionReason::PilotRequest);
     }
 
-    pub fn disengage(&mut self, reason: TravelAssistanceTransitionReason) {
+    pub(super) fn disengage(&mut self, reason: TravelAssistanceTransitionReason) {
         self.mode = TravelAssistance::Manual;
         self.last_transition = Some(reason);
     }
@@ -370,11 +428,11 @@ impl TravelAssistanceState {
 pub struct AdaptiveCruise {
     pub was_active: bool,
     pub throttle: f32,
-    pub speed_scale0: f64,
-    pub speed_cap_scale0: f64,
-    pub default_speed_scale0: f64,
-    pub nearest_hard_clearance_scale0: Option<f64>,
-    pub medium_speed_cap_scale0: Option<f64>,
+    pub speed_metres_per_second: f64,
+    pub speed_cap_metres_per_second: f64,
+    pub default_speed_metres_per_second: f64,
+    pub nearest_hard_clearance_metres: Option<f64>,
+    pub medium_speed_cap_metres_per_second: Option<f64>,
 }
 
 impl Default for AdaptiveCruise {
@@ -382,11 +440,11 @@ impl Default for AdaptiveCruise {
         Self {
             was_active: false,
             throttle: 0.0,
-            speed_scale0: 0.0,
-            speed_cap_scale0: 0.0,
-            default_speed_scale0: 0.0,
-            nearest_hard_clearance_scale0: None,
-            medium_speed_cap_scale0: None,
+            speed_metres_per_second: 0.0,
+            speed_cap_metres_per_second: 0.0,
+            default_speed_metres_per_second: 0.0,
+            nearest_hard_clearance_metres: None,
+            medium_speed_cap_metres_per_second: None,
         }
     }
 }

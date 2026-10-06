@@ -1,3 +1,5 @@
+//! Allocate and resize render targets for recursive portal views.
+
 use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureFormat},

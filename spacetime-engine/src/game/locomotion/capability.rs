@@ -8,10 +8,6 @@ use super::*;
 pub struct LocomotionCapabilities {
     character: bool,
     inertial_flight: bool,
-    cruise: bool,
-    main_propulsion: bool,
-    reaction_control: bool,
-    landing: bool,
 }
 
 impl LocomotionCapabilities {
@@ -26,10 +22,6 @@ impl LocomotionCapabilities {
         Self {
             character: true,
             inertial_flight: false,
-            cruise: false,
-            main_propulsion: false,
-            reaction_control: false,
-            landing: false,
         }
     }
 
@@ -37,10 +29,6 @@ impl LocomotionCapabilities {
         Self {
             character: false,
             inertial_flight: true,
-            cruise: true,
-            main_propulsion: true,
-            reaction_control: true,
-            landing: true,
         }
     }
 
@@ -54,43 +42,11 @@ impl LocomotionCapabilities {
         self
     }
 
-    pub const fn with_cruise(mut self, enabled: bool) -> Self {
-        self.cruise = enabled;
-        self
-    }
-
-    pub const fn with_main_propulsion(mut self, enabled: bool) -> Self {
-        self.main_propulsion = enabled;
-        self
-    }
-
-    pub const fn with_reaction_control(mut self, enabled: bool) -> Self {
-        self.reaction_control = enabled;
-        self
-    }
-
-    pub const fn with_landing(mut self, enabled: bool) -> Self {
-        self.landing = enabled;
-        self
-    }
-
     pub const fn character_enabled(self) -> bool {
         self.character
     }
     pub const fn inertial_flight(self) -> bool {
         self.inertial_flight
-    }
-    pub const fn cruise(self) -> bool {
-        self.cruise && self.inertial_flight
-    }
-    pub const fn main_propulsion(self) -> bool {
-        self.main_propulsion && self.inertial_flight
-    }
-    pub const fn reaction_control(self) -> bool {
-        self.reaction_control && self.inertial_flight
-    }
-    pub const fn landing(self) -> bool {
-        self.landing && self.inertial_flight
     }
 }
 

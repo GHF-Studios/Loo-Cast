@@ -1,4 +1,13 @@
 //! Voxel-owned runtime policy.
+//!
+//! ## Module map
+//!
+//! - `manifestation`: Runtime rebuild and physics policy for voxel manifestations.
+//! - `overrides`: Typed runtime/developer overrides for voxel policy.
+//! - `streaming`: Voxel demand, residency and background-generation policy.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use serde::Deserialize;
 

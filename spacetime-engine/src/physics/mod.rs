@@ -1,13 +1,34 @@
 //! Physics integration owned by Spacetime Engine.
+//!
+//! ## Integration
+//!
+//! Avian supplies rigid-body infrastructure. Engine character, gravity, collision-query, and
+//! topology modules adapt it to canonical USF space; chart rebases refresh its bounded runtime
+//! projection.
+//!
+//! ## Module map
+//!
+//! - `character`: Kinematic character movement.
+//! - `chart_rebase`: Coherent floating-origin rebasing for the Avian backend.
+//! - `collision_query`: Canonical swept-collision query boundary.
+//! - `collision_topology`: Derived collision-space realization.
+//! - `gravity`: Canonical USF gravity.
+//! - `hull`: Canonical detailed physical box-hull description.
+//! - `interaction_handoff`: Destination-space admission for physical interaction-chart handoff.
+//! - `slice`: Scale Slice partition integration for the Avian physics backend.
+//! - `topology`: Reusable spatial-topology primitives.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
-pub mod slice;
-mod chart_rebase;
-mod interaction_handoff;
 pub mod character;
+mod chart_rebase;
 pub mod collision_query;
 pub mod collision_topology;
 pub mod gravity;
 mod hull;
+mod interaction_handoff;
+pub mod slice;
 pub mod topology;
 
 pub use hull::{DetailedBodyCollision, PhysicalBoxHull};
@@ -69,7 +90,7 @@ impl Plugin for SpacetimePhysicsPlugin {
             // Canonical spatial gravity is queried through physics::gravity.
             .insert_resource(Gravity::ZERO)
             .add_plugins((GravityPlugin, CharacterMovementPlugin))
-            .add_systems(PreUpdate, slice::prepare_usf_physics_slices)
+            .add_systems(PreUpdate, slice::sync_usf_physics_slice_metadata)
             .add_systems(
                 PostUpdate,
                 interaction_handoff::guard_coarsening_interaction_handoffs

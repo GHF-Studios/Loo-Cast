@@ -2,9 +2,8 @@
 
 use crate::game::{
     control::LocalControlSubject,
-    locomotion::{
-        ControlledSubjectLocomotion, FlightActuation, FlightControlIntent, LocomotionEnabled,
-    },
+    flight::{FlightControlCommand, FlightControlRequest},
+    locomotion::{ControlledSubjectLocomotion, FlightControlIntent, LocomotionEnabled},
 };
 
 use crate::spatial::UsfCanonicalMotion;
@@ -19,6 +18,7 @@ use super::*;
 pub(super) fn handle_player_death(
     mut commands: Commands,
     mut deaths: MessageReader<Died>,
+    mut flight_requests: MessageWriter<FlightControlRequest>,
     ownership: UsfOwnershipQuery,
     player: Single<Entity, With<Player>>,
     subject: Single<
@@ -26,9 +26,8 @@ pub(super) fn handle_player_death(
             Entity,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
-            &mut FlightActuation,
             &mut FlightControlIntent,
-            &mut CharacterMovementInput,
+            &mut CharacterMovementIntent,
             &mut CharacterGroundState,
             &mut UsfCanonicalMotion,
             Option<&mut LinearVelocity>,
@@ -53,7 +52,6 @@ pub(super) fn handle_player_death(
         subject_entity,
         mut enabled,
         mut locomotion,
-        mut actuation,
         mut flight_intent,
         mut input,
         mut ground,
@@ -63,7 +61,14 @@ pub(super) fn handle_player_death(
 
     enabled.0 = false;
     locomotion.request_automatic();
-    actuation.set_thrusters_enabled(false);
+    flight_requests.write(FlightControlRequest::new(
+        subject_entity,
+        FlightControlCommand::SetMainPropulsion(false),
+    ));
+    flight_requests.write(FlightControlRequest::new(
+        subject_entity,
+        FlightControlCommand::SetReactionControl(false),
+    ));
     flight_intent.clear();
     input.clear();
     ground.clear_contact();

@@ -23,7 +23,7 @@ pub(in crate::game::navigation) fn audit_navigation_contract(
     let (entity, layer, navigation, primary, approach) = subject.into_inner();
     let (view, presentation) = view.into_inner();
 
-    let characteristic = navigation.characteristic_length_scale0();
+    let characteristic = navigation.characteristic_length_metres();
     let view_exponent = view.continuous_exponent();
     let target_exponent = presentation.effective_target_exponent();
 

@@ -1,4 +1,4 @@
-//! Read-only flight telemetry materialization from resolved domain state.
+//! Resolve flight control requests and publish derived flight telemetry.
 
 use super::model::*;
 use crate::{
@@ -18,6 +18,45 @@ use crate::{
     spatial::{UsfCanonicalMotion, UsfScaleLayer},
 };
 use bevy::prelude::*;
+
+pub(super) fn resolve_flight_control_requests(
+    mut requests: MessageReader<FlightControlRequest>,
+    mut subjects: Query<(
+        Entity,
+        &Transform,
+        &FlightCapabilities,
+        &mut FlightActuation,
+        &mut PilotAttitudeLaw,
+        &mut AttitudeAutopilot,
+    )>,
+) {
+    for request in requests.read() {
+        let Ok((_, body, capabilities, mut actuation, mut law, mut autopilot)) =
+            subjects.get_mut(request.entity())
+        else {
+            continue;
+        };
+
+        match request.command() {
+            FlightControlCommand::SetPilotAttitudeLaw(requested) => *law = requested,
+            FlightControlCommand::SetMainPropulsion(enabled) => {
+                if capabilities.main_propulsion() {
+                    actuation.set_thrusters_enabled(enabled);
+                }
+            }
+            FlightControlCommand::SetReactionControl(enabled) => {
+                if capabilities.reaction_control() {
+                    actuation.set_rcs_enabled(enabled);
+                }
+            }
+            FlightControlCommand::SetAutopilot(command) => match command {
+                AttitudeAutopilotCommand::Off => autopilot.disengage(),
+                AttitudeAutopilotCommand::HoldCurrent => autopilot.hold(body.rotation),
+                AttitudeAutopilotCommand::Prograde => autopilot.point_prograde(),
+            },
+        }
+    }
+}
 
 pub(super) fn apply_attitude_autopilot(
     mut subject: Single<
@@ -131,7 +170,7 @@ pub(super) fn sync_flight_telemetry(
         telemetry.surface_clearance_metres = surface.clearance_metres();
         telemetry.surface_collision_ready = surface.collision_ready();
         telemetry.local_gravity_metres_per_second2 = gravity.magnitude_metres_per_second2();
-        telemetry.planetary_handoff_clearance_metres = travel.planetary_handoff_clearance_scale0;
+        telemetry.planetary_handoff_clearance_metres = travel.planetary_handoff_clearance_metres;
         telemetry.planetary_handoff_available = travel.planetary_handoff_available;
         telemetry.dropout_required =
             travel.critical_dropout || safety.level() == FlightSafetyLevel::Emergency;

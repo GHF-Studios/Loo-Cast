@@ -1,7 +1,7 @@
 //! ECS collection of canonical bounded spatial-interest scopes.
 
 use super::*;
-use crate::spatial::{UsfCanonicalMotion, UsfSpatialTransitionQueue};
+use crate::spatial::{UsfCanonicalMotion, UsfSpatialTransitions};
 
 const TRANSITION_DESTINATION_PRIORITY_BIAS: i32 = 10_000;
 
@@ -17,7 +17,7 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 
 fn collect_spatial_demand(
     frame: Res<UsfRuntimeChartState>,
-    transitions: Res<UsfSpatialTransitionQueue>,
+    transitions: Res<UsfSpatialTransitions>,
     sources: Query<(
         Entity,
         &GlobalTransform,
@@ -32,10 +32,8 @@ fn collect_spatial_demand(
     let mut next_motion = SpatialDemandMotionSnapshot::default();
 
     for (entity, transform, source, source_layer, canonical_motion) in &sources {
-        let source_scale =
-            source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
-        let half_extent_native =
-            source.half_extent_native_at(source_scale);
+        let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
+        let half_extent_native = source.half_extent_native_at(source_scale);
 
         if !source.enabled() || half_extent_native.max_element() <= 0.001 {
             continue;
@@ -72,10 +70,8 @@ fn collect_spatial_demand(
         ));
 
         if let Some(transition) = transitions.pending_relocation_for(entity) {
-            let target_scale =
-                transition.target_scale().unwrap_or(source_scale);
-            let target_half_extent_native =
-                source.half_extent_native_at(target_scale);
+            let target_scale = transition.target_scale().unwrap_or(source_scale);
+            let target_half_extent_native = source.half_extent_native_at(target_scale);
             next.scopes.push(SpatialDemandScope::at_scale(
                 entity,
                 target_scale,

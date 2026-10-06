@@ -1,4 +1,15 @@
-//! Authored celestial fixture using shared semantic fields and voxel realization.
+//! Authored celestial scenario adapter over semantic construction/runtime facilities.
+//!
+//! ## Module map
+//!
+//! - `definition`: Authored celestial-construction input for the Earth-Moon proving scenario.
+//! - `landmarks`: Canonical discoverable locations belonging to instantiated fixture bodies.
+//! - `player`: Prepare the locally controlled subject for the authored celestial fixture.
+//! - `scenery`: Compose the Earth-Moon authored scenario through ordinary semantic facilities.
+//! - `spawn`: Canonical safe-spawn resolution for procedural body surfaces.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod definition;
 mod landmarks;
@@ -10,7 +21,7 @@ use bevy::prelude::*;
 
 use crate::spatial::{SpatialScale, UsfPosition};
 
-use super::GameWorld;
+use super::GameScenario;
 
 pub(in crate::game) use landmarks::UniverseLandmarkIndex;
 
@@ -81,15 +92,15 @@ pub(super) fn configure(app: &mut App) {
     app.init_resource::<landmarks::UniverseLandmarkIndex>()
         .init_resource::<FixtureArrivalSite>();
     app.add_systems(
-        OnEnter(GameWorld::CelestialFixture),
+        OnEnter(GameScenario::CelestialFixture),
         (
-            scenery::spawn_fixture,
+            scenery::construct_celestial_fixture,
             player::prepare_controlled_subject,
         )
             .chain(),
     )
     .add_systems(
         Update,
-        scenery::audit_world_authority.run_if(in_state(GameWorld::CelestialFixture)),
+        scenery::audit_fixture_semantic_authority.run_if(in_state(GameScenario::CelestialFixture)),
     );
 }

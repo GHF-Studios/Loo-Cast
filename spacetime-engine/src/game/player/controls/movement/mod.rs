@@ -8,7 +8,7 @@ use super::*;
 /// pace by exact powers of two. Alt+wheel remains semantic view-scale input.
 /// The controller's TravelPace is reset on vehicle exit so ship test speeds
 /// never leak into ordinary character walking.
-pub(in crate::game::player) fn adjust_flight_travel_pace(
+pub(in crate::game::player) fn adjust_manual_travel_pace(
     input: Res<PlayerInputFrame>,
     controlled_vehicle: Query<(), (With<LocalControlSubject>, Without<Player>)>,
     mut pace: Single<&mut TravelPace, With<Player>>,
@@ -81,7 +81,7 @@ pub(in crate::game::player) fn sample_flight_control_intent(
 
 /// Samples local human controls once per render frame immediately before the
 /// fixed character motor loop.
-pub(in crate::game::player) fn movement(
+pub(in crate::game::player) fn write_character_movement_intent(
     controls: Res<PlayerInputFrame>,
     controller: Single<
         (
@@ -99,7 +99,7 @@ pub(in crate::game::player) fn movement(
             Option<&CharacterStance>,
             &MotionExecution,
             &CharacterMovementConfig,
-            &mut CharacterMovementInput,
+            &mut CharacterMovementIntent,
         ),
         With<LocalControlSubject>,
     >,

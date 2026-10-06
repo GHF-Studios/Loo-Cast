@@ -58,11 +58,7 @@ pub(super) fn sync_world_health_bars(
     player: Query<Entity, With<Player>>,
     health: Query<&Health>,
     manifestations: Query<
-        (
-            Entity,
-            &GlobalTransform,
-            Option<&DamageableBounds>,
-        ),
+        (Entity, &GlobalTransform, Option<&DamageableBounds>),
         (
             Or<(With<UsfLogicalRealizationOf>, With<SpatialSplitPeer>)>,
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,

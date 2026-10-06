@@ -2,6 +2,19 @@
 //!
 //! Game-specific consequences and presentation adapt this domain without
 //! becoming dependencies of the domain.
+//!
+//! ## Module map
+//!
+//! - `coupling`: Pure thermal coupling functions shared by simulation and observability.
+//! - `devtools`: Structured semantic inspection and contextual gizmo support for thermal state.
+//! - `domain`: Thermal/combustion domain state.
+//! - `presentation`: Derived presentation of combustion.
+//! - `simulation`: Thermal energy evolution and combustion propagation.
+//! - `spatial`: Spatial thermal refinement for finite solid bodies.
+//! - `world_draw`: Thermal developer visualizations.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod coupling;
 pub(crate) mod devtools;
@@ -24,7 +37,7 @@ pub enum ThermalPresentationSet {
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ThermalSet {
     SpatialInput,
-    Lumped,
+    Evolution,
     SpatialOutput,
 }
 
@@ -36,7 +49,7 @@ impl Plugin for ThermalCorePlugin {
             Update,
             (
                 ThermalSet::SpatialInput,
-                ThermalSet::Lumped,
+                ThermalSet::Evolution,
                 ThermalSet::SpatialOutput,
             )
                 .chain(),

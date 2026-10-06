@@ -1,6 +1,7 @@
 //! Resolve regime eligibility, canonical authority, and collision contract.
 
 use super::*;
+use crate::game::locomotion::MotionAuthorityReason;
 
 pub(super) fn regime_allowed(
     requested: LocomotionRegime,
@@ -49,14 +50,11 @@ pub(super) fn motion_contract(
     layer: SpatialScale,
     detailed: SpatialScale,
     capabilities: LocomotionCapabilities,
-    cruise_active: bool,
 ) -> (MotionKernel, CollisionPolicy, VelocitySemantics) {
     if regime == LocomotionRegime::SpacecraftFlight && capabilities.inertial_flight() {
         return (
             MotionKernel::InertialFlight,
-            if cruise_active {
-                CollisionPolicy::Disabled
-            } else if layer == detailed {
+            if layer == detailed {
                 CollisionPolicy::DetailedBody
             } else {
                 CollisionPolicy::ScaleProxy
@@ -151,7 +149,8 @@ pub(super) struct MotionPolicyDecision {
     pub kernel: MotionKernel,
     pub collision: CollisionPolicy,
     pub velocity: VelocitySemantics,
-    pub canonical_authority: bool,
+    pub authority: UsfMotionAuthority,
+    pub authority_reason: MotionAuthorityReason,
     pub reason: LocomotionTransitionReason,
 }
 
@@ -165,7 +164,8 @@ pub(super) fn decide_motion_policy(
             kernel: MotionKernel::Disabled,
             collision: inputs.current_collision,
             velocity: VelocitySemantics::Zero,
-            canonical_authority: false,
+            authority: UsfMotionAuthority::RuntimePhysics,
+            authority_reason: MotionAuthorityReason::Inhibited,
             reason: LocomotionTransitionReason::Inhibited,
         };
     }
@@ -178,13 +178,8 @@ pub(super) fn decide_motion_policy(
         },
         locomotion,
     );
-    let (kernel, mut collision, velocity) = motion_contract(
-        regime,
-        inputs.layer,
-        inputs.detailed,
-        inputs.capabilities,
-        inputs.cruise_active,
-    );
+    let (kernel, mut collision, velocity) =
+        motion_contract(regime, inputs.layer, inputs.detailed, inputs.capabilities);
     if kernel == MotionKernel::InertialFlight
         && inputs
             .developer_motion
@@ -199,17 +194,33 @@ pub(super) fn decide_motion_policy(
     } else {
         LocomotionTransitionReason::AutomaticPolicy
     };
+    let developer_canonical = kernel == MotionKernel::InertialFlight
+        && inputs
+            .developer_motion
+            .is_some_and(|override_| override_.ignore_collision());
+    let numerical_canonical = canonical_motion_authoritative(kernel, inputs.layer, inputs.detailed);
+    let authority = if inputs.cruise_active || developer_canonical || numerical_canonical {
+        UsfMotionAuthority::CanonicalKinematics
+    } else {
+        UsfMotionAuthority::RuntimePhysics
+    };
+    let authority_reason = if developer_canonical {
+        MotionAuthorityReason::DeveloperOverride
+    } else if inputs.cruise_active {
+        MotionAuthorityReason::NavigationAssistance
+    } else if numerical_canonical {
+        MotionAuthorityReason::NumericalRange
+    } else {
+        MotionAuthorityReason::RuntimeCollision
+    };
+
     MotionPolicyDecision {
         regime,
         kernel,
         collision,
         velocity,
-        canonical_authority: inputs.cruise_active
-            || (kernel == MotionKernel::InertialFlight
-                && inputs
-                    .developer_motion
-                    .is_some_and(|override_| override_.ignore_collision()))
-            || canonical_motion_authoritative(kernel, inputs.layer, inputs.detailed),
+        authority,
+        authority_reason,
         reason,
     }
 }

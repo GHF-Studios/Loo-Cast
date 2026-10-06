@@ -8,9 +8,7 @@
 use avian3d::{
     collider_tree::{ColliderTreeProxyKey, ColliderTreeType, ColliderTrees},
     collision::collider::EnlargedAabb,
-    prelude::{
-        Collider, ColliderAabb, ColliderOf, Position, RigidBody,
-    },
+    prelude::{Collider, ColliderAabb, ColliderOf, Position, RigidBody},
 };
 use bevy::prelude::*;
 
@@ -32,11 +30,7 @@ const fn tree_index(tree_type: ColliderTreeType) -> usize {
 pub(super) fn apply_usf_rebases_to_avian(
     mut rebases: MessageReader<UsfOriginRebased>,
     body_layers: Query<&UsfScaleLayer, With<RigidBody>>,
-    mut positions: Query<(
-        &mut Position,
-        Option<&UsfScaleLayer>,
-        Option<&ColliderOf>,
-    )>,
+    mut positions: Query<(&mut Position, Option<&UsfScaleLayer>, Option<&ColliderOf>)>,
     mut colliders: Query<
         (
             &mut ColliderAabb,
@@ -72,14 +66,7 @@ pub(super) fn apply_usf_rebases_to_avian(
         {
             let _span = bevy::log::info_span!("usf_rebase.avian_leaves").entered();
 
-            for (
-                mut tight,
-                mut enlarged,
-                proxy_key,
-                direct_layer,
-                attached,
-            ) in &mut colliders
-            {
+            for (mut tight, mut enlarged, proxy_key, direct_layer, attached) in &mut colliders {
                 let scale = resolved_rebase_scale(direct_layer, attached, &body_layers, fallback);
                 let local_shift = delta
                     .at_scale(scale)
@@ -92,10 +79,8 @@ pub(super) fn apply_usf_rebases_to_avian(
                 }
 
                 let old = enlarged.get();
-                let shifted = ColliderAabb::from_min_max(
-                    old.min - local_shift,
-                    old.max - local_shift,
-                );
+                let shifted =
+                    ColliderAabb::from_min_max(old.min - local_shift, old.max - local_shift);
                 *enlarged.bypass_change_detection() = EnlargedAabb::new(shifted);
 
                 if *proxy_key == ColliderTreeProxyKey::PLACEHOLDER {

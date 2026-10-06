@@ -1,4 +1,14 @@
-//! Dense chunk-local working representation used by the editable voxel world.
+//! Dense bounded working materialization of a voxel field.
+//!
+//! ## Module map
+//!
+//! - `editing`: Projection/application of canonical semantic edits into dense chunk-local
+//!   storage.
+//! - `raycast`: Chunk-local signed-distance ray traversal and surface-crossing refinement.
+//! - `sampling`: Dense chunk-local sample lookup, interpolation and storage addressing.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use std::sync::Arc;
 
@@ -12,12 +22,6 @@ use super::{
 ///
 /// This decimal `10³` extent is representation structure, not a USF Chunk.
 pub const MATERIALIZATION_CHUNK_SIZE: u32 = 10;
-
-/// Transitional compatibility name for code that has not yet adopted the
-/// materialization-specific terminology. New code should use
-/// [`MATERIALIZATION_CHUNK_SIZE`].
-#[doc(hidden)]
-pub const CHUNK_SIZE: u32 = MATERIALIZATION_CHUNK_SIZE;
 
 /// Neighbor samples retained around the logical chunk for seamless extraction.
 /// Padding is private representation storage and is not part of chunk identity.
@@ -38,12 +42,12 @@ fn detect_surface_transition(distances: &[f32]) -> bool {
 
 /// Result of applying one semantic edit to a chunk.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VoxelChunkEditResult {
+pub struct VoxelMaterializationEditResult {
     pub changed_samples: usize,
     pub revision: u64,
 }
 
-impl VoxelChunkEditResult {
+impl VoxelMaterializationEditResult {
     pub const fn changed(self) -> bool {
         self.changed_samples != 0
     }
@@ -56,14 +60,14 @@ pub struct VoxelRayHit {
     pub distance: f32,
 }
 
-/// Dense sampled volume used as the active working representation.
+/// Dense sampled volume used as a disposable active working representation.
 ///
 /// Every coordinate stored here is chunk-local. Samples cover `[-1, 10]` on
 /// each axis because Surface Nets keeps one copied neighbor sample around the
 /// logical half-open `[0, 10)³` ownership extent. Canonical semantic location
 /// lives in the materialization store's canonical address key, never in this data.
 #[derive(Debug, Clone)]
-pub struct VoxelChunk {
+pub struct DenseVoxelMaterialization {
     // Worker snapshots share dense arrays. Edits use copy-on-write, making
     // queue/handoff clones O(1) while mutation remains locally owned.
     distances: Arc<[f32]>,
@@ -73,7 +77,7 @@ pub struct VoxelChunk {
     meshed_revision: Option<u64>,
 }
 
-impl VoxelChunk {
+impl DenseVoxelMaterialization {
     pub fn generate(mut generator: impl FnMut(Vec3) -> VoxelSample) -> Self {
         let mut distances = Vec::with_capacity(SAMPLE_COUNT);
         let mut materials = Vec::with_capacity(SAMPLE_COUNT);

@@ -53,7 +53,6 @@ impl InputFocus {
     pub fn gameplay_resume_epoch(&self) -> u64 {
         self.gameplay_resume_epoch
     }
-
 }
 
 fn set_claim(claims: &mut HashSet<InputFocusOwner>, owner: InputFocusOwner, claimed: bool) {

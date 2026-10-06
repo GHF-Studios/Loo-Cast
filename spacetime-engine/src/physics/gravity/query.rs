@@ -8,11 +8,7 @@
 //! oracle. Any future approximate backend must be validated against this path
 //! before it is allowed to replace it for a query class.
 
-use bevy::{
-    ecs::system::SystemParam,
-    math::DVec3,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemParam, math::DVec3, prelude::*};
 
 use crate::spatial::UsfPosition;
 
@@ -91,7 +87,9 @@ impl GravityFieldQuery<'_, '_> {
     pub fn sample_exact(&self, position: &UsfPosition) -> GravitySample {
         exact_direct_sample(
             position,
-            self.sources.iter().map(|(entity, center, source)| (entity, *center, *source)),
+            self.sources
+                .iter()
+                .map(|(entity, center, source)| (entity, *center, *source)),
         )
     }
 }

@@ -2,14 +2,17 @@
 
 use super::super::{
     control::LocalControlSubject,
-    flight::{AttitudeAutopilot, PilotAttitudeLaw},
+    flight::{
+        AttitudeAutopilot, AttitudeAutopilotCommand, FlightCapabilities, FlightControlCommand,
+        FlightControlRequest, PilotAttitudeLaw,
+    },
     locomotion::{
         ControlledSubjectLocomotion, DeveloperMotionOverride, FlightControlIntent,
         LocomotionCapabilities, MotionExecution,
     },
     navigation::{
-        AdaptiveCruise, PrimaryBodyContext, TravelAssistance, TravelAssistanceState,
-        TravelAssistanceTransitionReason, TravelPace, TravelState,
+        AdaptiveCruise, NavigationCapabilities, PrimaryBodyContext, TravelAssistance,
+        TravelAssistanceRequest, TravelAssistanceState, TravelPace, TravelState,
     },
 };
 use super::primary_view_context;
@@ -125,13 +128,12 @@ pub(super) fn cruise_command(
     }
 
     let mut query = world.query_filtered::<(
-        &LocomotionCapabilities,
+        Entity,
+        &NavigationCapabilities,
         &TravelState,
-        &mut TravelAssistanceState,
-        &mut AdaptiveCruise,
+        &TravelAssistanceState,
     ), With<LocalControlSubject>>();
-    let Some((capabilities, travel, mut assistance, mut cruise)) = query.iter_mut(world).next()
-    else {
+    let Some((entity, capabilities, travel, assistance)) = query.iter(world).next() else {
         return ConsoleCommandResult::error("player locomotion state is unavailable");
     };
 
@@ -146,19 +148,19 @@ pub(super) fn cruise_command(
         }
     };
 
-    if active {
-        if !capabilities.cruise() || !travel.cruise_entry_available {
-            return ConsoleCommandResult::error(
-                "Cruise is unavailable for this subject or approach",
-            );
-        }
-        assistance.engage_cruise();
-    } else {
-        assistance.disengage(TravelAssistanceTransitionReason::PilotDisengaged);
+    if active && (!capabilities.cruise() || !travel.cruise_entry_available) {
+        return ConsoleCommandResult::error("Cruise is unavailable for this subject or approach");
     }
-    if !active {
-        cruise.throttle = 0.0;
-        cruise.speed_scale0 = 0.0;
+    let requested = if active {
+        TravelAssistance::Cruise
+    } else {
+        TravelAssistance::Manual
+    };
+    if world
+        .write_message(TravelAssistanceRequest::set(entity, requested))
+        .is_none()
+    {
+        return ConsoleCommandResult::error("travel assistance request channel is unavailable");
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(if active {
@@ -175,20 +177,33 @@ pub(super) fn attitude_command(
     if invocation.args().len() > 1 {
         return ConsoleCommandResult::error("usage: attitude [hold|view]");
     }
-    let mut query = world.query_filtered::<&mut PilotAttitudeLaw, With<LocalControlSubject>>();
-    let Some(mut law) = query.iter_mut(world).next() else {
+    let mut query =
+        world.query_filtered::<(Entity, &PilotAttitudeLaw), With<LocalControlSubject>>();
+    let Some((entity, law)) = query.iter(world).next() else {
         return ConsoleCommandResult::error("controlled attitude law is unavailable");
     };
-    if let Some(value) = invocation.args().first() {
-        *law = match value.to_ascii_lowercase().as_str() {
+    let requested = if let Some(value) = invocation.args().first() {
+        match value.to_ascii_lowercase().as_str() {
             "hold" => PilotAttitudeLaw::Hold,
             "view" | "follow" => PilotAttitudeLaw::FollowView,
             _ => return ConsoleCommandResult::error("usage: attitude [hold|view]"),
-        };
+        }
+    } else {
+        *law
+    };
+    if requested != *law
+        && world
+            .write_message(FlightControlRequest::new(
+                entity,
+                FlightControlCommand::SetPilotAttitudeLaw(requested),
+            ))
+            .is_none()
+    {
+        return ConsoleCommandResult::error("flight-control request channel is unavailable");
     }
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "pilot attitude law = {}",
-        law.label(),
+        "pilot attitude law requested = {}",
+        requested.label(),
     ))
 }
 
@@ -252,24 +267,41 @@ pub(super) fn autopilot_command(
     if invocation.args().len() > 1 {
         return ConsoleCommandResult::error("usage: autopilot [off|hold|prograde]");
     }
-    let mut query = world.query_filtered::<(&Transform, &LocomotionCapabilities, &mut AttitudeAutopilot), With<LocalControlSubject>>();
-    let Some((body, capabilities, mut autopilot)) = query.iter_mut(world).next() else {
+    let mut query = world.query_filtered::<(
+        Entity,
+        &LocomotionCapabilities,
+        &AttitudeAutopilot,
+    ), With<LocalControlSubject>>();
+    let Some((entity, capabilities, autopilot)) = query.iter(world).next() else {
         return ConsoleCommandResult::error("controlled autopilot state is unavailable");
     };
     if !capabilities.inertial_flight() {
         return ConsoleCommandResult::error("autopilot requires a flight subject");
     }
-    if let Some(value) = invocation.args().first() {
-        match value.to_ascii_lowercase().as_str() {
-            "off" => autopilot.disengage(),
-            "hold" => autopilot.hold(body.rotation),
-            "prograde" => autopilot.point_prograde(),
-            _ => return ConsoleCommandResult::error("usage: autopilot [off|hold|prograde]"),
-        }
+    let Some(raw) = invocation.args().first() else {
+        return ConsoleCommandResult::success_and_return_to_gameplay(format!(
+            "attitude autopilot = {:?}",
+            autopilot.mode()
+        ));
+    };
+    let requested = match raw.to_ascii_lowercase().as_str() {
+        "off" => AttitudeAutopilotCommand::Off,
+        "hold" => AttitudeAutopilotCommand::HoldCurrent,
+        "prograde" => AttitudeAutopilotCommand::Prograde,
+        _ => return ConsoleCommandResult::error("usage: autopilot [off|hold|prograde]"),
+    };
+    if world
+        .write_message(FlightControlRequest::new(
+            entity,
+            FlightControlCommand::SetAutopilot(requested),
+        ))
+        .is_none()
+    {
+        return ConsoleCommandResult::error("flight-control request channel is unavailable");
     }
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "attitude autopilot = {:?}",
-        autopilot.mode()
+        "attitude autopilot requested = {:?}",
+        requested
     ))
 }
 
@@ -283,6 +315,8 @@ pub(super) fn motion_stack_command(
     let mut query = world.query_filtered::<(
         Entity,
         &LocomotionCapabilities,
+        &FlightCapabilities,
+        &NavigationCapabilities,
         &FlightControlIntent,
         &PilotAttitudeLaw,
         &AttitudeAutopilot,
@@ -298,6 +332,8 @@ pub(super) fn motion_stack_command(
     let Some((
         entity,
         capabilities,
+        flight_capabilities,
+        navigation_capabilities,
         intent,
         law,
         autopilot,
@@ -314,7 +350,7 @@ pub(super) fn motion_stack_command(
         return ConsoleCommandResult::error("controlled motion stack is unavailable");
     };
     ConsoleCommandResult::success(format!(
-        "subject {entity:?}\nintent axes={:?} attitude={:?} boost={} active={}\ncontrol law={} autopilot={:?}\nnavigation={:?} primary={:?}\nregime={:?} request={:?}\nexecution={:?} collision={:?} authority={:?}\ncanonical speed={:.3} m/s angular={:?} rad/s\ncontext scale={} clearance={:.3} m gravity={:.3} m/s²\ncapabilities character={} flight={} thrust={} rcs={} landing={} cruise={}\ndeveloper override={:?}",
+        "subject {entity:?}\nintent axes={:?} attitude={:?} boost={} active={}\ncontrol law={} autopilot={:?}\nnavigation={:?} primary={:?}\nregime={:?} request={:?}\nexecution={:?} collision={:?} authority={:?} authority_reason={:?}\ncanonical speed={:.3} m/s angular={:?} rad/s\ncontext scale={} clearance={:.3} m gravity={:.3} m/s²\ncapabilities locomotion[character={} flight={}] flight[thrust={} rcs={} landing={}] navigation[cruise={}]\ndeveloper override={:?}",
         intent.translation_axes(),
         intent.attitude(),
         intent.boost(),
@@ -328,6 +364,7 @@ pub(super) fn motion_stack_command(
         execution.kernel(),
         execution.collision_policy(),
         motion.authority(),
+        execution.authority_reason(),
         motion.speed_metres_per_second(),
         motion.angular_velocity_radians_per_second(),
         layer.scale(),
@@ -335,10 +372,10 @@ pub(super) fn motion_stack_command(
         gravity.magnitude_metres_per_second2(),
         capabilities.character_enabled(),
         capabilities.inertial_flight(),
-        capabilities.main_propulsion(),
-        capabilities.reaction_control(),
-        capabilities.landing(),
-        capabilities.cruise(),
+        flight_capabilities.main_propulsion(),
+        flight_capabilities.reaction_control(),
+        flight_capabilities.landing(),
+        navigation_capabilities.cruise(),
         override_,
     ))
 }

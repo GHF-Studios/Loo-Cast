@@ -6,15 +6,10 @@
 
 use std::time::Duration;
 
-use avian3d::{
-    collision::CollisionDiagnostics,
-    dynamics::solver::SolverDiagnostics,
-    prelude::*,
-};
+use avian3d::{collision::CollisionDiagnostics, dynamics::solver::SolverDiagnostics, prelude::*};
 use bevy::prelude::*;
 
 use super::PhysicsRuntimeDiagnostics;
-
 
 #[derive(Resource, Debug, Default)]
 pub(super) struct PhysicsDiagnosticsAccumulator {
@@ -230,4 +225,3 @@ fn ratio(numerator: u64, denominator: u64) -> f64 {
         numerator as f64 / denominator as f64
     }
 }
-

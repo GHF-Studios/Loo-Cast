@@ -5,6 +5,17 @@
 //! selection and aperture geometry are shared with the character split path;
 //! this module owns only rigid-body manifestation, solver coupling and rigid
 //! reconciliation.
+//!
+//! ## Module map
+//!
+//! - `character_contact`: Character ↔ split-rigid-body impulse bridging.
+//! - `peer`: Disposable rigid split-peer materialization.
+//! - `preparation`: Pre-physics rigid split candidate selection and peer preparation.
+//! - `reconciliation`: Post-physics rigid split reconciliation.
+//! - `solver`: Avian substep coupling for split rigid bodies.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod character_contact;
 mod peer;
@@ -17,6 +28,4 @@ pub(crate) use character_contact::{
 };
 pub(crate) use preparation::prepare_rigid_splits;
 pub(crate) use reconciliation::reconcile_rigid_splits;
-pub(crate) use solver::{
-    couple_rigid_split_solver_peers, sync_rigid_split_solver_peers,
-};
+pub(crate) use solver::{couple_rigid_split_solver_peers, sync_rigid_split_solver_peers};

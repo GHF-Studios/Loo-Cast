@@ -15,7 +15,7 @@ pub struct CombustibleMaterial {
     pub burn_power_watts: f32,
     pub self_heating_fraction: f32,
     pub environmental_transfer_fraction: f32,
-    pub heat_transfer_radius_meters: f32,
+    pub heat_transfer_radius_metres: f32,
 }
 
 impl CombustibleMaterial {
@@ -28,7 +28,7 @@ impl CombustibleMaterial {
             burn_power_watts: 45_000.0,
             self_heating_fraction: 0.18,
             environmental_transfer_fraction: 0.50,
-            heat_transfer_radius_meters: 3.5,
+            heat_transfer_radius_metres: 3.5,
         }
     }
 }

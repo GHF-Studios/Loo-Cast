@@ -10,13 +10,13 @@ use bevy::prelude::*;
 use crate::portal::simulation::split::active_portal_pair;
 
 use crate::{
-    portal::{
-        Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler,
-        topology::mapping::portal_mapping,
-    },
     physics::{
         character::CharacterMotor,
         topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    },
+    portal::{
+        Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler,
+        topology::mapping::portal_mapping,
     },
 };
 

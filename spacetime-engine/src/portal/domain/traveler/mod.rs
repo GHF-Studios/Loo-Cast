@@ -1,3 +1,5 @@
+//! Track portal travelers and the state of ordinary or split traversal.
+
 use bevy::prelude::*;
 
 /// Marks an entity whose movement may cross portal apertures.
@@ -31,7 +33,6 @@ impl PortalTraveler {
     pub(crate) fn reset_spatial_transition(&mut self, position: Vec3) {
         self.previous_position = Some(position);
     }
-
 }
 
 /// Opts one spatial manifestation into portal-aware partitioning.
@@ -76,7 +77,6 @@ impl PortalSplitTraveler {
         self.active = None;
         self.tick_start = transform;
     }
-
 }
 
 #[derive(Debug, Clone, Copy)]

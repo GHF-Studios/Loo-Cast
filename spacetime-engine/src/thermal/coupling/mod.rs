@@ -9,7 +9,7 @@ use super::{CombustibleMaterial, Combustion};
 pub(crate) struct CombustionHeatCoupling {
     pub self_heating_power_watts: f32,
     pub environmental_power_watts: f32,
-    pub radius_meters: f32,
+    pub radius_metres: f32,
 }
 
 pub(crate) fn combustion_heat_coupling(
@@ -21,7 +21,7 @@ pub(crate) fn combustion_heat_coupling(
         self_heating_power_watts: power_watts * material.self_heating_fraction.clamp(0.0, 1.0),
         environmental_power_watts: power_watts
             * material.environmental_transfer_fraction.clamp(0.0, 1.0),
-        radius_meters: material.heat_transfer_radius_meters.max(0.0),
+        radius_metres: material.heat_transfer_radius_metres.max(0.0),
     }
 }
 

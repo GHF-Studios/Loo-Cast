@@ -2,7 +2,7 @@
 
 use super::*;
 
-impl VoxelChunk {
+impl DenseVoxelMaterialization {
     /// Finds the first empty-to-solid crossing along a chunk-local ray.
     pub fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32) -> Option<VoxelRayHit> {
         let direction = direction.normalize_or_zero();

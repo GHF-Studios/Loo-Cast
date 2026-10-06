@@ -1,6 +1,6 @@
 //! Commit resolved flight motion across the runtime chart and semantic USF boundary.
 
-use crate::physics::{slice::UsfPhysicsSlices, topology::KinematicQueryExclusions};
+use crate::physics::{slice::UsfPhysicsSliceQuery, topology::KinematicQueryExclusions};
 use crate::spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState};
 use avian3d::{
     character_controller::move_and_slide::{
@@ -98,7 +98,7 @@ pub(super) fn collide_runtime_motion(
     exclusions: Option<&KinematicQueryExclusions>,
     desired_native_velocity: Vec3,
     move_and_slide: &MoveAndSlide,
-    physics_charts: &UsfPhysicsSlices,
+    physics_charts: &UsfPhysicsSliceQuery,
 ) -> Vec3 {
     let Some(collider) = collider else {
         body.translation += desired_native_velocity * dt.as_secs_f32();

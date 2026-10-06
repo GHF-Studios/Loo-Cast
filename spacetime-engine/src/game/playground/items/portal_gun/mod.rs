@@ -11,7 +11,10 @@ use crate::{
     game::{
         GameSet,
         inventory::Hotbar,
-        item::{ItemAction, ItemActionHint, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{
+            ItemAction, ItemActionHint, ItemAim, ItemCatalog, ItemDefinition, ItemId,
+            UseItemRequest,
+        },
     },
     physics::topology::UsfRuntimeOwnershipQuery,
     portal::{PortalCommand, PortalEndpoint},
@@ -50,7 +53,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 /// portal simulation layer owns authoritative fit/support/overlap validation,
 /// which keeps future snapping policy out of the item implementation.
 fn use_portal_gun(
-    mut uses: MessageReader<UseItem>,
+    mut uses: MessageReader<UseItemRequest>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     actors: Query<&Transform>,
     spatial_query: SpatialQuery,

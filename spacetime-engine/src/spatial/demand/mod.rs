@@ -6,15 +6,22 @@
 //! any particular subsystem must materialize data.
 //!
 //! Capability planners consume the resulting [`SpatialDemandSnapshot`] and make
-//! their own realization decisions. [`SpatialRefinementDemand`] is a separate
+//! their own realization decisions. [`crate::spatial::SpatialRefinementDemand`] is a separate
 //! detail requirement consumed by those planners; it deliberately does not
 //! manufacture extra generic demand scopes.
+//!
+//! ## Module map
+//!
+//! - `systems`: ECS collection of canonical bounded spatial-interest scopes.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::collections::HashMap;
 
 use bevy::{math::DVec3, prelude::*};
 
-use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfRuntimeChartState};
+use super::{SpatialScale, UsfPosition, UsfRuntimeChartState, UsfScaleLayer};
 
 /// One bounded source of generic spatial interest.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
@@ -62,13 +69,14 @@ impl SpatialDemandSource {
     }
 
     pub fn half_extent_native_at(&self, scale: SpatialScale) -> Vec3 {
-        self.half_extent_metres.map_or(self.half_extent_native, |metres| {
-            Vec3::new(
-                scale.metres_to_native_f32(metres.x),
-                scale.metres_to_native_f32(metres.y),
-                scale.metres_to_native_f32(metres.z),
-            )
-        })
+        self.half_extent_metres
+            .map_or(self.half_extent_native, |metres| {
+                Vec3::new(
+                    scale.metres_to_native_f32(metres.x),
+                    scale.metres_to_native_f32(metres.y),
+                    scale.metres_to_native_f32(metres.z),
+                )
+            })
     }
 
     pub const fn priority(&self) -> i32 {
@@ -94,77 +102,6 @@ impl SpatialDemandSource {
     }
 }
 
-/// Requested additional spatial detail for capability-specific realization.
-///
-/// This is *not* another generic interest volume. [`UsfRefinementPlan`]
-/// turns this requested tip into the current-relative ancestor branch over the
-/// Scale Slices supported by a capability. The capability still decides what it
-/// realizes inside each planned scope; it does not redefine the taper itself.
-///
-/// `None` means the current/source Scale Slice is the finest requested tip.
-/// Capability refinement still includes every supported coarser ancestor.
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
-pub struct SpatialRefinementDemand {
-    minimum_scale: Option<SpatialScale>,
-    half_extent_native: Vec3,
-    // Physical tip footprint. It must be converted at the refinement TIP,
-    // not necessarily at the source's current Scale.
-    half_extent_metres: Option<Vec3>,
-}
-
-impl SpatialRefinementDemand {
-    pub fn cuboid(half_extent_native: Vec3) -> Self {
-        Self {
-            minimum_scale: None,
-            half_extent_native: Vec3::new(
-                sanitize_extent(half_extent_native.x),
-                sanitize_extent(half_extent_native.y),
-                sanitize_extent(half_extent_native.z),
-            ),
-            half_extent_metres: None,
-        }
-    }
-
-    pub fn cuboid_metres(half_extent_metres: Vec3) -> Self {
-        let half_extent_metres = Vec3::new(
-            sanitize_extent(half_extent_metres.x),
-            sanitize_extent(half_extent_metres.y),
-            sanitize_extent(half_extent_metres.z),
-        );
-        Self {
-            minimum_scale: None,
-            half_extent_native: half_extent_metres,
-            half_extent_metres: Some(half_extent_metres),
-        }
-    }
-
-    pub const fn minimum_scale(&self) -> Option<SpatialScale> {
-        self.minimum_scale
-    }
-
-    pub const fn half_extent_native(&self) -> Vec3 {
-        self.half_extent_native
-    }
-
-    pub fn half_extent_native_at(&self, scale: SpatialScale) -> Vec3 {
-        self.half_extent_metres.map_or(self.half_extent_native, |metres| {
-            Vec3::new(
-                scale.metres_to_native_f32(metres.x),
-                scale.metres_to_native_f32(metres.y),
-                scale.metres_to_native_f32(metres.z),
-            )
-        })
-    }
-
-    pub fn request_through(&mut self, scale: SpatialScale) {
-        self.minimum_scale = Some(scale);
-    }
-
-    pub fn clear(&mut self) {
-        self.minimum_scale = None;
-    }
-}
-
 /// One canonical bounded interest scope expressed in one runtime Scale Slice.
 ///
 /// The scale records the source's current numerical/interaction chart. It does
@@ -179,7 +116,6 @@ pub struct SpatialDemandScope {
 }
 
 impl SpatialDemandScope {
-
     pub(crate) const fn at_scale(
         source: Entity,
         scale: SpatialScale,

@@ -2,6 +2,17 @@
 //!
 //! Navigation resolves destinations into canonical USF transitions. The console
 //! never mutates runtime Transform coordinates directly.
+//!
+//! ## Module map
+//!
+//! - `input_bindings`: Source-style runtime key bindings over the existing player input adapter.
+//! - `observation`: Observation and diagnostic console commands for the current world view.
+//! - `runtime_variables`: Game-owned adapters for typed runtime console variables.
+//! - `teleport`: Developer-console adapter for canonical controlled relocation requests.
+//! - `travel`: Observer-scale, pace, and cruise console adapters.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod input_bindings;
 mod observation;
@@ -15,7 +26,7 @@ use super::control::LocalControlSubject;
 use crate::{
     console::{AppConsoleExt, ConsoleCommandSpec},
     physics::{
-        character::{CharacterGroundState, CharacterMovementInput},
+        character::{CharacterGroundState, CharacterMovementIntent},
         topology::runtime_semantic_of_world,
     },
     portal::{PortalSplitTraveler, PortalTraveler},
@@ -178,7 +189,7 @@ fn reconcile_controlled_spatial_transition(
             &Transform,
             &mut PortalTraveler,
             Option<&mut PortalSplitTraveler>,
-            Option<&mut CharacterMovementInput>,
+            Option<&mut CharacterMovementIntent>,
             Option<&mut CharacterGroundState>,
         ),
         With<LocalControlSubject>,

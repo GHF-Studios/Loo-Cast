@@ -7,9 +7,7 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::{
-    UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor,
-};
+use crate::spatial::{UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor};
 
 #[derive(Debug, Clone)]
 struct UsfMeshLodLevel {
@@ -126,8 +124,7 @@ pub(in crate::spatial) fn select_distance_mesh_lods(
         }
 
         mesh.0 = lod.levels[target].mesh.clone();
-        if let (Some(level_material), Some(mut material)) =
-            (&lod.levels[target].material, material)
+        if let (Some(level_material), Some(mut material)) = (&lod.levels[target].material, material)
         {
             material.0 = level_material.clone();
         }

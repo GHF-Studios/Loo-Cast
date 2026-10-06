@@ -91,8 +91,8 @@ impl DeveloperScriptWorkbench {
         self.documents.get_mut(&self.active_path)
     }
 
-    pub(crate) fn apply_live_scalar(&self, value: f64) -> f64 {
-        let Some(document) = self.document_for_target(ScriptTarget::FreecamSpeed) else {
+    pub(crate) fn transform_live_scalar(&self, target: ScriptTarget, value: f64) -> f64 {
+        let Some(document) = self.document_for_target(target) else {
             return value;
         };
         if !document.live_enabled {

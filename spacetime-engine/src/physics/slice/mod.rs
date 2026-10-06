@@ -1,19 +1,17 @@
 //! Scale Slice partition integration for the Avian physics backend.
 //!
-//! `UsfScaleLayer` is exact Scale Slice partition identity. `UsfChartMask`
+//! `UsfScaleLayer` is exact Scale Slice partition identity. `UsfScaleSliceMask`
 //! selects one or more of the 71 partitions; bounded chart coordinates are
 //! derived separately from canonical USF chart algebra. Avian `CollisionLayers`
 //! remain a within-slice interaction-category mechanism.
 
-use avian3d::prelude::{
-    ActiveCollisionHooks, Collider, ColliderOf, RigidBody, SpatialQueryFilter,
-};
+use avian3d::prelude::{ActiveCollisionHooks, Collider, ColliderOf, RigidBody, SpatialQueryFilter};
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::spatial::{SpatialScale, UsfChartMask, UsfScaleLayer};
+use crate::spatial::{SpatialScale, UsfScaleLayer, UsfScaleSliceMask};
 
 #[derive(SystemParam)]
-pub struct UsfPhysicsSlices<'w, 's> {
+pub struct UsfPhysicsSliceQuery<'w, 's> {
     colliders: Query<
         'w,
         's,
@@ -27,7 +25,7 @@ pub struct UsfPhysicsSlices<'w, 's> {
     bodies: Query<'w, 's, &'static UsfScaleLayer, With<RigidBody>>,
 }
 
-impl UsfPhysicsSlices<'_, '_> {
+impl UsfPhysicsSliceQuery<'_, '_> {
     pub fn collider_scale(&self, collider: Entity) -> Option<SpatialScale> {
         let Ok((_, direct, attached)) = self.colliders.get(collider) else {
             return None;
@@ -38,19 +36,22 @@ impl UsfPhysicsSlices<'_, '_> {
             .map(UsfScaleLayer::scale)
     }
 
-    pub fn filter(
+    pub fn filter_for_slices(
         &self,
-        slices: UsfChartMask,
+        slices: UsfScaleSliceMask,
         excluded: impl IntoIterator<Item = Entity>,
     ) -> SpatialQueryFilter {
-        let cross_chart = self.colliders.iter().filter_map(|(entity, direct, attached)| {
-            let layer = direct
-                .copied()
-                .or_else(|| attached.and_then(|a| self.bodies.get(a.body).ok().copied()))?;
-            (!slices.contains(layer.scale())).then_some(entity)
-        });
+        let other_slices = self
+            .colliders
+            .iter()
+            .filter_map(|(entity, direct, attached)| {
+                let layer = direct
+                    .copied()
+                    .or_else(|| attached.and_then(|a| self.bodies.get(a.body).ok().copied()))?;
+                (!slices.contains(layer.scale())).then_some(entity)
+            });
 
-        SpatialQueryFilter::from_excluded_entities(excluded.into_iter().chain(cross_chart))
+        SpatialQueryFilter::from_excluded_entities(excluded.into_iter().chain(other_slices))
     }
 
     pub fn filter_for_scale(
@@ -58,11 +59,11 @@ impl UsfPhysicsSlices<'_, '_> {
         scale: SpatialScale,
         excluded: impl IntoIterator<Item = Entity>,
     ) -> SpatialQueryFilter {
-        self.filter(UsfChartMask::from_scale(scale), excluded)
+        self.filter_for_slices(UsfScaleSliceMask::from_scale(scale), excluded)
     }
 }
 
-pub(crate) fn prepare_usf_physics_slices(
+pub(crate) fn sync_usf_physics_slice_metadata(
     mut commands: Commands,
     bodies: Query<&UsfScaleLayer, With<RigidBody>>,
     colliders: Query<

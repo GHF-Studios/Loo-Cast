@@ -42,7 +42,7 @@ impl VoxelDemandMotion {
         if !velocity_metres_per_second.is_finite() {
             return Self::stationary();
         }
-        let factor = demand.scale().scale0_to_native_f64(1.0);
+        let factor = demand.scale().metres_to_native_f64(1.0);
         let native = velocity_metres_per_second * factor;
         let velocity_native = Vec3::new(
             saturating_motion_f32(native.x),

@@ -3,6 +3,23 @@
 //! This domain knows nothing about `Player` identity. Humans, spacecraft,
 //! vehicles, NPCs or modded subjects can expose capabilities and participate in
 //! the same request -> resolve -> one authoritative motion-kernel contract.
+//!
+//! ## Integration
+//!
+//! Capabilities and requests select a regime, policy resolves the physical contract, and
+//! MotionExecution selects one motion kernel. Player and spacecraft code adapt into this subject-
+//! owned facility.
+//!
+//! ## Module map
+//!
+//! - `runtime`: Controlled-subject locomotion runtime.
+//! - `capability`: Runtime capability, inhibition, and collision-representation policy.
+//! - `execution`: Resolved physical executor and collision handoff for a controlled subject.
+//! - `flight`: Device-independent flight control intent.
+//! - `state`: Controlled-subject locomotion request and resolved motion state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
@@ -23,7 +40,8 @@ pub use capability::{
     LocomotionInhibition, LocomotionInhibitionReason, ScaleInteractionProxy,
 };
 pub use execution::{
-    CollisionPolicy, DeveloperMotionOverride, MotionExecution, MotionKernel, VelocitySemantics,
+    CollisionPolicy, DeveloperMotionOverride, MotionAuthorityReason, MotionExecution, MotionKernel,
+    VelocitySemantics,
 };
 pub use flight::{FlightActuation, FlightAttitudeCommand, FlightControlIntent};
 pub use state::{
@@ -49,6 +67,7 @@ impl Plugin for LocomotionPlugin {
             .register_type::<LocomotionTransitionReason>()
             .register_type::<MotionKernel>()
             .register_type::<MotionExecution>()
+            .register_type::<MotionAuthorityReason>()
             .register_type::<DeveloperMotionOverride>()
             .register_type::<CollisionPolicy>()
             .register_type::<VelocitySemantics>()

@@ -12,27 +12,27 @@ pub enum UsfCapabilitySet {
 
 fn reconcile_capability_coverage(
     realizations: Query<(Entity, &UsfCapabilityRealization)>,
-    batches: Query<(Entity, &UsfCapabilityCoverageBatch)>,
+    publications: Query<(Entity, &UsfCapabilityCoveragePublication)>,
     changed: Query<(), Changed<UsfCapabilityRealization>>,
-    changed_batches: Query<(), Changed<UsfCapabilityCoverageBatch>>,
+    changed_publications: Query<(), Changed<UsfCapabilityCoveragePublication>>,
     mut removed: RemovedComponents<UsfCapabilityRealization>,
-    mut removed_batches: RemovedComponents<UsfCapabilityCoverageBatch>,
+    mut removed_publications: RemovedComponents<UsfCapabilityCoveragePublication>,
     mut snapshot: ResMut<UsfScaleCoverageSnapshot>,
 ) {
     let changed_any = changed.iter().next().is_some();
-    let changed_batch = changed_batches.iter().next().is_some();
+    let changed_publication = changed_publications.iter().next().is_some();
     let removed_any = removed.read().next().is_some();
-    let removed_batch = removed_batches.read().next().is_some();
-    if !changed_any && !changed_batch && !removed_any && !removed_batch {
+    let removed_publication = removed_publications.read().next().is_some();
+    if !changed_any && !changed_publication && !removed_any && !removed_publication {
         return;
     }
 
     let _span = bevy::log::info_span!("usf_capability.rebuild_snapshot").entered();
-    let batched_count = batches
+    let published_count = publications
         .iter()
-        .map(|(_, batch)| batch.records().len())
+        .map(|(_, batch)| batch.facts().len())
         .sum::<usize>();
-    let mut next = Vec::with_capacity(realizations.iter().len() + batched_count);
+    let mut next = Vec::with_capacity(realizations.iter().len() + published_count);
 
     for (entity, realization) in &realizations {
         if let Some(coverage) = realization.coverage(entity) {
@@ -40,9 +40,9 @@ fn reconcile_capability_coverage(
         }
     }
 
-    for (producer, batch) in &batches {
-        for &record in batch.records() {
-            if let Some(coverage) = record.coverage(producer) {
+    for (producer, batch) in &publications {
+        for &fact in batch.facts() {
+            if let Some(coverage) = fact.coverage(producer) {
                 next.push(coverage);
             }
         }

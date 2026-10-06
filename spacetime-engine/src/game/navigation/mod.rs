@@ -2,6 +2,25 @@
 //!
 //! Subject-owned SI travel state is separate from view-owned presentation
 //! state. Runtime systems observe and publish through those contracts.
+//!
+//! ## Integration
+//!
+//! Navigation owns assistance and travel planning. Controllers and developer commands submit
+//! TravelAssistanceRequest or relocation intent; navigation publishes decisions for locomotion and
+//! spatial transition.
+//!
+//! ## Module map
+//!
+//! - `devtools`: Bounded temporal diagnostics for navigation/refinement/interaction.
+//! - `policy`: Canonical controlled-subject travel policy.
+//! - `presentation`: View presentation policy and navigation health snapshot.
+//! - `relocation`: Controlled canonical relocation request and navigation-owned coverage
+//!   planning.
+//! - `runtime`: Controlled-subject semantic navigation adapters.
+//! - `travel`: Subject-owned travel profiles, envelope, body context, and approach state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use crate::spatial::UsfSpatialSet;
 use bevy::{app::RunFixedMainLoop, prelude::*};
@@ -9,11 +28,13 @@ use bevy::{app::RunFixedMainLoop, prelude::*};
 mod devtools;
 mod policy;
 mod presentation;
+mod relocation;
 mod runtime;
 mod travel;
 
 pub use devtools::NavigationFlightRecorder;
 pub use presentation::*;
+pub use relocation::ControlledRelocationRequest;
 pub use travel::*;
 
 /// Stable semantic navigation runtime extension points.
@@ -29,6 +50,8 @@ pub struct NavigationPlugin;
 impl Plugin for NavigationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<NavigationAudit>()
+            .add_message::<ControlledRelocationRequest>()
+            .register_type::<NavigationCapabilities>()
             .init_resource::<NavigationFlightRecorder>()
             .register_type::<ManualTravelProfile>()
             .register_type::<CruiseTravelProfile>()
@@ -43,9 +66,12 @@ impl Plugin for NavigationPlugin {
             .register_type::<TravelAssistance>()
             .register_type::<TravelAssistanceTransitionReason>()
             .register_type::<TravelAssistanceState>()
+            .register_type::<TravelAssistanceCommand>()
+            .add_message::<TravelAssistanceRequest>()
             .register_type::<ApproachRefinementState>()
             .register_type::<NavigationPresentationProfile>()
             .register_type::<NavigationPresentationState>()
+            .add_systems(Update, relocation::resolve_controlled_relocations)
             .add_systems(
                 RunFixedMainLoop,
                 (
@@ -59,6 +85,7 @@ impl Plugin for NavigationPlugin {
             .add_systems(
                 RunFixedMainLoop,
                 (
+                    runtime::resolve_travel_assistance,
                     runtime::plan_approach_refinement,
                     runtime::sync_navigation_presentation,
                 )

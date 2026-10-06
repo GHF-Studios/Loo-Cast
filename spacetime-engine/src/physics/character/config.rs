@@ -1,3 +1,5 @@
+//! Physical character dimensions and movement tuning.
+
 use bevy::{math::DVec3, prelude::*};
 
 use crate::{physics::PhysicalBoxHull, spatial::SpatialScale};
@@ -111,7 +113,6 @@ impl Default for CharacterMovementConfig {
     }
 }
 
-
 /// Chart-native parameters resolved for one character fixed tick.
 ///
 /// This is intentionally not an ECS component. [`CharacterMovementConfig`]
@@ -140,8 +141,8 @@ impl CharacterMovementConfig {
         scale: SpatialScale,
         gravity_metres_per_second2: DVec3,
     ) -> ResolvedCharacterMovementConfig {
-        let gravity = gravity_metres_per_second2
-            * f64::from(self.gravity_response_multiplier.max(0.0));
+        let gravity =
+            gravity_metres_per_second2 * f64::from(self.gravity_response_multiplier.max(0.0));
         let to_native = |value: f32| scale.metres_to_native_f32(value);
         let component = |value: f64| {
             scale

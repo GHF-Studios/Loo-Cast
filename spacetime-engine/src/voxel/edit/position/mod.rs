@@ -16,8 +16,8 @@ impl VoxelQueryPosition {
         Self(position)
     }
 
-    pub fn from_scale0_local(local_meters: Vec3) -> Result<Self, UsfPositionError> {
-        UsfPosition::from_scale0_local(local_meters).map(Self)
+    pub fn from_metres_local(local_meters: Vec3) -> Result<Self, UsfPositionError> {
+        UsfPosition::from_metres_local(local_meters).map(Self)
     }
 
     pub const fn usf(self) -> UsfPosition {
@@ -45,11 +45,8 @@ impl VoxelQueryPosition {
     /// Query points may carry finer semantic digits than the local dense
     /// realization. The reference chart owns the numerical units of the result.
     pub fn relative_to(self, origin: Self, max_abs: f32) -> Result<Vec3, UsfPositionError> {
-        self.0.relative_at_scale_bounded(
-            &origin.0,
-            origin.usf().leaf_scale(),
-            max_abs,
-        )
+        self.0
+            .relative_at_scale_bounded(&origin.0, origin.usf().leaf_scale(), max_abs)
     }
 }
 

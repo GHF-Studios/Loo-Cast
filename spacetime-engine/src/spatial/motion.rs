@@ -43,18 +43,29 @@ impl UsfCanonicalMotion {
         self.velocity_metres_per_second.length()
     }
 
-    pub const fn angular_velocity_radians_per_second(self) -> DVec3 { self.angular_velocity_radians_per_second }
-    pub const fn epoch_seconds(self) -> f64 { self.epoch_seconds }
-    pub const fn authority(self) -> UsfMotionAuthority { self.authority }
-    pub fn canonical_at_rest() -> Self { Self { authority: UsfMotionAuthority::CanonicalKinematics, ..Self::default() } }
-
-    pub const fn canonical_authority(self) -> bool { matches!(self.authority, UsfMotionAuthority::CanonicalKinematics) }
-
-    pub fn set_canonical_authority(&mut self, authoritative: bool) {
-        self.authority = if authoritative { UsfMotionAuthority::CanonicalKinematics } else { UsfMotionAuthority::RuntimePhysics };
+    pub const fn angular_velocity_radians_per_second(self) -> DVec3 {
+        self.angular_velocity_radians_per_second
+    }
+    pub const fn epoch_seconds(self) -> f64 {
+        self.epoch_seconds
+    }
+    pub const fn authority(self) -> UsfMotionAuthority {
+        self.authority
+    }
+    pub fn canonical_kinematic_at_rest() -> Self {
+        Self {
+            authority: UsfMotionAuthority::CanonicalKinematics,
+            ..Self::default()
+        }
     }
 
-    pub fn set_authority(&mut self, authority: UsfMotionAuthority) { self.authority = authority; }
+    pub const fn is_canonical_kinematic(self) -> bool {
+        matches!(self.authority, UsfMotionAuthority::CanonicalKinematics)
+    }
+
+    pub fn set_authority(&mut self, authority: UsfMotionAuthority) {
+        self.authority = authority;
+    }
 
     pub fn set_velocity_metres_per_second(&mut self, velocity: DVec3) {
         assert!(velocity.is_finite(), "canonical velocity must be finite");
@@ -62,7 +73,10 @@ impl UsfCanonicalMotion {
     }
 
     pub fn set_angular_velocity_radians_per_second(&mut self, value: DVec3) {
-        assert!(value.is_finite(), "canonical angular velocity must be finite");
+        assert!(
+            value.is_finite(),
+            "canonical angular velocity must be finite"
+        );
         self.angular_velocity_radians_per_second = value;
     }
     pub fn set_epoch_seconds(&mut self, value: f64) {
@@ -75,7 +89,7 @@ impl UsfCanonicalMotion {
     }
 
     pub fn set_from_native_velocity(&mut self, scale: SpatialScale, velocity: Vec3) {
-        let metres_per_native = scale.scale0_units_per_native();
+        let metres_per_native = scale.metres_per_native();
         self.set_velocity_metres_per_second(
             DVec3::new(
                 f64::from(velocity.x),
@@ -86,7 +100,7 @@ impl UsfCanonicalMotion {
     }
 
     pub fn native_velocity(self, scale: SpatialScale) -> Vec3 {
-        let factor = scale.scale0_to_native_f64(1.0);
+        let factor = scale.metres_to_native_f64(1.0);
         let native = self.velocity_metres_per_second * factor;
         Vec3::new(
             saturating_f32(native.x),
@@ -114,7 +128,7 @@ pub(in crate::spatial) fn sync_canonical_motion_from_runtime(
     mut motions: Query<(&UsfScaleLayer, &LinearVelocity, &mut UsfCanonicalMotion)>,
 ) {
     for (layer, velocity, mut motion) in &mut motions {
-        if motion.canonical_authority() {
+        if motion.is_canonical_kinematic() {
             continue;
         }
         motion.set_from_native_velocity(layer.scale(), velocity.0);

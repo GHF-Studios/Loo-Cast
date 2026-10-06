@@ -1,3 +1,5 @@
+//! Collect World Draw primitives and scalar fields for one frame.
+
 use std::{
     collections::HashSet,
     fmt,

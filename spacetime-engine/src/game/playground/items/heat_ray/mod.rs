@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use crate::{
     game::{
         GameSet,
-        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItemRequest},
     },
     physics::topology::UsfRuntimeOwnershipQuery,
     thermal::ThermalPointImpulse,
@@ -43,7 +43,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 }
 
 fn use_heat_ray(
-    mut uses: MessageReader<UseItem>,
+    mut uses: MessageReader<UseItemRequest>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     spatial_query: SpatialQuery,
     mut impulses: MessageWriter<ThermalPointImpulse>,

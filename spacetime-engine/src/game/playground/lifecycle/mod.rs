@@ -1,3 +1,5 @@
+//! Manage the lifetime of playground objects and their cleanup.
+
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 

@@ -40,7 +40,7 @@ pub(in crate::game::navigation) fn sync_navigation_presentation(
     };
 
     let automatic = presentation_exponent_for_characteristic(
-        navigation.characteristic_length_scale0(),
+        navigation.characteristic_length_metres(),
         profile,
     );
     let effective = state.resolve_target(automatic, profile);
@@ -50,7 +50,7 @@ pub(in crate::game::navigation) fn sync_navigation_presentation(
         state.mark_initialized();
         info!(
             source_scale = %source_scale,
-            characteristic_metres = navigation.characteristic_length_scale0(),
+            characteristic_metres = navigation.characteristic_length_metres(),
             target_exponent = effective,
             "resolved initial USF presentation scale from semantic navigation context"
         );

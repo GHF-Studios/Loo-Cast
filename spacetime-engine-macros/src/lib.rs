@@ -1,5 +1,17 @@
+//! Procedural macro entrypoints for Spacetime Engine inspection and conflict registration.
+//!
+//! ## Module map
+//!
+//! - `conflict`: Expand component-conflict declarations into registration code.
+//! - `inspect`: Expand inspection derives into typed metadata and visitors.
+//! - `runtime_crate`: Runtime-crate resolution shared by generated macro output.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
+
 mod conflict;
 mod inspect;
+mod runtime_crate;
 
 use conflict::Conflict;
 use inspect::Inspect;

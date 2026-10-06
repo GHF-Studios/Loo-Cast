@@ -1,4 +1,12 @@
 //! Deterministic local and canonical noise primitives for voxel bases.
+//!
+//! ## Module map
+//!
+//! - `local`: Bounded local value noise and worker-thread cell cache.
+//! - `semantic`: Canonical lattice preparation, exact caches and semantic noise sampling.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::cell::Cell;
 

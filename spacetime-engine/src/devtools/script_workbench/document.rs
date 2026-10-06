@@ -23,7 +23,7 @@ pub(super) const FREECAM_SCRIPT_PATH: &str = "debug/freecam_speed.rhai";
 pub(super) const DEFAULT_SCRATCH_PATH: &str = "scratch/experiment.rhai";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum ScriptTarget {
+pub(crate) enum ScriptTarget {
     None,
     FreecamSpeed,
 }
@@ -36,7 +36,7 @@ impl ScriptTarget {
         }
     }
 
-    pub(super) const fn label(self) -> &'static str {
+    pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::None => "unbound",
             Self::FreecamSpeed => "debug.freecam.speed",

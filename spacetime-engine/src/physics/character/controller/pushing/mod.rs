@@ -9,8 +9,8 @@ use bevy::prelude::*;
 
 use crate::physics::topology::SpatialSplitPeer;
 
-use super::CollisionContext;
 use super::super::CharacterMotor;
+use super::CollisionContext;
 
 const CHARACTER_PUSH_EFFECTIVE_MASS: f32 = 80.0;
 const CHARACTER_PUSH_IMPULSE_SCALE: f32 = 0.35;

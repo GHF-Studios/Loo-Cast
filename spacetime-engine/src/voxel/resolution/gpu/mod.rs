@@ -1,9 +1,17 @@
-//! GPU-native binary terrain presentation.
+//! GPU build backend for binary terrain presentation.
 //!
-//! Canonical terrain authority stays on the CPU/USF side. This module receives
+//! Canonical terrain authority stays on the CPU/semantic side. This module receives
 //! one bounded semantic chart per binary clipmap block, evaluates density and
 //! Transvoxel topology entirely on the GPU, and writes directly into Bevy's
 //! MeshAllocator slabs. No density/geometry readback is performed.
+//!
+//! ## Module map
+//!
+//! - `descriptor`: CPU projection of canonical field parameters into one bounded GPU block
+//!   descriptor.
+//! - `render`: Render-world allocation, shader admission, dispatch and completion reporting.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
 //!
 
 use std::{
@@ -36,8 +44,8 @@ mod render;
 
 pub(crate) use descriptor::descriptor_for_block;
 use render::{
-    compute_gpu_terrain, init_gpu_terrain_buffers, init_gpu_terrain_pipeline,
-    prepare_gpu_terrain_blocks,
+    execute_gpu_terrain_builds, init_gpu_terrain_buffers, init_gpu_terrain_pipeline,
+    prepare_gpu_terrain_builds,
 };
 
 use crate::{
@@ -143,13 +151,13 @@ impl Default for GpuTerrainDescriptor {
 }
 
 #[derive(Component, ExtractComponent, Clone)]
-pub(crate) struct GpuTerrainBlock {
+pub(crate) struct GpuTerrainBuild {
     mesh: Handle<Mesh>,
     build_id: u64,
     descriptor: GpuTerrainDescriptor,
 }
 
-impl GpuTerrainBlock {
+impl GpuTerrainBuild {
     pub(crate) fn new(mesh: Handle<Mesh>, build_id: u64, descriptor: GpuTerrainDescriptor) -> Self {
         Self {
             mesh,
@@ -160,12 +168,12 @@ impl GpuTerrainBlock {
 }
 
 #[derive(Resource)]
-pub(crate) struct GpuTerrainRuntime {
+pub(crate) struct GpuTerrainBuilds {
     next_build_id: u64,
     completed: Arc<Mutex<VecDeque<u64>>>,
 }
 
-impl GpuTerrainRuntime {
+impl GpuTerrainBuilds {
     pub(crate) fn next_build_id(&mut self) -> u64 {
         self.next_build_id = self.next_build_id.wrapping_add(1).max(1);
         self.next_build_id
@@ -181,12 +189,12 @@ impl GpuTerrainRuntime {
 }
 
 #[derive(Resource, Clone)]
-struct GpuTerrainCompletionSink(Arc<Mutex<VecDeque<u64>>>);
+struct GpuTerrainBuildCompletionSink(Arc<Mutex<VecDeque<u64>>>);
 
 #[derive(Resource, Default)]
-struct GpuTerrainRenderState {
+struct GpuTerrainBuildState {
     processed: HashMap<AssetId<Mesh>, u64>,
-    pending: Vec<GpuTerrainBlock>,
+    pending: Vec<GpuTerrainBuild>,
     extracted_blocks: usize,
 }
 
@@ -211,9 +219,9 @@ struct GpuTerrainDispatch {
     descriptor: GpuTerrainDescriptor,
 }
 
-pub(crate) struct GpuTerrainPresentationPlugin;
+pub(crate) struct GpuTerrainBackendPlugin;
 
-impl Plugin for GpuTerrainPresentationPlugin {
+impl Plugin for GpuTerrainBackendPlugin {
     fn build(&self, app: &mut App) {
         load_shader_library!(app, "../gpu_schema.wgsl");
         load_internal_asset!(
@@ -230,24 +238,27 @@ impl Plugin for GpuTerrainPresentationPlugin {
         );
 
         let completed = Arc::new(Mutex::new(VecDeque::new()));
-        app.insert_resource(GpuTerrainRuntime {
+        app.insert_resource(GpuTerrainBuilds {
             next_build_id: 0,
             completed: completed.clone(),
         });
-        app.add_plugins(ExtractComponentPlugin::<GpuTerrainBlock>::default());
+        app.add_plugins(ExtractComponentPlugin::<GpuTerrainBuild>::default());
 
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };
         render_app
-            .insert_resource(GpuTerrainCompletionSink(completed))
-            .init_resource::<GpuTerrainRenderState>()
+            .insert_resource(GpuTerrainBuildCompletionSink(completed))
+            .init_resource::<GpuTerrainBuildState>()
             .add_systems(
                 RenderStartup,
                 (init_gpu_terrain_pipeline, init_gpu_terrain_buffers),
             )
-            .add_systems(Render, prepare_gpu_terrain_blocks)
-            .add_systems(RenderGraph, compute_gpu_terrain.before(camera_driver));
+            .add_systems(Render, prepare_gpu_terrain_builds)
+            .add_systems(
+                RenderGraph,
+                execute_gpu_terrain_builds.before(camera_driver),
+            );
     }
 
     fn finish(&self, app: &mut App) {
@@ -268,10 +279,10 @@ impl Plugin for GpuTerrainPresentationPlugin {
 }
 
 pub(super) fn configure(app: &mut App) {
-    app.add_plugins(GpuTerrainPresentationPlugin);
+    app.add_plugins(GpuTerrainBackendPlugin);
 }
 
-/// Fixed-capacity GPU allocation shell.
+/// Fixed-capacity GPU build target allocation.
 ///
 /// This contains no CPU-generated terrain topology. Its sole purpose is to give
 /// Bevy's MeshAllocator persistent vertex/index ranges that the compute shader

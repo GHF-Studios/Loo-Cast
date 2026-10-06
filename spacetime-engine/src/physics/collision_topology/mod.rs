@@ -1,8 +1,19 @@
-//! Runtime collision-space modification.
+//! Derived collision-space realization.
 //!
-//! Higher-level mechanics publish [`CollisionStencil`] components. Hosts keep
-//! immutable [`CollisionClipSource`] geometry. This module rebuilds the actual
-//! Avian collider only when the effective stencil set changes.
+//! Higher-level topology mechanics publish [`CollisionStencil`] intent against
+//! immutable [`CollisionClipSource`] geometry. This domain owns the disposable
+//! Avian collider realization and rebuilds it only when effective topology changes.
+//!
+//! ## Module map
+//!
+//! - `csg`: Pure convex clipping/decomposition used by collision topology.
+//! - `source`: Immutable collision geometry that can be rebuilt after topology changes.
+//! - `state`: Authored stencil state, change index and effective-topology fingerprint.
+//! - `stencil_fit`: Rectangular subtractive-stencil fitting against immutable collision sources.
+//! - `systems`: ECS reconciliation of dirty clip hosts with the physics collider.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod csg;
 mod source;

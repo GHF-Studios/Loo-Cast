@@ -3,6 +3,13 @@
 //! This module is intentionally small. It does not own application state or
 //! layout structure; it centralizes only presentation decisions that are
 //! genuinely shared: typography/font sources, panel colors and basic spacing.
+//!
+//! ## Module map
+//!
+//! - `theme`: Shared UI text roles, styles, and theme values.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod theme;
 

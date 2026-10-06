@@ -4,7 +4,7 @@ use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
-    VoxelChunk, VoxelMaterialId,
+    DenseVoxelMaterialization, VoxelMaterialId,
     chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
 };
 
@@ -57,11 +57,10 @@ impl VoxelSurface {
             .chunks_exact(3)
             .zip(&self.triangle_materials)
             .filter_map(|(triangle, material)| {
-                material.behavior().is_rigid().then_some([
-                    triangle[0],
-                    triangle[1],
-                    triangle[2],
-                ])
+                material
+                    .behavior()
+                    .is_rigid()
+                    .then_some([triangle[0], triangle[1], triangle[2]])
             })
             .collect()
     }
@@ -73,7 +72,7 @@ impl VoxelSurface {
     }
 }
 
-pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
+pub(super) fn extract_chunk_surface(chunk: &DenseVoxelMaterialization) -> VoxelSurface {
     // Dense generation/editing already maintains the exact sign-transition
     // summary used to determine whether an isosurface can exist in this
     // materialization. Do not rescan the padded volume through Surface Nets
@@ -132,7 +131,7 @@ pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     }
 }
 
-fn surface_material_near(chunk: &VoxelChunk, point: Vec3) -> VoxelMaterialId {
+fn surface_material_near(chunk: &DenseVoxelMaterialization, point: Vec3) -> VoxelMaterialId {
     let center = point.floor().as_ivec3();
     let mut best = None::<(f32, VoxelMaterialId)>;
 

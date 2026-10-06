@@ -2,7 +2,11 @@
 
 use super::*;
 
-pub(super) fn set_primary_game_viewport(world: &mut World, viewport: Option<Viewport>, active: bool) {
+pub(super) fn set_primary_game_viewport(
+    world: &mut World,
+    viewport: Option<Viewport>,
+    active: bool,
+) {
     let mut cameras = world.query_filtered::<&mut Camera, With<PrimaryGameView>>();
     let Ok(mut camera) = cameras.single_mut(world) else {
         return;

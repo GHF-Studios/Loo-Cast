@@ -2,6 +2,19 @@
 //!
 //! A controller owns one semantic subject; local focus is an explicit adapter
 //! over that relationship and its runtime manifestation.
+//!
+//! ## Integration
+//!
+//! Transfer requests resolve semantic control first. Runtime adapters then reconcile local subject,
+//! view, and interaction focus from the resolved owner.
+//!
+//! ## Module map
+//!
+//! - `model`: Control relationships, transfer messages, and invariant reports.
+//! - `runtime`: Ordered local-control transfer transaction and adapter reconciliation.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use super::GameSet;
 use bevy::prelude::*;
@@ -11,8 +24,8 @@ mod runtime;
 
 pub use model::*;
 use runtime::{
-    apply_local_control_transfers, audit_local_control_invariants, reconcile_local_control_focus,
-    sync_controlled_interaction_scale_affinity,
+    audit_local_control_invariants, reconcile_local_control_adapters,
+    refresh_controlled_interaction_requirement, resolve_local_control_transfers,
 };
 
 pub struct ControlPlugin;
@@ -39,13 +52,14 @@ impl Plugin for ControlPlugin {
             )
             .add_systems(
                 Update,
-                apply_local_control_transfers.in_set(ControlActionSet::Transfer),
+                resolve_local_control_transfers.in_set(ControlActionSet::Transfer),
             )
             .add_systems(
                 Update,
                 (
-                    reconcile_local_control_focus,
-                    sync_controlled_interaction_scale_affinity.after(reconcile_local_control_focus),
+                    reconcile_local_control_adapters,
+                    refresh_controlled_interaction_requirement
+                        .after(reconcile_local_control_adapters),
                 )
                     .in_set(ControlActionSet::Reconcile),
             )

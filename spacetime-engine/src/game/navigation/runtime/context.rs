@@ -12,7 +12,7 @@ pub(in crate::game::navigation) fn sync_navigation_context(
         &UsfPosition,
         &UsfSemanticFrame,
         &UsfTravelInfluence,
-        Option<&UsfTravelBoundaryResolver>,
+        Option<&UsfTravelBoundaryProvider>,
     )>,
     subject: Single<
         (
@@ -30,24 +30,19 @@ pub(in crate::game::navigation) fn sync_navigation_context(
         return;
     };
 
-    neighborhood.advance(time.delta_secs().max(0.0));
-    if neighborhood.needs_refresh(&position, scale) {
-        neighborhood.refresh(
-            position,
-            scale,
-            influences
-                .iter()
-                .map(|(entity, anchor, semantic_frame, influence, boundary)| {
-                    (
-                        entity,
-                        *anchor,
-                        *semantic_frame,
-                        *influence,
-                        boundary.cloned(),
-                    )
-                }),
-        );
-    }
+    neighborhood.refresh_if_needed(time.delta_secs().max(0.0), position, scale, || {
+        influences
+            .iter()
+            .map(|(entity, anchor, semantic_frame, influence, boundary)| {
+                (
+                    entity,
+                    *anchor,
+                    *semantic_frame,
+                    *influence,
+                    boundary.cloned(),
+                )
+            })
+    });
 
     let resolved = UsfNavigationContext::resolve(&position, scale, &neighborhood);
     if *navigation != resolved {
@@ -55,7 +50,7 @@ pub(in crate::game::navigation) fn sync_navigation_context(
             subject_scale = %scale,
             kind = ?resolved.kind(),
             source_scale = ?resolved.source_scale(),
-            characteristic_metres = resolved.characteristic_length_scale0(),
+            characteristic_metres = resolved.characteristic_length_metres(),
             neighborhood_entries = neighborhood.len(),
             "controlled-subject navigation context changed"
         );

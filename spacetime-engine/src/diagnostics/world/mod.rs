@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(super) fn collect_world_diagnostics(world: &mut World) {
+pub(super) fn sample_world_diagnostics(world: &mut World) {
     let dt = world.resource::<Time>().delta_secs();
     {
         let mut cadence = world.resource_mut::<DiagnosticsCadence>();

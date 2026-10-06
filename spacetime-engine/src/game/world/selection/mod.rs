@@ -10,7 +10,7 @@ use crate::{
     ui::{UiTextRole, UiTheme},
 };
 
-use super::GameWorld;
+use super::GameScenario;
 
 const FOCUS_OWNER: &str = "world_selection";
 const BUTTON_NORMAL: Color = Color::srgba(0.16, 0.16, 0.19, 0.98);
@@ -21,16 +21,16 @@ const BUTTON_PRESSED: Color = Color::srgba(0.38, 0.38, 0.46, 0.98);
 struct WorldSelectionRoot;
 
 #[derive(Component, Debug, Clone, Copy)]
-struct SelectWorld(GameWorld);
+struct SelectWorld(GameScenario);
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<InputFocus>()
-        .add_systems(OnEnter(GameWorld::Selection), enter_selection)
+        .add_systems(OnEnter(GameScenario::Selection), enter_selection)
         .add_systems(
             Update,
-            handle_selection.run_if(in_state(GameWorld::Selection)),
+            handle_selection.run_if(in_state(GameScenario::Selection)),
         )
-        .add_systems(OnExit(GameWorld::Selection), exit_selection);
+        .add_systems(OnExit(GameScenario::Selection), exit_selection);
 }
 
 fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMut<InputFocus>) {
@@ -79,7 +79,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
 
                     spawn_choice(
                         panel,
-                        GameWorld::Playground,
+                        GameScenario::Playground,
                         "Physics Playground",
                         "Authored test campus for portals, physics and gameplay experiments.",
                         &heading,
@@ -87,7 +87,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
                     );
                     spawn_choice(
                         panel,
-                        GameWorld::CelestialFixture,
+                        GameScenario::CelestialFixture,
                         "Celestial Fixture",
                         "Authored Sun, Earth and Moon with procedural surfaces and streamed voxel collision.",
                         &heading,
@@ -99,7 +99,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
 
 fn spawn_choice(
     parent: &mut ChildSpawnerCommands,
-    world: GameWorld,
+    world: GameScenario,
     name: &'static str,
     description: &'static str,
     heading: &crate::ui::UiTextStyle,
@@ -127,7 +127,7 @@ fn spawn_choice(
 
 fn handle_selection(
     mut buttons: Query<(&Interaction, &SelectWorld, &mut BackgroundColor), Changed<Interaction>>,
-    mut next_world: ResMut<NextState<GameWorld>>,
+    mut next_world: ResMut<NextState<GameScenario>>,
 ) {
     for (interaction, choice, mut background) in &mut buttons {
         background.0 = match interaction {

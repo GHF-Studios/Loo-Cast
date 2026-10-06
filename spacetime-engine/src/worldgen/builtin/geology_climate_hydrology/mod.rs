@@ -26,7 +26,7 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
     fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        parent: Option<&WorldgenNode>,
+        parent: Option<&WorldgenEvaluation>,
         current: &[PhenomenonSnapshot],
     ) -> Option<PhenomenonSnapshot> {
         let scale = context.spatial_scale().exponent();
@@ -43,7 +43,7 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
                 (0.20 + body.water_inventory * 0.65 + signed_noise(context, 0x6E01_0002) * 0.12)
                     .clamp(0.0, 1.0);
             GeologyClimateHydrologyState {
-                terrain_seed: context.seed() as u32,
+                terrain_seed: context.noise_key() as u32,
                 tectonic_activity: tectonic,
                 erosion_strength: (0.25 + moisture * 0.45).clamp(0.0, 1.0),
                 mean_temperature_c: 14.0
@@ -62,7 +62,7 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
             let parent =
                 parent_state::<GeologyClimateHydrologyState>(parent, GEOLOGY_CLIMATE_HYDROLOGY)?;
             GeologyClimateHydrologyState {
-                terrain_seed: context.seed() as u32,
+                terrain_seed: context.noise_key() as u32,
                 tectonic_activity: (parent.tectonic_activity
                     + signed_noise(context, 0x6E01_1001) * 0.05)
                     .clamp(0.0, 1.0),

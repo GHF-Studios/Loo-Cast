@@ -2,7 +2,9 @@
 
 use bevy::prelude::Resource;
 
-use super::model::{PhenomenonEvaluationContext, PhenomenonId, PhenomenonSnapshot, WorldgenNode};
+use super::model::{
+    PhenomenonEvaluationContext, PhenomenonId, PhenomenonSnapshot, WorldgenEvaluation,
+};
 
 /// A self-contained domain rule that can continue/refine state or introduce a
 /// new Phenomenon when its spatial domain becomes meaningful.
@@ -12,7 +14,7 @@ pub trait PhenomenonRule: Send + Sync + 'static {
     fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        parent: Option<&WorldgenNode>,
+        parent: Option<&WorldgenEvaluation>,
         current: &[PhenomenonSnapshot],
     ) -> Option<PhenomenonSnapshot>;
 }
@@ -40,7 +42,7 @@ impl PhenomenonRegistry {
     pub(super) fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        parent: Option<&WorldgenNode>,
+        parent: Option<&WorldgenEvaluation>,
     ) -> Vec<PhenomenonSnapshot> {
         let mut snapshots = Vec::new();
         for rule in &self.rules {

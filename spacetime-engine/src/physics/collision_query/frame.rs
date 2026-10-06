@@ -45,12 +45,12 @@ impl UsfCollisionQueryRequest {
 
 /// One provider candidate associated with its canonical sweep request.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UsfCollisionCandidateRecord {
+pub struct UsfCollisionCandidateObservation {
     request: UsfCollisionQueryRequestId,
     candidate: UsfCollisionCandidate,
 }
 
-impl UsfCollisionCandidateRecord {
+impl UsfCollisionCandidateObservation {
     pub const fn request(self) -> UsfCollisionQueryRequestId {
         self.request
     }
@@ -70,7 +70,7 @@ impl UsfCollisionCandidateRecord {
 pub struct UsfCollisionQueryFrame {
     revision: u64,
     requests: Vec<UsfCollisionQueryRequest>,
-    candidates: Vec<UsfCollisionCandidateRecord>,
+    candidates: Vec<UsfCollisionCandidateObservation>,
 }
 
 impl UsfCollisionQueryFrame {
@@ -82,7 +82,9 @@ impl UsfCollisionQueryFrame {
         self.requests.iter().copied()
     }
 
-    pub fn candidates(&self) -> impl ExactSizeIterator<Item = UsfCollisionCandidateRecord> + '_ {
+    pub fn candidates(
+        &self,
+    ) -> impl ExactSizeIterator<Item = UsfCollisionCandidateObservation> + '_ {
         self.candidates.iter().copied()
     }
 
@@ -94,10 +96,10 @@ impl UsfCollisionQueryFrame {
             .iter()
             .copied()
             .filter(move |record| record.request == request)
-            .map(UsfCollisionCandidateRecord::candidate)
+            .map(UsfCollisionCandidateObservation::candidate)
     }
 
-    pub fn push_candidate(
+    pub fn publish_candidate(
         &mut self,
         request: UsfCollisionQueryRequestId,
         candidate: UsfCollisionCandidate,
@@ -106,16 +108,16 @@ impl UsfCollisionQueryFrame {
             return;
         }
         self.candidates
-            .push(UsfCollisionCandidateRecord { request, candidate });
+            .push(UsfCollisionCandidateObservation { request, candidate });
     }
 
-    pub(super) fn begin_frame(&mut self) {
+    pub(super) fn begin_transaction(&mut self) {
         self.revision = self.revision.wrapping_add(1).max(1);
         self.requests.clear();
         self.candidates.clear();
     }
 
-    pub(super) fn push_request(&mut self, sweep: UsfCanonicalSweep, target_error_metres: f64) {
+    pub(super) fn submit_request(&mut self, sweep: UsfCanonicalSweep, target_error_metres: f64) {
         let index =
             u32::try_from(self.requests.len()).expect("collision-query request count exceeded u32");
         let id = UsfCollisionQueryRequestId {
@@ -130,7 +132,7 @@ impl UsfCollisionQueryFrame {
     }
 
     /// Stable ordering for provider results published in this frame.
-    pub(super) fn finalize(&mut self) {
+    pub(super) fn finalize_transaction(&mut self) {
         self.candidates.sort_by(|a, b| {
             a.request
                 .cmp(&b.request)

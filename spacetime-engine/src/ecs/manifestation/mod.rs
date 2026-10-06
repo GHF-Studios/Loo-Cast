@@ -41,6 +41,13 @@
 //! - Destroying a partition does not destroy its semantic entity or siblings.
 //! - Presentation is not linked-spawn-owned by the logical realization.
 //!
+//! ## Module map
+//!
+//! - `components`: Relationship components that encode the USF ownership graph.
+//! - `query`: Read-only traversal of the generic USF ownership graph.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 mod components;
 mod query;
 

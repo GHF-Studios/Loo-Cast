@@ -2,6 +2,16 @@
 //!
 //! The spacecraft is not the player. The player is a semantic constituent while
 //! piloting it, and local control authority may transfer back to the body.
+//!
+//! ## Module map
+//!
+//! - `boarding`: Enter/exit control transactions and embarked presentation state.
+//! - `landing`: Hull-based landing opportunity and resolved placement.
+//! - `orbit`: Derived orbital telemetry for spacecraft presentation.
+//! - `spawn`: Reference ship semantic creation and initial control transfer.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use avian3d::prelude::{
     Collider, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity, RigidBody,
@@ -20,8 +30,9 @@ use crate::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
         },
         flight::{
-            AttitudeAutopilot, FlightContactState, FlightLandingOpportunity, FlightSafetyProfile,
-            FlightSafetyState, FlightTelemetry, PilotAttitudeLaw, TraversalPolicy,
+            AttitudeAutopilot, FlightCapabilities, FlightContactState, FlightControlCommand,
+            FlightControlRequest, FlightLandingOpportunity, FlightSafetyProfile, FlightSafetyState,
+            FlightTelemetry, PilotAttitudeLaw, TraversalPolicy,
         },
         locomotion::{
             ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation, FlightControlIntent,
@@ -30,8 +41,8 @@ use crate::{
             ScaleInteractionProxy,
         },
         navigation::{
-            AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelAssistanceState,
-            TravelEnvelope, TravelPace, TravelProfile, TravelState,
+            AdaptiveCruise, ApproachRefinementState, NavigationCapabilities, PrimaryBodyContext,
+            TravelAssistanceState, TravelEnvelope, TravelPace, TravelProfile, TravelState,
         },
         player::{Player, PlayerAction, PlayerInputFrame, ViewCameraProfile},
         surface::SurfaceContext,
@@ -40,11 +51,11 @@ use crate::{
         PhysicalBoxHull,
         character::{
             CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
-            CharacterMovementConfig, CharacterMovementInput, GravityAlignedLocomotionFrame,
+            CharacterMovementConfig, CharacterMovementIntent, GravityAlignedLocomotionFrame,
         },
         collision_query::UsfCollisionQueryDemand,
         gravity::{GravitySample, RadialGravitySource},
-        slice::UsfPhysicsSlices,
+        slice::UsfPhysicsSliceQuery,
         topology::KinematicQueryExclusions,
     },
     portal::{DERIVED_VIEW_LAYER, PortalTraveler},
@@ -57,7 +68,7 @@ use crate::{
     voxel::VoxelMaterializationDemand,
 };
 
-use crate::game::GameWorld;
+use crate::game::GameScenario;
 use crate::spatial::UsfNavigationContext;
 
 // Shared landing and disembark search reach, expressed in physical metres.
@@ -79,7 +90,7 @@ mod orbit;
 mod spawn;
 
 use boarding::{enforce_embarked_player_hidden, handle_ship_entry, handle_ship_exit};
-use landing::{SpacecraftLandingSolution, detect_landing, handle_landing_actions};
+use landing::{SpacecraftLandingSolution, detect_landing, resolve_landing_actions};
 pub use orbit::SpacecraftOrbit;
 use orbit::sync_spacecraft_orbit;
 use spawn::spawn_reference_spacecraft;
@@ -95,7 +106,7 @@ impl Plugin for SpacecraftPlugin {
                 Update,
                 (
                     spawn_reference_spacecraft,
-                    handle_landing_actions,
+                    resolve_landing_actions,
                     handle_ship_exit,
                     handle_ship_entry,
                 )

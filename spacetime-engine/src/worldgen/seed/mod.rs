@@ -4,8 +4,8 @@ use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfChunkAddress};
 
 use super::model::PhenomenonEvaluationContext;
 
-pub(super) fn scope_seed(universe_seed: u64, scope: UsfChunkAddress) -> u64 {
-    let mut state = mix64(universe_seed ^ (scope.scale().exponent() as i64 as u64));
+pub(super) fn scope_noise_key(root_noise_key: u64, scope: UsfChunkAddress) -> u64 {
+    let mut state = mix64(root_noise_key ^ (scope.scale().exponent() as i64 as u64));
     for raw_scale in (scope.scale().exponent()..=SPATIAL_SCALE_MAX).rev() {
         let scale = SpatialScale::new(raw_scale).expect("validated spatial scale range");
         let digit = scope
@@ -19,7 +19,7 @@ pub(super) fn scope_seed(universe_seed: u64, scope: UsfChunkAddress) -> u64 {
 }
 
 pub(super) fn unit_noise(context: &PhenomenonEvaluationContext, salt: u64) -> f32 {
-    let value = mix64(context.seed() ^ salt);
+    let value = mix64(context.noise_key() ^ salt);
     let unit = (value >> 11) as f64 / ((1_u64 << 53) - 1) as f64;
     unit as f32
 }

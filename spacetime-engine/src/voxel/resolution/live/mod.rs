@@ -1,8 +1,19 @@
-//! Live celestial presentation clipmap over the voxel-local binary resolution domain.
+//! Live celestial presentation facility over the voxel-local binary resolution domain.
 //!
 //! This is presentation only. Semantic terrain remains [`CelestialVoxelField`];
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
-//! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
+//! reconstructible mesh adapter whose sampling-resolution axis is independent of USF Scale.
+//!
+//! ## Module map
+//!
+//! - `lifecycle`: GPU work admission and make-before-break frontier publication.
+//! - `model`: Reconstructible clipmap plans, tickets, coverage and telemetry state.
+//! - `plan`: Balanced binary frontier planning from semantic field evidence.
+//! - `planning`: Planning ticket completion and bounded refresh admission for the live clipmap.
+//! - `projection`: View projection and dense presentation fallback.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
@@ -17,10 +28,12 @@ use bevy::{
     render::storage::ShaderBuffer,
 };
 
-use crate::procedural_assets::{DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary};
+use crate::procedural_assets::{DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralPresentationAssets};
 use crate::reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass};
 use crate::view::USF_PRESENTATION_LAYER;
-use crate::voxel::{MATERIALIZATION_CHUNK_SIZE, VoxelStreaming, VoxelWorld};
+use crate::voxel::{
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationResidency, VoxelScaleRealization,
+};
 
 use crate::{
     ecs::UsfPresentationProjectionOf,
@@ -40,18 +53,18 @@ use super::topology::{
 use super::visibility::ClipmapVisibilityDemand;
 
 use super::super::{
-    CelestialVoxelField, CelestialVoxelRealization, CelestialVoxelRealizationPolicy,
-    VoxelAuthority,
+    CelestialVoxelField, CelestialVoxelRealizationPolicy, CelestialVoxelScaleRealization,
+    VoxelSemanticAuthority,
     manifestation::{
-        VoxelMaterializationPresentation, VoxelMaterializationRuntime,
-        VoxelPresentationFallbackRetireReady, VoxelRenderMaterial, create_voxel_render_material,
+        VoxelPresentationFallbackRetireReady, VoxelPresentationGeometry,
+        VoxelPresentationManifestation, VoxelRenderMaterial, create_voxel_render_material,
     },
     presentation_palette::{DEBUG_BAND_COUNT, debug_band_rgb},
-    worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTicket},
+    worker::{VoxelWorkExecutor, VoxelWorkLane, VoxelWorkTicket},
 };
 use super::{
     VoxelPresentationResolution, VoxelTransitionFaces,
-    gpu::{GpuTerrainBlock, GpuTerrainRuntime, allocation_mesh, descriptor_for_block},
+    gpu::{GpuTerrainBuild, GpuTerrainBuilds, allocation_mesh, descriptor_for_block},
 };
 
 mod lifecycle;
@@ -113,20 +126,20 @@ const CLIPMAP_LATENCY_MULTIPLIER: f64 = 4.0;
 
 #[inline]
 pub(super) fn configure(app: &mut App) {
-    app.init_resource::<CelestialClipmapRegistry>()
+    app.init_resource::<CelestialClipmapRealizations>()
         .init_resource::<CelestialClipmapBandDebugMaterials>()
         .init_resource::<CelestialClipmapCoverageSnapshot>()
         .init_resource::<CelestialTerrainPresentationState>()
         .init_resource::<CelestialClipmapTelemetry>()
-        .add_systems(Update, sync_celestial_clipmap_realizations)
+        .add_systems(Update, reconcile_celestial_clipmap_realizations)
         .add_systems(
             PostUpdate,
-            sync_celestial_clipmap_transforms
+            project_celestial_clipmap_transforms
                 .after(UsfCapabilitySet::ReconcileCoverage)
                 .in_set(UsfSpatialSet::ViewProjection),
         )
         .add_systems(
             PostUpdate,
-            enforce_dense_interaction_presentation.after(UsfSpatialSet::ViewProjection),
+            reconcile_dense_presentation_fallback.after(UsfSpatialSet::ViewProjection),
         );
 }

@@ -1,4 +1,4 @@
-//! Sparse inline modifications layered over a reconstructible base. Semantic authority-backed worlds use VoxelAuthority instead.
+//! Sparse inline edits for standalone realizations. Shared semantic realizations use VoxelSemanticAuthority.
 
 use std::collections::HashMap;
 

@@ -1,3 +1,5 @@
+//! Track the developer focus target and prune stale focus.
+
 use bevy::prelude::*;
 
 /// Spatial details that only exist when focus came from a world-space hit.

@@ -6,10 +6,11 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
     input: Res<PlayerInputFrame>,
     frame: Res<UsfRuntimeChartState>,
     spatial_query: SpatialQuery,
-    physics_charts: UsfPhysicsSlices,
+    physics_charts: UsfPhysicsSliceQuery,
     ownership: UsfOwnershipQuery,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
+    mut flight_requests: MessageWriter<FlightControlRequest>,
     player: Single<
         (
             Entity,
@@ -19,7 +20,6 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
-            &mut FlightActuation,
             &mut TravelPace,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
@@ -73,7 +73,6 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
             mut player_demand,
             mut player_enabled,
             mut player_locomotion,
-            mut player_actuation,
             mut player_pace,
             mut player_control,
             mut player_frame,
@@ -144,8 +143,14 @@ pub(in crate::game::spacecraft) fn handle_ship_exit(
         // normal walking.
         *player_pace = TravelPace::default();
         player_locomotion.request_automatic();
-        player_actuation.set_thrusters_enabled(false);
-        player_actuation.set_rcs_enabled(false);
+        flight_requests.write(FlightControlRequest::new(
+            player_entity,
+            FlightControlCommand::SetMainPropulsion(false),
+        ));
+        flight_requests.write(FlightControlRequest::new(
+            player_entity,
+            FlightControlCommand::SetReactionControl(false),
+        ));
 
         ship_demand.set_enabled(false);
 

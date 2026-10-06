@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use crate::{
     game::control::LocalControlSubject,
     spatial::{
-        UsfNavigationContext, UsfNavigationContextKind, UsfScaleLayer, UsfRuntimeChartState,
+        UsfNavigationContext, UsfNavigationContextKind, UsfRuntimeChartState, UsfScaleLayer,
         UsfTravelInfluenceKind, UsfTravelNeighborhood,
     },
 };
@@ -43,12 +43,15 @@ pub(super) fn sync_travel_envelope(
 
     envelope.manual_speed_metres_per_second = match navigation.kind() {
         UsfNavigationContextKind::Fallback => profile.manual.fallback_metres_per_second,
-        _ => (navigation.characteristic_length_scale0()
-            / profile.manual.characteristic_traversal_seconds.max(f64::EPSILON))
-            .clamp(
-                profile.manual.minimum_metres_per_second,
-                profile.manual.maximum_metres_per_second,
-            ),
+        _ => (navigation.characteristic_length_metres()
+            / profile
+                .manual
+                .characteristic_traversal_seconds
+                .max(f64::EPSILON))
+        .clamp(
+            profile.manual.minimum_metres_per_second,
+            profile.manual.maximum_metres_per_second,
+        ),
     };
 
     let mut cruise_max = profile.cruise.maximum_metres_per_second;
@@ -56,20 +59,17 @@ pub(super) fn sync_travel_envelope(
     let mut medium_cap = None::<f64>;
     let mut nearest_hard_clearance = None::<f64>;
 
-    for (_, _, influence, measurement) in
-        neighborhood.measurements_from(&position, layer.scale())
-    {
+    for (_, _, influence, measurement) in neighborhood.measurements_from(&position, layer.scale()) {
         match influence.kind() {
             UsfTravelInfluenceKind::HardBody => {
-                let clearance = measurement.boundary_clearance_scale0();
+                let clearance = measurement.boundary_clearance_metres();
                 nearest_hard_clearance = Some(
-                    nearest_hard_clearance
-                        .map_or(clearance, |current| current.min(clearance)),
+                    nearest_hard_clearance.map_or(clearance, |current| current.min(clearance)),
                 );
 
                 let handoff =
-                    profile.planetary_handoff_clearance(measurement.extent_radius_scale0());
-                let capture = profile.planetary_capture_speed(measurement.extent_radius_scale0());
+                    profile.planetary_handoff_clearance(measurement.extent_radius_metres());
+                let capture = profile.planetary_capture_speed(measurement.extent_radius_metres());
 
                 cruise_max = cruise_max.min(hard_body_speed_limit(
                     clearance,
@@ -91,16 +91,16 @@ pub(super) fn sync_travel_envelope(
                 }
 
                 let maximum = medium_speed_limit(
-                    measurement.boundary_clearance_scale0(),
-                    measurement.characteristic_scale0(),
+                    measurement.boundary_clearance_metres(),
+                    measurement.characteristic_length_metres(),
                     measurement.inside(),
                     resistance,
                     profile.cruise.maximum_medium_entry_horizon_seconds,
                     profile.cruise.maximum_medium_feature_horizon_seconds,
                 );
                 let preferred = medium_speed_limit(
-                    measurement.boundary_clearance_scale0(),
-                    measurement.characteristic_scale0(),
+                    measurement.boundary_clearance_metres(),
+                    measurement.characteristic_length_metres(),
                     measurement.inside(),
                     resistance,
                     profile.cruise.default_medium_entry_horizon_seconds,
@@ -124,8 +124,8 @@ pub(super) fn sync_travel_envelope(
     envelope.cruise_default_speed_metres_per_second = cruise_default;
     envelope.medium_speed_cap_metres_per_second = medium_cap;
 
-    let current_motion_speed = if cruise.speed_scale0 > 0.0 {
-        cruise.speed_scale0.min(cruise_max)
+    let current_motion_speed = if cruise.speed_metres_per_second > 0.0 {
+        cruise.speed_metres_per_second.min(cruise_max)
     } else {
         envelope.manual_speed_metres_per_second
     };
@@ -141,9 +141,7 @@ pub(super) fn sync_travel_envelope(
     let divisor = profile.approach.resolution_divisor.max(f64::EPSILON);
     envelope.required_resolution_metres = nearest_hard_clearance
         .map(|clearance| (clearance / divisor).max(1.0))
-        .unwrap_or_else(|| {
-            (navigation.characteristic_length_scale0() / divisor).max(1.0)
-        });
+        .unwrap_or_else(|| (navigation.characteristic_length_metres() / divisor).max(1.0));
 }
 
 fn hard_body_speed_limit(
@@ -173,7 +171,6 @@ fn medium_speed_limit(
     if inside {
         interior_limit
     } else {
-        interior_limit
-            + boundary_clearance_metres / entry_horizon_seconds.max(f64::EPSILON)
+        interior_limit + boundary_clearance_metres / entry_horizon_seconds.max(f64::EPSILON)
     }
 }

@@ -3,6 +3,15 @@
 //! Thermal is intentionally the second proof case after Transform: most runtime
 //! facts are observational, selected parameters use validated domain-owned edits,
 //! and heat/cool/reset are explicit actions rather than fake mutable fields.
+//!
+//! ## Module map
+//!
+//! - `commit`: Domain-owned validation/commit path for thermal inspection requests.
+//! - `gizmo`: Observational viewport visualization for focused thermal state.
+//! - `inspection`: Thermal Structure and semantic inspection collection.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::prelude::*;
 

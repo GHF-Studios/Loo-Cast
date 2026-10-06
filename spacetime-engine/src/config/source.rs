@@ -117,13 +117,13 @@ fn rebuild_effective_config(
     overrides: &EngineConfigOverrides,
     effective: &mut EngineConfig,
 ) {
-    let mut candidate = file_config.clone();
-    candidate.apply_overrides(overrides);
-
-    if let Err(error) = candidate.validate() {
-        warn!(%error, "engine runtime overrides rejected; retaining last valid configuration");
-        return;
-    }
+    let candidate = match file_config.resolved(overrides) {
+        Ok(candidate) => candidate,
+        Err(error) => {
+            warn!(%error, "engine runtime overrides rejected; retaining last valid configuration");
+            return;
+        }
+    };
 
     if *effective != candidate {
         *effective = candidate;

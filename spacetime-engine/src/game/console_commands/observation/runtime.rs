@@ -54,5 +54,5 @@ pub(in crate::game::console_commands) fn voxelstream_command(
     world: &mut World,
     _: &ConsoleCommandInvocation,
 ) -> ConsoleCommandResult {
-    ConsoleCommandResult::success(world.resource::<VoxelStreamingTelemetry>().summary())
+    ConsoleCommandResult::success(world.resource::<VoxelMaterializationTelemetry>().summary())
 }

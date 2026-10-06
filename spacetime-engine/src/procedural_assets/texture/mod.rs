@@ -1,3 +1,5 @@
+//! Generate disposable texture assets from procedural presentation recipes.
+
 use bevy::prelude::*;
 
 use super::rgba_image;
@@ -81,11 +83,7 @@ pub(super) fn generate_star_surface_image() -> Image {
             let lane = 1.0 - smoothstep(0.025, 0.12, macro_v.edge);
             let granule = 0.55 + macro_v.cell_value * 0.30 + micro_v.cell_value * 0.15;
             let heat = (granule + lane * 0.25).clamp(0.0, 1.0);
-            let color = Vec3::new(
-                1.0,
-                0.38 + heat * 0.52,
-                0.055 + heat * 0.20,
-            );
+            let color = Vec3::new(1.0, 0.38 + heat * 0.52, 0.055 + heat * 0.20);
             push_rgba(&mut data, color, 1.0);
         }
     }

@@ -54,7 +54,7 @@ pub(in crate::spatial) fn apply_spatial_transitions(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut active: ResMut<UsfPrimaryInteractionSlice>,
     mut frame: ResMut<UsfRuntimeChartState>,
-    mut queue: ResMut<UsfSpatialTransitionQueue>,
+    mut transitions: ResMut<UsfSpatialTransitions>,
     handoff_guards: Res<UsfInteractionHandoffGuards>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     ownership: UsfOwnershipQuery,
@@ -109,7 +109,7 @@ pub(in crate::spatial) fn apply_spatial_transitions(
     };
 
     let Some(transition) =
-        ResolvedTransition::take(&mut queue, subject, current_position, previous_scale)
+        ResolvedTransition::take(&mut transitions, subject, current_position, previous_scale)
     else {
         return;
     };
@@ -124,7 +124,7 @@ pub(in crate::spatial) fn apply_spatial_transitions(
         subject,
         previous_scale,
         &mut active,
-        &mut queue,
+        &mut transitions,
         &coverage,
         &handoff_guards,
         &mut wait_fingerprint,

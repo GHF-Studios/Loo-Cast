@@ -7,34 +7,27 @@ use bevy::prelude::*;
 use crate::{
     devtools::{DeveloperSet, DeveloperTools, DrawDepth, WorldDrawBatch, WorldDrawFrame},
     spatial::{
-        SPATIAL_DEMAND_VISUALIZATION, UsfCapabilityRealization,
-        UsfPrimaryInteractionSlice, UsfScaleLayer, UsfScaleRoleMask,
-        UsfRuntimeChartState, UsfViewContext, UsfViewRenderAnchor,
+        SPATIAL_DEMAND_VISUALIZATION, UsfCapabilityRealization, UsfPrimaryInteractionSlice,
+        UsfRuntimeChartState, UsfScaleLayer, UsfScaleRoleMask, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
 use super::{
-    CelestialVoxelRealization, MATERIALIZATION_CHUNK_SIZE,
-    VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelStreamingTelemetry,
-    VoxelWorld,
+    CelestialVoxelScaleRealization, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationResidency,
+    VoxelMaterializationTelemetry, VoxelRealizationDemandSnapshot, VoxelScaleRealization,
+    manifestation::{VoxelPresentationGeometry, VoxelPresentationManifestation},
     resolution::CelestialClipmapTelemetry,
-    manifestation::{
-        VoxelMaterializationPresentation, VoxelMaterializationRuntime,
-    },
 };
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(
         PostUpdate,
         (
-            collect_voxel_materialization_world_draw
-                .in_set(DeveloperSet::CollectWorldDraw),
-            terrain_pipeline_census
-                .after(crate::spatial::UsfSpatialSet::ViewProjection),
+            collect_voxel_materialization_world_draw.in_set(DeveloperSet::CollectWorldDraw),
+            terrain_pipeline_census.after(crate::spatial::UsfSpatialSet::ViewProjection),
         ),
     );
 }
-
 
 #[derive(Default)]
 struct TerrainPipelineCensusState {
@@ -60,26 +53,23 @@ fn terrain_pipeline_census(
     time: Res<Time>,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    telemetry: Res<VoxelStreamingTelemetry>,
+    telemetry: Res<VoxelMaterializationTelemetry>,
     clipmap: Res<CelestialClipmapTelemetry>,
     demands: Res<VoxelRealizationDemandSnapshot>,
     worlds: Query<
         (
             Entity,
-            &VoxelWorld,
+            &VoxelScaleRealization,
             &UsfScaleLayer,
-            Option<&VoxelStreaming>,
+            Option<&VoxelMaterializationResidency>,
         ),
-        With<CelestialVoxelRealization>,
+        With<CelestialVoxelScaleRealization>,
     >,
     runtimes: Query<(
-        &VoxelMaterializationRuntime,
+        &VoxelPresentationManifestation,
         Option<&UsfCapabilityRealization>,
     )>,
-    presentations: Query<
-        (&ChildOf, &Visibility),
-        With<VoxelMaterializationPresentation>,
-    >,
+    presentations: Query<(&ChildOf, &Visibility), With<VoxelPresentationGeometry>>,
     mut state: Local<TerrainPipelineCensusState>,
 ) {
     state.seconds_until_report -= time.delta_secs().max(0.0);
@@ -94,20 +84,14 @@ fn terrain_pipeline_census(
         if !runtime.active() {
             continue;
         }
-        let entry = runtime_by_world.entry(runtime.world()).or_default();
+        let entry = runtime_by_world.entry(runtime.realization()).or_default();
         entry.active += 1;
 
         if let Some(capability) = capability {
-            if capability
-                .roles()
-                .contains(UsfScaleRoleMask::PRESENTATION)
-            {
+            if capability.roles().contains(UsfScaleRoleMask::PRESENTATION) {
                 entry.presentation_ready += 1;
             }
-            if capability
-                .roles()
-                .contains(UsfScaleRoleMask::COLLISION)
-            {
+            if capability.roles().contains(UsfScaleRoleMask::COLLISION) {
                 entry.collision_ready += 1;
             }
         }
@@ -124,7 +108,7 @@ fn terrain_pipeline_census(
             continue;
         }
         runtime_by_world
-            .entry(runtime.world())
+            .entry(runtime.realization())
             .or_default()
             .visible_presentations += 1;
     }
@@ -136,9 +120,9 @@ fn terrain_pipeline_census(
 
         let active_keys = store.active_keys().collect::<Vec<_>>();
         let active = active_keys.len();
-        let desired = streaming.map_or(active, VoxelStreaming::desired_count);
+        let desired = streaming.map_or(active, VoxelMaterializationResidency::desired_count);
         let pending_desired =
-            streaming.map_or(0, VoxelStreaming::pending_desired_len);
+            streaming.map_or(0, VoxelMaterializationResidency::pending_desired_len);
         let warm_inactive = store.inactive_count();
         let total_materializations = store.total_count();
 
@@ -236,7 +220,7 @@ fn collect_voxel_materialization_world_draw(
     tools: Res<DeveloperTools>,
     spatial_frame: Res<UsfRuntimeChartState>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    worlds: Query<(&VoxelScaleRealization, &UsfScaleLayer)>,
     frame: Res<WorldDrawFrame>,
 ) {
     if !tools.visualization_enabled(SPATIAL_DEMAND_VISUALIZATION) {
@@ -259,9 +243,10 @@ fn collect_voxel_materialization_world_draw(
                 continue;
             };
             let Ok(translation) = address.origin().relative_at_scale_bounded(
-                spatial_frame.origin(), layer.scale(), 16_384.0,
-            )
-            else {
+                spatial_frame.origin(),
+                layer.scale(),
+                16_384.0,
+            ) else {
                 continue;
             };
             draw_wire_box(&mut batch, translation, translation + extent, color);

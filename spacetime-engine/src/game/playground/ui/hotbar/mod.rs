@@ -1,3 +1,5 @@
+//! Spawn and synchronize the playground hotbar presentation.
+
 use bevy::prelude::*;
 
 use crate::{

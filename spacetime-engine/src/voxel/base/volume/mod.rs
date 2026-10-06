@@ -1,18 +1,24 @@
 //! Reconstructible three-dimensional procedural voxel field.
+//!
+//! ## Module map
+//!
+//! - `refinement`: Cross-scale USF refinement realization for procedural volumes.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use bevy::prelude::{Vec2, Vec3};
 
 use crate::spatial::{
-    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale,
-    UsfPosition,
+    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfPosition,
 };
 
+use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 use super::{
     EMPTY_DISTANCE, TERRAIN_DIRECT_LOCAL_LIMIT, TERRAIN_VERTICAL_QUERY_LIMIT,
     noise::{mix, scale_layer_seed, value_noise_3d, volumetric_noise},
     terrain::ProceduralTerrain,
 };
-use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 mod refinement;
 
@@ -90,7 +96,8 @@ impl ProceduralVolume {
             .find(|(level, _)| *level == SpatialScale::MAX)
             .or_else(|| lineage.last())
             .map(|(_, seed)| (*seed as u32) ^ ((*seed >> 32) as u32));
-        let hierarchy_seed = root_context_seed.map_or(universe_seed, |seed| mix(universe_seed, seed));
+        let hierarchy_seed =
+            root_context_seed.map_or(universe_seed, |seed| mix(universe_seed, seed));
         let mut seeds = [0_u32; SPATIAL_SCALE_COUNT];
 
         for raw in SPATIAL_SCALE_MIN..=SPATIAL_SCALE_MAX {

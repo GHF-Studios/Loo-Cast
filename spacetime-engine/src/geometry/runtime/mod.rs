@@ -1,3 +1,14 @@
+//! Reconcile authored scenes with disposable runtime entities and motion.
+//!
+//! ## Module map
+//!
+//! - `motion`: Authored kinematic motion state and fixed-step realization.
+//! - `rebuild`: Authored asset -> compiled model -> disposable runtime-scene reconciliation.
+//! - `spawning`: Runtime mesh/collider/entity realization of compiled authored geometry.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
+
 use std::collections::HashMap;
 
 use avian3d::prelude::{Collider, LinearVelocity, RigidBody};
@@ -7,7 +18,9 @@ use crate::physics::collision_topology::CollisionClipSource;
 
 use super::{
     asset::AuthoredMap,
-    compile::{CompiledGeometry, CompiledMotion, CompiledNode, CompiledShape, compile_map},
+    compile::{
+        CompiledGeometry, CompiledMotion, CompiledNode, CompiledShape, compile_authored_map,
+    },
     mesh::{convex_prism_mesh, convex_prism_points},
 };
 
@@ -48,8 +61,9 @@ pub struct AuthoredMapMarker {
     pub tags: Vec<String>,
 }
 
+/// Derived runtime manifestation belonging to one authored-map scene.
 #[derive(Component, Debug, Clone, Copy)]
-pub(super) struct GeneratedFromMap {
+pub(super) struct AuthoredMapManifestationOf {
     source: Entity,
 }
 
@@ -67,9 +81,9 @@ mod motion;
 mod rebuild;
 mod spawning;
 
-pub(super) use motion::animate_authored_movers;
-pub(super) use motion::rebase_authored_movers;
-pub(super) use rebuild::rebuild_authored_maps;
+pub(super) use motion::rebase_authored_motion_origins;
+pub(super) use motion::simulate_authored_motion;
+pub(super) use rebuild::reconcile_authored_map_scenes;
 
 use motion::{authored_motion, motion_state};
 use spawning::spawn_geometry;

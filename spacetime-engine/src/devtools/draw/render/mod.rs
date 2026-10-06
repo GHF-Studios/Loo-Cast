@@ -1,3 +1,13 @@
+//! Render World Draw primitives and scalar fields from published frames.
+//!
+//! ## Module map
+//!
+//! - `primitives`: Gizmo realization of line/arrow/axes/rect/cross/sphere world-draw primitives.
+//! - `scalar_field`: Scalar-field manifestation cache, synchronization and mesh construction.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
+
 use std::collections::{HashMap, HashSet};
 
 use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology, prelude::*};
@@ -15,7 +25,7 @@ mod primitives;
 mod scalar_field;
 
 use primitives::render_primitives;
-use scalar_field::{setup_world_draw_backend, sync_scalar_field_visuals, WorldDrawCache};
+use scalar_field::{WorldDrawCache, setup_world_draw_backend, sync_scalar_field_visuals};
 
 pub(super) fn configure(app: &mut App) {
     app.init_gizmo_group::<DeveloperWorldGizmos>()

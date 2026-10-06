@@ -100,7 +100,10 @@ fn movement_distance_metres(
         1.0
     };
     let scripted_speed = script_workbench
-        .apply_live_scalar(f64::from(settings.translation_speed_mps()))
+        .transform_live_scalar(
+            crate::devtools::ScriptTarget::FreecamSpeed,
+            f64::from(settings.translation_speed_mps()),
+        )
         .clamp(0.0, 1.0e9) as f32;
     scripted_speed * boost * delta_seconds.max(0.0)
 }

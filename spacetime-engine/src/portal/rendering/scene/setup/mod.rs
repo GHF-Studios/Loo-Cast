@@ -3,6 +3,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
+    physics::collision_topology::CollisionStencil,
     portal::{
         PortalActive,
         domain::{Portal, PortalConfig, PortalEndpoint, PortalPair, PortalSupport},
@@ -13,7 +14,6 @@ use crate::{
             render_size,
         },
     },
-    physics::collision_topology::CollisionStencil,
 };
 
 use super::frame::{create_frame_meshes, spawn_frame};

@@ -86,7 +86,7 @@ pub(in crate::game::navigation) fn plan_approach_refinement(
         &UsfSemanticFrame,
         &UsfTravelInfluence,
         &UsfApproachRefinement,
-        Option<&UsfTravelBoundaryResolver>,
+        Option<&UsfTravelBoundaryProvider>,
     )>,
 ) {
     let (body, layer, profile, envelope, mut state, mut realization_demand) = subject.into_inner();
@@ -137,7 +137,7 @@ pub(in crate::game::navigation) fn plan_approach_refinement(
     // Clearance, speed and lookahead may change how much reality is prepared
     // ahead. They are deliberately unable to rechart the controlled subject.
     let future_clearance =
-        (measurement.boundary_clearance_scale0() - envelope.lookahead_metres).max(1.0);
+        (measurement.boundary_clearance_metres() - envelope.lookahead_metres).max(1.0);
     let divisor = profile.approach.resolution_divisor.max(f64::EPSILON);
     let future_resolution = (future_clearance / divisor).max(1.0);
     state.realization_target_scale = scale_for_resolution(

@@ -216,7 +216,7 @@ pub(super) fn collect_predictive_tube(
 }
 
 pub(super) fn demanded_chunk_addresses_with_motion<T>(
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     demands: &[T],
     pinned_shell: Option<(Entity, f32)>,
     view_demands: &UsfViewDemandSnapshot,

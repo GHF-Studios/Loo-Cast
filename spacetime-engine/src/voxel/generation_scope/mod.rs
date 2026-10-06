@@ -24,7 +24,6 @@ impl VoxelGenerationScopeExtent {
                 base_chunks_per_axis,
             })
     }
-
 }
 
 /// One aligned generation-processing scope over canonical materialization
@@ -40,10 +39,7 @@ impl VoxelGenerationScope {
         extent: VoxelGenerationScopeExtent,
     ) -> Result<Self, UsfPositionError> {
         Ok(Self {
-            region: VoxelRegionSpan::aligned_containing(
-                key,
-                extent.base_chunks_per_axis,
-            )?,
+            region: VoxelRegionSpan::aligned_containing(key, extent.base_chunks_per_axis)?,
         })
     }
 }

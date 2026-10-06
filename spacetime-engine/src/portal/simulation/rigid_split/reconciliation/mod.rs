@@ -2,6 +2,14 @@
 //!
 //! This system sequences authority crossing, split completion and disposable
 //! peer rematerialization after Avian writes dynamic-body state back.
+//!
+//! ## Module map
+//!
+//! - `completion`: Completion criterion for an active rigid split.
+//! - `crossing`: Mapping of a rigid authority when its center crosses the active portal.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use avian3d::prelude::*;
 use bevy::prelude::*;

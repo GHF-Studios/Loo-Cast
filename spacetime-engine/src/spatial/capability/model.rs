@@ -75,13 +75,13 @@ impl UsfCapabilityRealization {
     }
 }
 
-/// One bounded capability fact published through a batched producer.
+/// One bounded capability fact published by a capability producer.
 ///
 /// Some capabilities own thousands of sparse realized cells without owning an
 /// ECS object per cell. The producer entity is lifecycle identity only; it does
 /// not become semantic authority or presentation identity.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UsfCapabilityCoverageRecord {
+pub struct UsfCapabilityCoverageFact {
     authority: Entity,
     scale: SpatialScale,
     center: UsfPosition,
@@ -90,7 +90,7 @@ pub struct UsfCapabilityCoverageRecord {
     revision: u64,
 }
 
-impl UsfCapabilityCoverageRecord {
+impl UsfCapabilityCoverageFact {
     pub fn new(
         authority: Entity,
         scale: SpatialScale,
@@ -122,22 +122,22 @@ impl UsfCapabilityCoverageRecord {
     }
 }
 
-/// Store-backed capability facts owned by one ECS producer.
+/// Published capability facts owned by one ECS producer.
 ///
 /// This is deliberately a batch rather than one entity per realized cell. Batch
 /// order must be deterministic for stable snapshot equality.
 #[derive(Component, Debug, Default, Clone, PartialEq)]
-pub struct UsfCapabilityCoverageBatch {
-    records: Vec<UsfCapabilityCoverageRecord>,
+pub struct UsfCapabilityCoveragePublication {
+    facts: Vec<UsfCapabilityCoverageFact>,
 }
 
-impl UsfCapabilityCoverageBatch {
-    pub fn new(records: Vec<UsfCapabilityCoverageRecord>) -> Self {
-        Self { records }
+impl UsfCapabilityCoveragePublication {
+    pub fn new(facts: Vec<UsfCapabilityCoverageFact>) -> Self {
+        Self { facts }
     }
 
-    pub fn records(&self) -> &[UsfCapabilityCoverageRecord] {
-        &self.records
+    pub fn facts(&self) -> &[UsfCapabilityCoverageFact] {
+        &self.facts
     }
 }
 

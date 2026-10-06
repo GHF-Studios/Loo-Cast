@@ -4,6 +4,15 @@
 //! candidate selection, aperture fit and center crossing do not belong to the
 //! character implementation or the rigid-body implementation. Character-specific
 //! lifecycle and collision materialization live under [`character`].
+//!
+//! ## Module map
+//!
+//! - `aperture`: Aperture-fit and center-plane crossing geometry.
+//! - `candidate`: Active-pair validity and predictive split candidate selection.
+//! - `character`: Character-specific portal split lifecycle.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::*;
 
@@ -22,8 +31,7 @@ pub(crate) use character::{
 
 pub(super) use aperture::{box_fits_aperture_at, center_crossing_fraction};
 pub(super) use candidate::{
-    active_pair_is_valid, active_portal_pair, box_reaches_portal_this_tick,
-    find_split_candidate,
+    active_pair_is_valid, active_portal_pair, box_reaches_portal_this_tick, find_split_candidate,
 };
 
 /// Distance beyond the trailing support radius before an active split collapses.

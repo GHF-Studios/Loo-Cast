@@ -6,14 +6,14 @@
 use avian3d::prelude::{AngularVelocity, LinearVelocity};
 use bevy::prelude::*;
 
-use crate::spatial::{UsfScaleLayer, UsfRuntimeChartState};
+use crate::spatial::{UsfRuntimeChartState, UsfScaleLayer};
 
-use super::{VoxelQueryPosition, VoxelWorld};
+use super::{VoxelQueryPosition, VoxelScaleRealization};
 
 pub(in crate::voxel) fn apply_voxel_medium_drag(
     time: Res<Time<Fixed>>,
     frame: Res<UsfRuntimeChartState>,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    worlds: Query<(&VoxelScaleRealization, &UsfScaleLayer)>,
     mut bodies: Query<(
         &Transform,
         &UsfScaleLayer,
@@ -31,7 +31,10 @@ pub(in crate::voxel) fn apply_voxel_medium_drag(
         // Use the same canonical origin as voxel render/collision projection.
         // An absolute floating-point round trip loses fine location and a
         // separately accumulated scale origin can disagree after a rebase.
-        let Ok(position) = frame.origin().translated_at_scale(scale, transform.translation) else {
+        let Ok(position) = frame
+            .origin()
+            .translated_at_scale(scale, transform.translation)
+        else {
             continue;
         };
         let Ok(position) = position.reexpressed_at(scale) else {

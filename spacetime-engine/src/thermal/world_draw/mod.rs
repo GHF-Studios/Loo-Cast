@@ -163,11 +163,11 @@ fn collect_thermal_coupling_field(
 
             (!positions.is_empty()
                 && coupling.environmental_power_watts > 0.0
-                && coupling.radius_meters > 0.0)
+                && coupling.radius_metres > 0.0)
                 .then_some((
                     positions.as_slice(),
                     coupling.environmental_power_watts,
-                    coupling.radius_meters,
+                    coupling.radius_metres,
                 ))
         })
         .collect::<Vec<_>>();

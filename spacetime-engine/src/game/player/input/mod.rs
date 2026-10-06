@@ -2,6 +2,16 @@
 //!
 //! Hardware state is sampled once after focus/cursor arbitration. Gameplay
 //! systems consume `PlayerInputFrame` rather than inspecting buttons directly.
+//!
+//! ## Module map
+//!
+//! - `action`: Semantic actions sampled from bound devices.
+//! - `bindings`: Runtime button bindings and console bind dispatch.
+//! - `button`: Bindable device vocabulary and hardware button sampling.
+//! - `frame`: One gameplay input snapshot sampled after focus and cursor arbitration.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::prelude::*;
 

@@ -6,14 +6,12 @@
 
 use std::time::Duration;
 
-use avian3d::character_controller::move_and_slide::{
-    MoveAndSlideHitResponse, MoveAndSlideOutput,
-};
+use avian3d::character_controller::move_and_slide::{MoveAndSlideHitResponse, MoveAndSlideOutput};
 use bevy::prelude::*;
 
+use super::super::{ResolvedCharacterMovementConfig, reject};
 use super::CollisionContext;
 use super::grounding::probe_ground;
-use super::super::{ResolvedCharacterMovementConfig, reject};
 
 pub(super) fn move_with_step_selection(
     collision: &CollisionContext<'_, '_, '_>,

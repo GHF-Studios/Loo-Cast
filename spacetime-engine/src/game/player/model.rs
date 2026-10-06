@@ -3,8 +3,8 @@
 use bevy::{camera::visibility::RenderLayers, prelude::*};
 
 use crate::{
-    portal::{DERIVED_VIEW_LAYER, PortalSplitVisual},
     physics::character::CharacterDimensions,
+    portal::{DERIVED_VIEW_LAYER, PortalSplitVisual},
     spatial::{SpatialScale, UsfLocalScalePresentation},
     view::ViewSubjectPresentation,
 };

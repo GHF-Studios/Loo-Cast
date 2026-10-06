@@ -12,20 +12,20 @@ pub(in crate::game::console_commands) fn presentation_command(
 
     if let Some(raw) = invocation.args().first().map(String::as_str) {
         let mode = if raw.eq_ignore_ascii_case("all") {
-            UsfPresentationProbe::All
+            UsfPresentationDomainProbe::All
         } else if raw.eq_ignore_ascii_case("physical") || raw.eq_ignore_ascii_case("local") {
-            UsfPresentationProbe::Physical
+            UsfPresentationDomainProbe::Physical
         } else if raw.eq_ignore_ascii_case("context") || raw.eq_ignore_ascii_case("contextual") {
-            UsfPresentationProbe::Context
+            UsfPresentationDomainProbe::Context
         } else {
             return ConsoleCommandResult::error(format!(
                 "invalid presentation probe `{raw}`; expected all, physical or context"
             ));
         };
-        *world.resource_mut::<UsfPresentationProbe>() = mode;
+        *world.resource_mut::<UsfPresentationDomainProbe>() = mode;
     }
 
-    let probe = *world.resource::<UsfPresentationProbe>();
+    let probe = *world.resource::<UsfPresentationDomainProbe>();
     let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
     let navigation = *world.resource::<NavigationAudit>();
     let interaction_affinity = {

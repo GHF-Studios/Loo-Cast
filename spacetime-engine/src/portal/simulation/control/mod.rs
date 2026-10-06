@@ -7,12 +7,14 @@
 use bevy::prelude::*;
 
 use crate::{
+    physics::collision_topology::{CollisionClipSource, CollisionStencil},
     portal::{
         Portal, PortalActive, PortalCommand, PortalEndpoint, PortalPair,
         domain::PortalSupport,
-        simulation::placement::{PortalPlacement, coplanar_apertures_overlap, resolve_portal_placement},
+        simulation::placement::{
+            PortalPlacement, coplanar_apertures_overlap, resolve_portal_placement,
+        },
     },
-    physics::collision_topology::{CollisionClipSource, CollisionStencil},
 };
 
 pub fn apply_portal_commands(
@@ -126,18 +128,25 @@ fn resolve_placement_command(
     portals: &Query<(Entity, &Portal, &PortalActive, &Transform, &PortalSupport), With<Portal>>,
 ) -> Option<(Entity, PortalPlacement)> {
     // Physical portals are rigid transforms; scale is not presentation state.
-    if (transform.scale - Vec3::ONE).length_squared() > 1e-6 { return None; }
+    if (transform.scale - Vec3::ONE).length_squared() > 1e-6 {
+        return None;
+    }
     let target = pair.entity(endpoint);
     let (_, portal, _, _, _) = portals.get(target).ok()?;
     let half_size = portal.half_size;
     let placement = resolve_portal_placement(transform, half_size, supports)?;
     let other_entity = pair.entity(endpoint.other());
-    let overlaps_other = portals.get(other_entity).is_ok_and(
-        |(_, other, other_active, other_transform, _)| {
-            other_active.0 && coplanar_apertures_overlap(
-                &placement.transform, half_size, other_transform, other.half_size,
-            )
-        },
-    );
+    let overlaps_other =
+        portals
+            .get(other_entity)
+            .is_ok_and(|(_, other, other_active, other_transform, _)| {
+                other_active.0
+                    && coplanar_apertures_overlap(
+                        &placement.transform,
+                        half_size,
+                        other_transform,
+                        other.half_size,
+                    )
+            });
     (!overlaps_other).then_some((target, placement))
 }

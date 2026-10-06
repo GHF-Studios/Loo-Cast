@@ -1,4 +1,33 @@
 //! Loo Cast game composition built on Spacetime Engine domains.
+//!
+//! ## Integration
+//!
+//! LooCastGamePlugin composes the game facilities and orders input, requests, physical resolution,
+//! consequences, and presentation. Cross-domain changes use the owning facility’s request or
+//! command contract.
+//!
+//! ## Module map
+//!
+//! - `combat`: Weapons, projectiles and manifestation-space hit detection.
+//! - `console_commands`: Loo Cast commands layered on the generic developer console.
+//! - `control`: Semantic and local runtime control authority.
+//! - `devtools`: Loo Cast adapters into generic developer focus, inspection and tooling
+//!   facilities.
+//! - `flight`: Flight policy, contact and safety state, and derived telemetry.
+//! - `health`: Generic damageable-state, damage and death semantics.
+//! - `inventory`: Generic local inventory-selection state.
+//! - `item`: Generic item identity, metadata, actions and presentation.
+//! - `locomotion`: Generic controlled-subject locomotion.
+//! - `navigation`: Generic controlled-subject navigation and travel policy.
+//! - `orbit`: Canonical orbital mechanics shared by simulation, prediction and presentation.
+//! - `player`: Local-player gameplay and presentation.
+//! - `playground`: Reusable in-game test playground.
+//! - `spacecraft`: Reference spacecraft built from generic USF/control primitives.
+//! - `surface`: Read-only physical-surface proximity telemetry.
+//! - `world`: Loo Cast scenario bootstrap, authored fixtures, and scenario lifetime.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 pub mod combat;
 mod console_commands;
@@ -22,8 +51,8 @@ use bevy::{
     prelude::*,
 };
 
-pub use devtools::LooCastDeveloperToolsPlugin;
-pub use world::GameWorld;
+pub use devtools::LooCastDeveloperAdaptersPlugin;
+pub use world::GameScenario;
 
 /// Stable top-level extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -61,9 +90,9 @@ pub enum PresentationSet {
     DerivedViews,
 }
 
-pub struct LooCastPlugin;
+pub struct LooCastGamePlugin;
 
-impl Plugin for LooCastPlugin {
+impl Plugin for LooCastGamePlugin {
     fn build(&self, app: &mut App) {
         console_commands::configure(app);
 
@@ -72,7 +101,7 @@ impl Plugin for LooCastPlugin {
             (
                 control::ControlSet::Sample,
                 flight::FlightSet::Control,
-                orbit::OrbitalSet::Advance,
+                orbit::OrbitalMechanicsSet::Propagate,
                 crate::physics::gravity::GravitySet::Sample,
                 navigation::NavigationSet::Observe,
                 control::ControlSet::Request,
@@ -138,7 +167,7 @@ impl Plugin for LooCastPlugin {
             Update,
             (
                 crate::thermal::ThermalSet::SpatialInput,
-                crate::thermal::ThermalSet::Lumped,
+                crate::thermal::ThermalSet::Evolution,
                 crate::thermal::ThermalSet::SpatialOutput,
             )
                 .chain()
@@ -153,13 +182,13 @@ impl Plugin for LooCastPlugin {
             item::ItemPlugin,
             health::HealthPlugin,
             combat::CombatPlugin,
-            crate::procedural_assets::ProceduralAssetsPlugin,
+            crate::procedural_assets::ProceduralPresentationAssetsPlugin,
             crate::spatial::UsfSpatialPlugin,
             control::ControlPlugin,
         ))
         .add_plugins((
             locomotion::LocomotionPlugin,
-            orbit::OrbitPlugin,
+            orbit::OrbitalMechanicsPlugin,
             navigation::NavigationPlugin,
             surface::SurfacePlugin,
             flight::FlightPlugin,
@@ -168,7 +197,7 @@ impl Plugin for LooCastPlugin {
             crate::portal::PortalPlugin,
             crate::thermal::ThermalCorePlugin,
             crate::thermal::ThermalPresentationPlugin,
-            world::GameWorldPlugin,
+            world::GameScenarioPlugin,
             playground::PlaygroundPlugin,
         ));
     }

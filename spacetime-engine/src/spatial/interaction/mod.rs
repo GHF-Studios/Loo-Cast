@@ -46,8 +46,11 @@ impl UsfInteractionScaleAffinity {
     }
 
     pub fn with_coverage_radius_native(mut self, radius_native: f32) -> Self {
-        self.coverage_radius_native =
-            if radius_native.is_finite() { radius_native.max(0.0) } else { 0.0 };
+        self.coverage_radius_native = if radius_native.is_finite() {
+            radius_native.max(0.0)
+        } else {
+            0.0
+        };
         self
     }
 }

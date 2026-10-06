@@ -4,7 +4,7 @@ use super::*;
 
 pub(super) fn fire_weapons(
     mut commands: Commands,
-    mut requests: MessageReader<FireWeapon>,
+    mut requests: MessageReader<FireWeaponRequest>,
     weapons: Query<(&Weapon, &UsfScaleLayer)>,
     assets: Res<CombatPresentationAssets>,
 ) {

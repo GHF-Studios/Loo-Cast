@@ -2,6 +2,18 @@
 //!
 //! Simulation/topology never depends on this module. Presentation derives from
 //! portal-domain state, including whether a complete pair is currently active.
+//!
+//! ## Module map
+//!
+//! - `layout`: Geometric tolerances used only by portal presentation.
+//! - `material`: Material contract for rendering a portal surface.
+//! - `recursion`: Build recursive portal views from camera paths and reusable render targets.
+//! - `scene`: Maintain the presentation scene and surfaces for portal views.
+//! - `split`: Visual manifestation of box geometry partitioned by active portals.
+//! - `visibility`: Derives portal presentation visibility from domain activation state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 pub mod layout;
 pub mod material;

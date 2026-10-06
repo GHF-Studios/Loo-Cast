@@ -12,6 +12,14 @@ pub struct FlightActuation {
 }
 
 impl FlightActuation {
+    /// Initial policy for an authored spacecraft manifestation.
+    pub const fn initially_enabled() -> Self {
+        Self {
+            thrusters_enabled: true,
+            rcs_enabled: true,
+        }
+    }
+
     pub const fn thrusters_enabled(self) -> bool {
         self.thrusters_enabled
     }

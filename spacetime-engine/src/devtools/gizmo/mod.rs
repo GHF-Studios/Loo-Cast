@@ -4,6 +4,18 @@
 //! interaction and actions. This module contains the first concrete gizmo: a
 //! unified Transform gizmo whose translate, rotate and scale affordances are all
 //! visible at once. Visibility and edit authority are deliberately separate.
+//!
+//! ## Module map
+//!
+//! - `model`: Transform-gizmo edit authority and transient interaction model.
+//! - `widget`: Inspector control for gizmo transform-space selection.
+//! - `geometry`: Projection, axis mapping and handle hit-testing for Transform gizmos.
+//! - `inspection`: Transform semantic-structure and inspection adapter.
+//! - `interaction`: Transform-gizmo input, dragging and viewport selection.
+//! - `presentation`: World-draw presentation of Transform gizmo handles.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::{
     prelude::*,

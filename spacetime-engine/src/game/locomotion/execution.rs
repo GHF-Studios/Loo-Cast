@@ -26,6 +26,16 @@ pub enum CollisionPolicy {
 }
 
 #[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum MotionAuthorityReason {
+    #[default]
+    RuntimeCollision,
+    NumericalRange,
+    NavigationAssistance,
+    DeveloperOverride,
+    Inhibited,
+}
+
+#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum VelocitySemantics {
     #[default]
     PreserveCanonical,
@@ -67,6 +77,7 @@ pub struct MotionExecution {
     kernel: MotionKernel,
     collision_policy: CollisionPolicy,
     velocity_semantics: VelocitySemantics,
+    authority_reason: MotionAuthorityReason,
 }
 
 impl Default for MotionExecution {
@@ -75,6 +86,7 @@ impl Default for MotionExecution {
             kernel: MotionKernel::Character,
             collision_policy: CollisionPolicy::DetailedBody,
             velocity_semantics: VelocitySemantics::PreserveCanonical,
+            authority_reason: MotionAuthorityReason::RuntimeCollision,
         }
     }
 }
@@ -90,18 +102,25 @@ impl MotionExecution {
         self.velocity_semantics
     }
 
+    pub const fn authority_reason(self) -> MotionAuthorityReason {
+        self.authority_reason
+    }
+
     pub(crate) fn resolve(
         &mut self,
         kernel: MotionKernel,
         collision_policy: CollisionPolicy,
         velocity_semantics: VelocitySemantics,
+        authority_reason: MotionAuthorityReason,
     ) -> bool {
         let changed = self.kernel != kernel
             || self.collision_policy != collision_policy
-            || self.velocity_semantics != velocity_semantics;
+            || self.velocity_semantics != velocity_semantics
+            || self.authority_reason != authority_reason;
         self.kernel = kernel;
         self.collision_policy = collision_policy;
         self.velocity_semantics = velocity_semantics;
+        self.authority_reason = authority_reason;
         changed
     }
 }

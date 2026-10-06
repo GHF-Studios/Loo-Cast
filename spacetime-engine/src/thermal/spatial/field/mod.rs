@@ -1,4 +1,11 @@
 //! Compact finite-volume thermal field and Fourier conduction model.
+//!
+//! ## Module map
+//!
+//! - `conduction`: Conservative face exchanges for the thermal field.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use bevy::prelude::*;
 

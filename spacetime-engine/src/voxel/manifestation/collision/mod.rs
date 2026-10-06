@@ -10,22 +10,21 @@
 
 use std::collections::HashMap;
 
-use avian3d::prelude::{
-    Collider, ColliderDisabled, CollisionMargin, Position, RigidBody,
-};
+use avian3d::prelude::{Collider, ColliderDisabled, CollisionMargin, Position, RigidBody};
 use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfRuntimeChartState,
+        SpatialScale, UsfRuntimeChartState, UsfScaleLayer, UsfScaleRoleMask,
         UsfSpatialTransitionApplied,
     },
 };
 
 use super::super::{
-    CelestialVoxelFrameBinding, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelMaterializationKey,
-    VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelWorld, physics,
+    CelestialVoxelRealizationFrame, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled,
+    VoxelMaterializationKey, VoxelMaterializationResidency, VoxelRealizationDemandSnapshot,
+    VoxelScaleRealization, physics,
 };
 
 /// Historical aggregate edge that bounded incremental rebuild amplification
@@ -143,9 +142,9 @@ fn sort_members(members: &mut [(VoxelMaterializationKey, u64)]) {
 pub(super) fn collision_requested(
     world_entity: Entity,
     key: VoxelMaterializationKey,
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     layer: &UsfScaleLayer,
-    streaming: &VoxelStreaming,
+    streaming: &VoxelMaterializationResidency,
     realization_demand: &VoxelRealizationDemandSnapshot,
     interaction_padding: f32,
 ) -> bool {
@@ -169,16 +168,13 @@ pub(super) fn collision_requested(
                     distance_squared <= interaction_padding * interaction_padding
                 })
         })
-        || streaming.retains_committed_role_during_migration(
-            key,
-            UsfScaleRoleMask::COLLISION,
-        )
+        || streaming.retains_committed_role_during_migration(key, UsfScaleRoleMask::COLLISION)
 }
 
 fn build_aggregate_collider(
     group_origin: VoxelMaterializationKey,
     members: &[(VoxelMaterializationKey, u64)],
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
 ) -> Option<Collider> {
     let mut vertices = Vec::<Vec3>::new();
     let mut triangles = Vec::<[u32; 3]>::new();
@@ -211,17 +207,13 @@ fn build_aggregate_collider(
         }
     }
 
-    physics::build_trimesh_collider(
-        vertices,
-        triangles,
-        "voxel collision aggregate",
-    )
+    physics::build_trimesh_collider(vertices, triangles, "voxel collision aggregate")
 }
 
 fn aggregate_runtime_translation(
     frame: &UsfRuntimeChartState,
     layer: &UsfScaleLayer,
-    world: &VoxelWorld,
+    world: &VoxelScaleRealization,
     origin: VoxelMaterializationKey,
 ) -> Option<Vec3> {
     let address = world.materialization_address(origin).ok()?;
@@ -243,7 +235,7 @@ fn aggregate_runtime_translation(
 pub(in crate::voxel) fn sync_collision_aggregate_runtime_transforms(
     mut transitions: MessageReader<UsfSpatialTransitionApplied>,
     frame: Res<UsfRuntimeChartState>,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    worlds: Query<(&VoxelScaleRealization, &UsfScaleLayer)>,
     registry: Res<VoxelCollisionAggregateRegistry>,
     mut aggregates: Query<(&mut Transform, &mut Position)>,
 ) {
@@ -259,8 +251,7 @@ pub(in crate::voxel) fn sync_collision_aggregate_runtime_transforms(
         let Ok((world, layer)) = worlds.get(key.world) else {
             continue;
         };
-        let Some(translation) =
-            aggregate_runtime_translation(&frame, layer, world, key.origin)
+        let Some(translation) = aggregate_runtime_translation(&frame, layer, world, key.origin)
         else {
             continue;
         };
@@ -285,25 +276,23 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     mut commands: Commands,
     worlds: Query<(
         Entity,
-        &VoxelWorld,
+        &VoxelScaleRealization,
         &UsfScaleLayer,
-        &VoxelStreaming,
+        &VoxelMaterializationResidency,
         Option<&VoxelCollisionDisabled>,
-        Option<&CelestialVoxelFrameBinding>,
+        Option<&CelestialVoxelRealizationFrame>,
     )>,
     mut registry: ResMut<VoxelCollisionAggregateRegistry>,
-    mut desired: Local<
-        HashMap<
-            VoxelCollisionAggregateKey,
-            Vec<(VoxelMaterializationKey, u64)>,
-        >,
-    >,
+    mut desired: Local<HashMap<VoxelCollisionAggregateKey, Vec<(VoxelMaterializationKey, u64)>>>,
     mut cache: Local<VoxelCollisionReconcileCache>,
 ) {
     let _span = bevy::log::info_span!("voxel_collision.aggregate_reconcile").entered();
 
-    let interaction_padding =
-        config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
+    let interaction_padding = config
+        .voxel
+        .manifestation
+        .physics_interaction_radius_native
+        .max(0.0);
     let interaction_padding_bits = interaction_padding.to_bits();
 
     let mut world_revisions =
@@ -342,24 +331,19 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         // Collision consumes store-owned derived surfaces directly. It must not
         // wait for a presentation runtime to exist: renderer manifestation is a
         // downstream disposable consumer of the same derived truth.
-        for (world_entity, world, layer, streaming, collision_disabled, _celestial_frame) in &worlds {
+        for (world_entity, world, layer, streaming, collision_disabled, _celestial_frame) in &worlds
+        {
             if collision_disabled.is_some() {
                 continue;
             }
 
             for key in world.materializations().active_keys() {
-                let Some(revision) =
-                    world.materializations().active_derived_revision(key)
-                else {
+                let Some(revision) = world.materializations().active_derived_revision(key) else {
                     continue;
                 };
-                let rigid_current = world
-                    .materializations()
-                    .surface(key)
-                    .is_some_and(|cache| {
-                        cache.revision == revision
-                            && cache.surface.has_rigid_triangles()
-                    });
+                let rigid_current = world.materializations().surface(key).is_some_and(|cache| {
+                    cache.revision == revision && cache.surface.has_rigid_triangles()
+                });
                 if !rigid_current
                     || !collision_requested(
                         world_entity,
@@ -403,25 +387,51 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         let _span = bevy::log::info_span!("voxel_collision.aggregate_build").entered();
 
         for (&aggregate, members) in desired.iter() {
-            let Ok((_, world, layer, _, collision_disabled, celestial_frame)) = worlds.get(aggregate.world) else { continue; };
-            if collision_disabled.is_some(){continue;}
-            let frame_revision=celestial_frame.map_or(0,|frame|frame.revision());
-            if let Some(state)=registry.groups.get_mut(&aggregate) && state.members==*members {
-                if state.frame_revision!=frame_revision {
-                    if let Some(translation)=aggregate_runtime_translation(&frame,layer,world,aggregate.origin) {
-                        commands.entity(state.entity).insert((Position::new(translation),Transform::from_translation(translation)));
-                        state.frame_revision=frame_revision;
+            let Ok((_, world, layer, _, collision_disabled, celestial_frame)) =
+                worlds.get(aggregate.world)
+            else {
+                continue;
+            };
+            if collision_disabled.is_some() {
+                continue;
+            }
+            let frame_revision = celestial_frame.map_or(0, |frame| frame.revision());
+            if let Some(state) = registry.groups.get_mut(&aggregate)
+                && state.members == *members
+            {
+                if state.frame_revision != frame_revision {
+                    if let Some(translation) =
+                        aggregate_runtime_translation(&frame, layer, world, aggregate.origin)
+                    {
+                        commands.entity(state.entity).insert((
+                            Position::new(translation),
+                            Transform::from_translation(translation),
+                        ));
+                        state.frame_revision = frame_revision;
                     }
                 }
                 continue;
             }
-            let Some(collider)=build_aggregate_collider(aggregate.origin,members,world) else {
-                if let Some(state)=registry.groups.remove(&aggregate){registry.recycle(&mut commands,state.entity);} continue;
+            let Some(collider) = build_aggregate_collider(aggregate.origin, members, world) else {
+                if let Some(state) = registry.groups.remove(&aggregate) {
+                    registry.recycle(&mut commands, state.entity);
+                }
+                continue;
             };
-            if let Some(state)=registry.groups.get_mut(&aggregate) {
-                let Some(translation)=aggregate_runtime_translation(&frame,layer,world,aggregate.origin) else {continue;};
-                commands.entity(state.entity).insert((collider,Position::new(translation),Transform::from_translation(translation)));
-                state.members.clone_from(members); state.frame_revision=frame_revision; continue;
+            if let Some(state) = registry.groups.get_mut(&aggregate) {
+                let Some(translation) =
+                    aggregate_runtime_translation(&frame, layer, world, aggregate.origin)
+                else {
+                    continue;
+                };
+                commands.entity(state.entity).insert((
+                    collider,
+                    Position::new(translation),
+                    Transform::from_translation(translation),
+                ));
+                state.members.clone_from(members);
+                state.frame_revision = frame_revision;
+                continue;
             }
 
             let Some(translation) =
@@ -433,9 +443,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             let collision_margin = CollisionMargin(
                 layer
                     .scale()
-                    .metres_to_native_f32(
-                        physics::VOXEL_COLLISION_MARGIN_METRES,
-                    )
+                    .metres_to_native_f32(physics::VOXEL_COLLISION_MARGIN_METRES)
                     .max(f32::MIN_POSITIVE),
             );
             let entity = if let Some(entity) = registry.take_pooled() {

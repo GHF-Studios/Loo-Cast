@@ -28,7 +28,7 @@ impl HeatScratch {
                 source,
                 source_positions,
                 &self.positions_by_semantic,
-                coupling.radius_meters,
+                coupling.radius_metres,
                 coupling.environmental_power_watts * dt,
                 &mut self.weights,
                 &mut self.energy_by_target,
@@ -100,17 +100,17 @@ fn distribute_environmental_heat(
     source: Entity,
     source_positions: &[DVec3],
     positions_by_semantic: &HashMap<Entity, Vec<DVec3>>,
-    radius_meters: f32,
+    radius_metres: f32,
     environmental_energy: f32,
     weights: &mut Vec<(Entity, f32)>,
     energy_by_target: &mut HashMap<Entity, f32>,
 ) {
-    if radius_meters <= 0.0 || environmental_energy <= 0.0 {
+    if radius_metres <= 0.0 || environmental_energy <= 0.0 {
         return;
     }
     weights.clear();
     let mut total_weight = 0.0;
-    let radius_squared = f64::from(radius_meters).powi(2);
+    let radius_squared = f64::from(radius_metres).powi(2);
     for (&target, target_positions) in positions_by_semantic {
         if target == source {
             continue;
@@ -128,7 +128,7 @@ fn distribute_environmental_heat(
         }
         let weight = super::super::coupling::radial_heat_weight(
             distance_squared.sqrt() as f32,
-            radius_meters,
+            radius_metres,
         );
         if weight > 0.0 {
             weights.push((target, weight));

@@ -1,3 +1,13 @@
+//! Install spatial inspection panels and World Draw diagnostics.
+//!
+//! ## Module map
+//!
+//! - `panel`: Runtime UI panel for bounded local/canonical spatial state.
+//! - `world_draw`: World Draw visualization of hierarchical spatial-demand scopes.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
+
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
@@ -11,7 +21,7 @@ use crate::{
 };
 
 use super::{
-    SpatialDemandSnapshot, UsfPosition, UsfScaleLayer, UsfSpatialAnchor, UsfRuntimeChartState,
+    SpatialDemandSnapshot, UsfPosition, UsfRuntimeChartState, UsfScaleLayer, UsfSpatialAnchor,
     UsfSpatialSet,
 };
 

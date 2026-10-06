@@ -1,4 +1,15 @@
 //! Runtime mutation and traversal of physical portals.
+//!
+//! ## Module map
+//!
+//! - `control`: Applies public portal-domain commands to persistent physical endpoints.
+//! - `placement`: Portal placement geometry and support resolution.
+//! - `rigid_split`: Portal splitting for ordinary dynamic rigid bodies.
+//! - `split`: Shared portal-splitting mechanics and the character split adapter.
+//! - `traversal`: Conventional whole-body portal traversal transaction.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 pub(crate) mod control;
 pub(crate) mod placement;

@@ -5,7 +5,10 @@
 //! entity position explicitly so no capability can silently acquire a second
 //! mutable world-space anchor.
 
-use bevy::{math::{DQuat, DVec3}, prelude::*};
+use bevy::{
+    math::{DQuat, DVec3},
+    prelude::*,
+};
 
 use super::{SpatialScale, UsfPosition, UsfPositionError};
 
@@ -22,48 +25,64 @@ impl Default for UsfSemanticFrame {
 
 impl UsfSemanticFrame {
     pub const fn identity() -> Self {
-        Self { orientation: DQuat::IDENTITY }
+        Self {
+            orientation: DQuat::IDENTITY,
+        }
     }
 
     pub fn from_orientation(orientation: DQuat) -> Self {
-        assert!(orientation.is_finite(), "semantic-frame orientation must be finite");
-        assert!(orientation.length_squared() > f64::EPSILON, "semantic-frame orientation must be non-zero");
-        Self { orientation: orientation.normalize() }
+        assert!(
+            orientation.is_finite(),
+            "semantic-frame orientation must be finite"
+        );
+        assert!(
+            orientation.length_squared() > f64::EPSILON,
+            "semantic-frame orientation must be non-zero"
+        );
+        Self {
+            orientation: orientation.normalize(),
+        }
     }
 
     pub const fn orientation(self) -> DQuat {
         self.orientation
     }
 
-    pub fn local_direction_to_world_f64(self, local: DVec3) -> DVec3 { self.orientation * local }
-    pub fn world_direction_to_local_f64(self, world: DVec3) -> DVec3 { self.orientation.conjugate() * world }
+    pub fn local_direction_to_world_f64(self, local: DVec3) -> DVec3 {
+        self.orientation * local
+    }
+    pub fn world_direction_to_local_f64(self, world: DVec3) -> DVec3 {
+        self.orientation.conjugate() * world
+    }
 
     /// Integrates world-axis angular velocity. Dense celestial rotation still
     /// requires a frame-local lattice backend; this establishes the generic contract.
     pub fn advanced(self, angular_velocity_radians_per_second: DVec3, delta_seconds: f64) -> Self {
-        if !angular_velocity_radians_per_second.is_finite() || !delta_seconds.is_finite() || delta_seconds == 0.0 { return self; }
-        let step=angular_velocity_radians_per_second*delta_seconds; let angle=step.length();
-        if angle<=f64::EPSILON { return self; }
-        Self::from_orientation(DQuat::from_axis_angle(step/angle,angle)*self.orientation)
+        if !angular_velocity_radians_per_second.is_finite()
+            || !delta_seconds.is_finite()
+            || delta_seconds == 0.0
+        {
+            return self;
+        }
+        let step = angular_velocity_radians_per_second * delta_seconds;
+        let angle = step.length();
+        if angle <= f64::EPSILON {
+            return self;
+        }
+        Self::from_orientation(DQuat::from_axis_angle(step / angle, angle) * self.orientation)
     }
 
     /// Rotates a body-local direction/vector into canonical USF axes.
     pub fn local_direction_to_world(self, local: Vec3) -> Vec3 {
-        let world = self.orientation * DVec3::new(
-            f64::from(local.x),
-            f64::from(local.y),
-            f64::from(local.z),
-        );
+        let world = self.orientation
+            * DVec3::new(f64::from(local.x), f64::from(local.y), f64::from(local.z));
         Vec3::new(world.x as f32, world.y as f32, world.z as f32)
     }
 
     /// Rotates a canonical-USF direction/vector into body-local axes.
     pub fn world_direction_to_local(self, world: Vec3) -> Vec3 {
-        let local = self.orientation.conjugate() * DVec3::new(
-            f64::from(world.x),
-            f64::from(world.y),
-            f64::from(world.z),
-        );
+        let local = self.orientation.conjugate()
+            * DVec3::new(f64::from(world.x), f64::from(world.y), f64::from(world.z));
         Vec3::new(local.x as f32, local.y as f32, local.z as f32)
     }
 
@@ -82,11 +101,8 @@ impl UsfSemanticFrame {
         measurement_scale: SpatialScale,
         max_abs_native: f64,
     ) -> Result<DVec3, UsfPositionError> {
-        let world_native = world.relative_at_scale_bounded_f64(
-            origin,
-            measurement_scale,
-            max_abs_native,
-        )?;
+        let world_native =
+            world.relative_at_scale_bounded_f64(origin, measurement_scale, max_abs_native)?;
         let world_metres = world_native * measurement_scale.metres_per_native();
         Ok(self.orientation.conjugate() * world_metres)
     }

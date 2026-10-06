@@ -2,6 +2,19 @@
 //!
 //! The canonical Scale Stack carries the enormous position/range. Dense voxel
 //! sampling only sees a bounded local chart around one canonical surface anchor.
+//!
+//! ## Module map
+//!
+//! - `bands`: Semantic-scale descriptors for planetary terrain morphology.
+//! - `caves`: Deterministic volumetric void morphology for rocky celestial bodies.
+//! - `field`: Canonical celestial field and its bounded runtime sampling adapter.
+//! - `presentation`: Prepared, cache-backed celestial presentation sampling.
+//! - `profiles`: Lunar and stellar macro relief profiles.
+//! - `residual`: Shared residual noise law for exact and prepared celestial sampling.
+//! - `rocky`: Hierarchical rocky-planet morphology.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use bevy::{math::DVec3, prelude::Vec3};
 

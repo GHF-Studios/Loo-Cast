@@ -1,15 +1,12 @@
 //! Pose reconciliation and walkable-ground classification.
 
-use avian3d::{
-    character_controller::move_and_slide::DepenetrationConfig,
-    prelude::*,
-};
+use avian3d::{character_controller::move_and_slide::DepenetrationConfig, prelude::*};
 use bevy::prelude::*;
 
-use super::CollisionContext;
 use super::super::{
     CharacterGroundContact, CharacterGroundState, ResolvedCharacterMovementConfig, reject,
 };
+use super::CollisionContext;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct GroundHit {
@@ -85,18 +82,18 @@ pub(super) fn finalize_grounding(
         config.ground_snap_distance
     };
 
-    let final_ground =
-        if !ground.just_jumped() && (moving_from_ground || velocity.0.dot(up) <= 0.0) {
-            probe_ground(
-                collision,
-                transform.translation,
-                up,
-                final_snap_distance,
-                config.min_ground_dot,
-            )
-        } else {
-            None
-        };
+    let final_ground = if !ground.just_jumped() && (moving_from_ground || velocity.0.dot(up) <= 0.0)
+    {
+        probe_ground(
+            collision,
+            transform.translation,
+            up,
+            final_snap_distance,
+            config.min_ground_dot,
+        )
+    } else {
+        None
+    };
 
     if let Some(hit) = final_ground {
         transform.translation -= up * hit.distance;

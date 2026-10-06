@@ -7,6 +7,16 @@
 //! Coverage is persistent across frames until the underlying realization changes
 //! or retires. It is never cleared speculatively before capability planners read
 //! it.
+//!
+//! ## Module map
+//!
+//! - `model`: Live capability facts and bounded realized coverage records.
+//! - `roles`: Scale-local capability role vocabulary.
+//! - `snapshot`: Persistent index of realized capability facts.
+//! - `systems`: ECS publication of the persistent coverage snapshot.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use std::collections::HashMap;
 
@@ -20,7 +30,7 @@ mod snapshot;
 mod systems;
 
 pub use model::{
-    UsfCapabilityCoverageBatch, UsfCapabilityCoverageRecord, UsfCapabilityRealization,
+    UsfCapabilityCoverageFact, UsfCapabilityCoveragePublication, UsfCapabilityRealization,
     UsfRefinementAperture, UsfScaleCoverage,
 };
 pub use roles::UsfScaleRoleMask;

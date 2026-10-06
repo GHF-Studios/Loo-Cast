@@ -4,6 +4,22 @@
 //! Camera placement is presentation. Device input is an adapter that writes
 //! those components. Keeping those layers explicit makes them independently
 //! replaceable by mods, AI, replay/network input or a different camera rig.
+//!
+//! ## Module map
+//!
+//! - `camera`: Local-player camera presentation.
+//! - `components`: Local human-player identity and controller-owned state.
+//! - `controls`: Human-player controller adapters.
+//! - `cursor`: Focus-aware mouse capture.
+//! - `hud`: Center-relative flight instrumentation.
+//! - `input`: Local-human device bindings and per-frame semantic input snapshot.
+//! - `lifecycle`: Adaptation of semantic player death into local control/runtime state.
+//! - `model`: Minimal visible representation of the player.
+//! - `spawn`: Construction of the local player's semantic entity and runtime manifestations.
+//! - `stance`: Physical crouch/stand transitions.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod camera;
 mod components;
@@ -40,7 +56,7 @@ use crate::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
             CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-            CharacterMovementInput, GravityAlignedLocomotionFrame,
+            CharacterMovementIntent, GravityAlignedLocomotionFrame,
         },
         topology::{KinematicQueryExclusions, SpatialSplitPeer},
     },
@@ -91,7 +107,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<camera::ViewOrientationPolicy>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
-            .add_systems(Startup, (spawn_player, hud::spawn_flight_hud))
+            .add_systems(Startup, (spawn_player, hud::spawn_flight_hud_presentation))
             .configure_sets(
                 PreUpdate,
                 (
@@ -136,7 +152,10 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 RunFixedMainLoop,
-                (stance::update_stance, controls::movement)
+                (
+                    stance::update_stance,
+                    controls::write_character_movement_intent,
+                )
                     .chain()
                     .in_set(ControlSet::CharacterIntent),
             )
@@ -147,10 +166,10 @@ impl Plugin for PlayerPlugin {
                     // Consume it exactly once here; fixed-step simulation may
                     // run zero or multiple ticks for the same render frame.
                     camera::update_freecam,
-                    controls::look,
+                    controls::write_player_view_intent,
                     controls::toggle_spatial_demand,
-                    controls::zoom_spatial_view,
-                    controls::adjust_flight_travel_pace,
+                    controls::adjust_view_scale_bias,
+                    controls::adjust_manual_travel_pace,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )
@@ -167,7 +186,7 @@ impl Plugin for PlayerPlugin {
                     camera::sync_player_fov,
                     camera::sync_usf_projection_camera,
                     camera::sync_view_subject_presentations,
-                    hud::update_flight_hud,
+                    hud::project_flight_hud,
                 )
                     .chain()
                     .in_set(PresentationSet::PrimaryView),

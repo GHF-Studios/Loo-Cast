@@ -21,12 +21,19 @@ impl Default for EngineConfig {
 }
 
 impl EngineConfig {
-    pub(super) fn apply_overrides(&mut self, overrides: &EngineConfigOverrides) {
+    fn apply_overrides(&mut self, overrides: &EngineConfigOverrides) {
         self.voxel.apply_overrides(&overrides.voxel);
     }
 
     pub(super) fn validate(&self) -> Result<(), String> {
         self.voxel.validate()
+    }
+
+    pub(super) fn resolved(&self, overrides: &EngineConfigOverrides) -> Result<Self, String> {
+        let mut effective = self.clone();
+        effective.apply_overrides(overrides);
+        effective.validate()?;
+        Ok(effective)
     }
 }
 

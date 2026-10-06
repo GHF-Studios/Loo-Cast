@@ -23,7 +23,7 @@ pub(super) fn resolve_player_focus(
     let filter = runtime_ownership.filter_excluding_subject(actor);
 
     let spatial_hit = spatial_query
-        .cast_ray(ray.origin, direction, FOCUS_RANGE_METERS, false, &filter)
+        .cast_ray(ray.origin, direction, FOCUS_RANGE_METRES, false, &filter)
         .map(|hit| (hit.entity, hit.distance));
 
     // Portals are apertures in supporting collision rather than ordinary solid
@@ -33,7 +33,7 @@ pub(super) fn resolve_player_focus(
         .filter(|(_, _, active, _)| active.0)
         .filter_map(|(entity, portal, _, transform)| {
             portal_aperture_distance(ray, transform, portal.half_size)
-                .filter(|distance| *distance <= FOCUS_RANGE_METERS)
+                .filter(|distance| *distance <= FOCUS_RANGE_METRES)
                 .map(|distance| (entity, distance))
         })
         .min_by(|a, b| a.1.total_cmp(&b.1));

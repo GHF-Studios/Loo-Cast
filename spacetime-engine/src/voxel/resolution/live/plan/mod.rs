@@ -1,4 +1,13 @@
 //! Balanced binary frontier planning from semantic field evidence.
+//!
+//! ## Module map
+//!
+//! - `balance`: Transactional 2:1 leaf refinement and rollback.
+//! - `frontier`: Sparse staged frontier construction and publication specs.
+//! - `input`: Observer demand, plan identity and refresh relevance.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod balance;
 mod frontier;

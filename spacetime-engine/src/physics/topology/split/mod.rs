@@ -7,10 +7,7 @@
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
-use crate::{
-    physics::PhysicalBoxHull,
-    spatial::SpatialScale,
-};
+use crate::{physics::PhysicalBoxHull, spatial::SpatialScale};
 
 const PLANE_EPSILON: f32 = 1.0e-5;
 

@@ -4,85 +4,100 @@
 //! All 71 Scale Slices from S-35 through S+35 coexist as explicit runtime
 //! partitions; interaction focus, floating-origin rebasing, presentation and
 //! demand are projections over that stack rather than one privileged scale.
+//!
+//! ## Integration
+//!
+//! USF owns canonical number algebra; this module owns runtime projection, demand, coverage,
+//! refinement, residency, transitions, and views over that algebra. Capability coverage reports
+//! realized state rather than desired state.
+//!
+//! ## Module map
+//!
+//! - `capability`: Generic scale-local capability realization and realized coverage.
+//! - `demand`: Generic bounded spatial interest.
+//! - `devtools`: Install spatial inspection panels and World Draw diagnostics.
+//! - `interaction`: Controlled-subject interaction focus over the persistent Scale Slice stack.
+//! - `kinematic_frame`: Time-dependent canonical kinematic frames.
+//! - `motion`: Canonical physical motion projected into bounded Scale-Slice runtime charts.
+//! - `navigation`: Semantic long-distance navigation.
+//! - `realization`: Capability-local realization granularity and temporal-validity policy.
+//! - `refinement`: Current-relative multiscale refinement planning.
+//! - `residency`: Ancestor-closed runtime residency over canonical USF space.
+//! - `semantic_frame`: Canonical orientation for movable semantic spatial frames.
+//! - `slice`: The 71 explicit USF Scale Slices and scale-local runtime membership.
+//! - `transition`: First-class canonical spatial transitions.
+//! - `view`: Observer-relative presentation scale over canonical USF space.
+//! - `chart`: Engine-owned maintenance of the current bounded runtime chart.
+//! - `systems`: ECS synchronization between bounded runtime projections and canonical USF state.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 mod capability;
-mod residency;
 mod demand;
 mod devtools;
-mod slice;
 mod interaction;
-mod motion;
 mod kinematic_frame;
-mod semantic_frame;
+mod motion;
 mod navigation;
-mod refinement;
 mod realization;
+mod refinement;
+mod residency;
+mod semantic_frame;
+mod slice;
 mod transition;
 mod view;
 
-pub use residency::{
-    UsfContextResidency, UsfResidencyRequestBuffer, UsfResidencySet, UsfResidentContext,
-};
-pub use demand::{
-    SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSet,
-    SpatialDemandSnapshot, SpatialDemandSource, SpatialRefinementDemand,
-};
-pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
-pub use navigation::{
-    UsfApproachRefinement, UsfNavigationContext, UsfNavigationContextKind,
-    UsfTravelBoundary, UsfTravelBoundaryResolver, UsfTravelBoundarySample,
-    UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelInfluenceMeasure,
-    UsfTravelMedium, UsfTravelNeighborhood,
-};
-pub use slice::{
-    UsfChartMask, UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMemberOf,
-    UsfScaleSliceMembers, UsfScaleSlices,
-};
-pub use interaction::{
-    UsfInteractionProjection, UsfInteractionScaleAffinity, UsfPrimaryInteractionSlice,
-};
-pub use motion::{UsfCanonicalMotion, UsfMotionAuthority};
-pub use kinematic_frame::UsfKinematicFrameState;
-pub use semantic_frame::UsfSemanticFrame;
 pub use crate::usf::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };
 pub use capability::{
-    UsfCapabilityCoverageBatch, UsfCapabilityCoverageRecord,
-    UsfCapabilityRealization, UsfCapabilitySet, UsfRefinementAperture,
-    UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+    UsfCapabilityCoverageFact, UsfCapabilityCoveragePublication, UsfCapabilityRealization,
+    UsfCapabilitySet, UsfRefinementAperture, UsfScaleCoverage, UsfScaleCoverageSnapshot,
+    UsfScaleRoleMask,
 };
-pub use refinement::{UsfRefinementPlan, UsfRefinementStep};
-pub use realization::{
-    SpatialRealizationGranularity, SpatialRealizationGranularityRequest,
+pub(crate) use chart::resolved_rebase_scale;
+pub use demand::{
+    SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot,
+    SpatialDemandSource,
+};
+pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
+pub use interaction::{
+    UsfInteractionProjection, UsfInteractionScaleAffinity, UsfPrimaryInteractionSlice,
+};
+pub use kinematic_frame::UsfKinematicFrameState;
+pub use motion::{UsfCanonicalMotion, UsfMotionAuthority};
+pub use navigation::{
+    UsfApproachRefinement, UsfNavigationContext, UsfNavigationContextKind, UsfTravelBoundary,
+    UsfTravelBoundaryProvider, UsfTravelBoundarySample, UsfTravelInfluence, UsfTravelInfluenceKind,
+    UsfTravelInfluenceMeasure, UsfTravelMedium, UsfTravelNeighborhood,
+};
+pub use realization::{SpatialRealizationGranularity, SpatialRealizationGranularityRequest};
+pub use refinement::{SpatialRefinementDemand, UsfRefinementPlan, UsfRefinementStep};
+pub use residency::{
+    UsfContextResidency, UsfResidencyRequests, UsfResidencySet, UsfResidentContext,
+};
+pub use semantic_frame::UsfSemanticFrame;
+pub use slice::{
+    UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMask, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
+    UsfScaleSlices,
 };
 pub use transition::{
     UsfInteractionHandoffGuards, UsfInteractionRequirement, UsfSpatialTransition,
-    UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfSpatialTransitionQueue,
+    UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfSpatialTransitions,
     UsfTransitionVelocity,
 };
 pub use view::{
-    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationProbe,
-    UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation,
-    UsfViewAnchor, UsfViewContext, UsfViewDemand, UsfViewDemandMode,
-    UsfViewDemandPolicy, UsfViewDemandSnapshot, UsfViewObservationOverride,
-    UsfViewRenderAnchor,
+    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationDomainProbe,
+    UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation, UsfViewAnchor,
+    UsfViewContext, UsfViewDemand, UsfViewDemandMode, UsfViewDemandPolicy, UsfViewDemandSnapshot,
+    UsfViewObservationOverride, UsfViewRenderAnchor,
 };
 
 use bevy::{prelude::*, transform::TransformSystems};
 
-/// Marks the logical projection used to anchor the current local runtime chart.
-///
-/// This is intentionally independent from manifestation authority and from
-/// presentation projection. Portal/world-wrap spatial multiplicity may provide
-/// other simultaneous logical projections without changing which one anchors
-/// this chart.
-#[derive(Component, Debug, Default)]
-pub struct UsfSpatialAnchor;
-
-pub use chart::{UsfOriginRebased, UsfRuntimeChartState};
-pub(crate) use chart::resolved_rebase_scale;
+pub use chart::{UsfOriginRebased, UsfRuntimeChartState, UsfSpatialAnchor};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfInteractionHandoffSet {
@@ -115,9 +130,9 @@ impl Plugin for UsfSpatialPlugin {
         app.init_resource::<UsfRuntimeChartState>()
             .init_resource::<UsfPrimaryInteractionSlice>()
             .init_resource::<UsfInteractionHandoffGuards>()
-            .init_resource::<UsfPresentationProbe>()
+            .init_resource::<UsfPresentationDomainProbe>()
             .init_resource::<UsfScaleSlices>()
-            .init_resource::<UsfSpatialTransitionQueue>()
+            .init_resource::<UsfSpatialTransitions>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
             .add_systems(Startup, slice::spawn_scale_slices)
@@ -135,13 +150,11 @@ impl Plugin for UsfSpatialPlugin {
             .configure_sets(
                 PostUpdate,
                 (
-                    UsfInteractionHandoffSet::Reset
-                        .after(UsfCapabilitySet::ReconcileCoverage),
+                    UsfInteractionHandoffSet::Reset.after(UsfCapabilitySet::ReconcileCoverage),
                     UsfInteractionHandoffSet::Providers
                         .after(UsfInteractionHandoffSet::Reset)
                         .before(UsfSpatialSet::SyncSemantic),
-                    UsfSpatialSet::SyncSemantic
-                        .after(UsfInteractionHandoffSet::Providers),
+                    UsfSpatialSet::SyncSemantic.after(UsfInteractionHandoffSet::Providers),
                     UsfSpatialSet::Rebase.after(UsfSpatialSet::SyncSemantic),
                     UsfSpatialSet::RuntimeProjection.after(UsfSpatialSet::Rebase),
                     UsfSpatialSet::BackendRefresh.after(UsfSpatialSet::RuntimeProjection),

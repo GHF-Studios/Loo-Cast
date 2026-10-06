@@ -22,7 +22,7 @@ impl PhenomenonRule for MaterialSubstrateRule {
     fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
-        _parent: Option<&WorldgenNode>,
+        _parent: Option<&WorldgenEvaluation>,
         current: &[PhenomenonSnapshot],
     ) -> Option<PhenomenonSnapshot> {
         let scale = context.spatial_scale().exponent();

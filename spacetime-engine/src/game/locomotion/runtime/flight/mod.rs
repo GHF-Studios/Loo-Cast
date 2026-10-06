@@ -1,19 +1,28 @@
 //! Controlled flight orchestration: policy, collision, and semantic commit.
+//!
+//! ## Module map
+//!
+//! - `commit`: Commit resolved flight motion across the runtime chart and semantic USF boundary.
+//! - `cruise`: Canonical-SI cruise throttle and directional policy.
+//! - `policy`: Resolve one flight velocity from intent, motion, and navigation policy.
+//!
+//! This module groups the children; follow each child for its concrete implementation.
+//!
 
 use super::super::{
-    DeveloperMotionOverride, FlightActuation, FlightControlIntent, LocomotionCapabilities,
-    MotionExecution, MotionKernel,
+    DeveloperMotionOverride, FlightActuation, FlightControlIntent, MotionExecution, MotionKernel,
 };
 use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
+        flight::FlightCapabilities,
         navigation::{
             AdaptiveCruise, TravelAssistanceState, TravelEnvelope, TravelProfile, TravelState,
         },
     },
     physics::{
-        gravity::GravitySample, slice::UsfPhysicsSlices, topology::KinematicQueryExclusions,
+        gravity::GravitySample, slice::UsfPhysicsSliceQuery, topology::KinematicQueryExclusions,
     },
     spatial::{UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState, UsfScaleLayer},
 };
@@ -37,7 +46,7 @@ pub(in crate::game::locomotion) fn flight_movement(
     frame: Res<UsfRuntimeChartState>,
     ownership: UsfOwnershipQuery,
     move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsSlices,
+    physics_charts: UsfPhysicsSliceQuery,
     subject: Single<
         (
             Entity,
@@ -56,7 +65,7 @@ pub(in crate::game::locomotion) fn flight_movement(
         &TravelEnvelope,
         &TravelState,
         &TravelAssistanceState,
-        &LocomotionCapabilities,
+        &FlightCapabilities,
         &GravitySample,
         Option<&DeveloperMotionOverride>,
         &mut AdaptiveCruise,
@@ -151,7 +160,7 @@ pub(in crate::game::locomotion) fn flight_movement(
 
     motion.set_velocity_metres_per_second(next_velocity);
 
-    if motion.canonical_authority() {
+    if motion.is_canonical_kinematic() {
         commit_canonical_motion(
             dt,
             &frame,

@@ -28,7 +28,10 @@ pub(super) fn draw_toolbar(ctx: &egui::Context, world: &mut World) {
     });
 }
 
-pub(in crate::devtools::editor) fn draw_transform_space_control(ui: &mut egui::Ui, world: &mut World) {
+pub(in crate::devtools::editor) fn draw_transform_space_control(
+    ui: &mut egui::Ui,
+    world: &mut World,
+) {
     ui.label("Transform");
     world.resource_scope(|world, mut settings: Mut<EditorTransformGizmoSettings>| {
         let registration = world

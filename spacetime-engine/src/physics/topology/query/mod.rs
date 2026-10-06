@@ -3,9 +3,9 @@
 use avian3d::prelude::SpatialQueryFilter;
 use bevy::{ecs::system::SystemParam, prelude::*};
 
+use super::hooks::SpatialSplitPeer;
 use crate::ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf, UsfOwnershipQuery};
 use crate::spatial::{SpatialScale, UsfScaleLayer};
-use super::hooks::SpatialSplitPeer;
 
 /// Extra collider entities that a kinematically controlled manifestation must
 /// ignore in manual spatial queries.
@@ -61,7 +61,8 @@ impl UsfRuntimeOwnershipQuery<'_, '_> {
     }
 
     pub fn semantic_of(&self, runtime: Entity) -> Option<Entity> {
-        self.ownership.semantic_of(self.authority_realization(runtime))
+        self.ownership
+            .semantic_of(self.authority_realization(runtime))
     }
 
     /// Resolve a runtime sample's Scale Slice, including split peers that
@@ -104,7 +105,6 @@ impl UsfRuntimeOwnershipQuery<'_, '_> {
         SpatialQueryFilter::from_excluded_entities(self.runtime_entities_for(runtime))
     }
 }
-
 
 /// Resolve a runtime entity to semantic ownership from an exclusive `World`.
 ///

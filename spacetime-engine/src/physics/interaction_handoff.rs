@@ -5,7 +5,6 @@
 //! This provider contributes disposable veto evidence before the canonical
 //! spatial transition commits.
 
-
 use std::collections::HashSet;
 
 use avian3d::prelude::{ShapeCastConfig, SpatialQuery};
@@ -14,16 +13,12 @@ use bevy::prelude::*;
 use crate::{
     ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
     spatial::{
-        SpatialScale, UsfInteractionHandoffGuards, UsfScaleLayer, UsfRuntimeChartState,
-        UsfSpatialTransitionQueue,
+        SpatialScale, UsfInteractionHandoffGuards, UsfRuntimeChartState, UsfScaleLayer,
+        UsfSpatialTransitions,
     },
 };
 
-use super::{
-    PhysicalBoxHull,
-    slice::UsfPhysicsSlices,
-    topology::KinematicQueryExclusions,
-};
+use super::{PhysicalBoxHull, slice::UsfPhysicsSliceQuery, topology::KinematicQueryExclusions};
 
 const DESTINATION_CLEARANCE_PROBE_METRES: f32 = 0.001;
 
@@ -34,10 +29,10 @@ const DESTINATION_CLEARANCE_PROBE_METRES: f32 = 0.001;
 /// owns that subsequent persistent-contact authority protocol.
 pub(super) fn guard_coarsening_interaction_handoffs(
     frame: Res<UsfRuntimeChartState>,
-    queue: Res<UsfSpatialTransitionQueue>,
+    transitions: Res<UsfSpatialTransitions>,
     ownership: UsfOwnershipQuery,
     spatial_query: SpatialQuery,
-    physics_slices: UsfPhysicsSlices,
+    physics_slices: UsfPhysicsSliceQuery,
     bodies: Query<(
         Entity,
         &Transform,
@@ -51,7 +46,7 @@ pub(super) fn guard_coarsening_interaction_handoffs(
 ) {
     let mut current_requests = HashSet::<(Entity, SpatialScale)>::new();
 
-    for requirement in queue.interaction_requirements() {
+    for requirement in transitions.interaction_requirements() {
         let subject = requirement.subject();
         let target_scale = requirement.target_scale();
 
@@ -83,26 +78,21 @@ pub(super) fn guard_coarsening_interaction_handoffs(
                 guards.block(subject, target_scale);
                 continue;
             };
-            let Ok(target_translation) = canonical.relative_at_scale_bounded(
-                frame.origin(),
-                target_scale,
-                16_384.0,
-            ) else {
+            let Ok(target_translation) =
+                canonical.relative_at_scale_bounded(frame.origin(), target_scale, 16_384.0)
+            else {
                 guards.block(subject, target_scale);
                 continue;
             };
 
-            let incoming_hull =
-                hull.bounding_sphere_collider(target_scale, 0.0);
+            let incoming_hull = hull.bounding_sphere_collider(target_scale, 0.0);
             let excluded = std::iter::once(entity)
                 .chain(exclusions.into_iter().flat_map(|items| items.iter()));
-            let filter =
-                physics_slices.filter_for_scale(target_scale, excluded);
+            let filter = physics_slices.filter_for_scale(target_scale, excluded);
             let probe_distance = target_scale
                 .metres_to_native_f32(DESTINATION_CLEARANCE_PROBE_METRES)
                 .max(f32::MIN_POSITIVE);
-            let direction =
-                Dir3::new(Vec3::Y).expect("unit Y is a valid cast direction");
+            let direction = Dir3::new(Vec3::Y).expect("unit Y is a valid cast direction");
             let config = ShapeCastConfig {
                 max_distance: probe_distance,
                 ignore_origin_penetration: false,

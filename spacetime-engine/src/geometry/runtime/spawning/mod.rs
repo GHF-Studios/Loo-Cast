@@ -62,7 +62,7 @@ pub(super) fn spawn_geometry(
 
     let mut entity = commands.spawn((
         Name::new(format!("Map Geometry: {}", geometry.id)),
-        GeneratedFromMap { source },
+        AuthoredMapManifestationOf { source },
         AuthoredMapObject {
             id: geometry.id,
             zone: geometry.zone,

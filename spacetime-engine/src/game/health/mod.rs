@@ -2,6 +2,15 @@
 //!
 //! Combat, thermal hazards and other gameplay mechanisms may emit `Damage`.
 //! This domain alone owns authoritative `Damage -> Health -> Died` resolution.
+//!
+//! ## Module map
+//!
+//! - `damage`: Authoritative generic damage application and death emission.
+//! - `presentation`: Project health state into player and world presentation.
+//! - `thermal_injury`: Test-game adaptation of dangerous temperature into generic health damage.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use bevy::prelude::*;
 

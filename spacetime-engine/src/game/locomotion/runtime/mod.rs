@@ -2,6 +2,14 @@
 //!
 //! State resolution chooses a kernel and collision representation. Flight
 //! execution then commits canonical motion or a collision-resolved local pose.
+//!
+//! ## Module map
+//!
+//! - `flight`: Controlled flight orchestration: policy, collision, and semantic commit.
+//! - `state`: Regime resolution and runtime collision/motor realization.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod flight;
 mod state;

@@ -3,14 +3,11 @@
 use bevy::prelude::*;
 
 use crate::{
-    portal::{
-        Portal, PortalActive, PortalSplitTraveler,
-        topology::mapping::portal_plane,
-    },
     physics::topology::SpatialSplitBox,
+    portal::{Portal, PortalActive, PortalSplitTraveler, topology::mapping::portal_plane},
 };
 
-use super::super::super::split::{active_pair_is_valid, CLEAR_MARGIN};
+use super::super::super::split::{CLEAR_MARGIN, active_pair_is_valid};
 
 pub(super) fn split_should_finish(
     split_box: SpatialSplitBox,

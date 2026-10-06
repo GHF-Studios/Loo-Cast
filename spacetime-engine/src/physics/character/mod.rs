@@ -3,6 +3,20 @@
 //! The motor owns movement semantics while Avian provides collision queries.
 //! Camera, local-player input, networking and prediction are adapters layered
 //! above this module.
+//!
+//! ## Module map
+//!
+//! - `config`: Physical character dimensions and movement tuning.
+//! - `controller`: Character-motor orchestration.
+//! - `devtools`: Character-controller developer visualization.
+//! - `frame`: Maintain character control and locomotion frames from gravity and contact.
+//! - `input`: Represent the movement intent consumed by the character solver.
+//! - `math`: Character movement and support-query math.
+//! - `plugin`: Install character-physics systems and their schedule ordering.
+//! - `state`: Persistent contact and movement state for character physics.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 mod config;
 mod controller;

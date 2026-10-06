@@ -6,16 +6,16 @@ use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     game::{
         GameSet,
-        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItemRequest},
     },
     spatial::{
         SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfRuntimeChartState, UsfScaleLayer,
         UsfSemanticFrame,
     },
     voxel::{
-        VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit,
-        VoxelFrameSnapshot, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain,
-        VoxelWorld,
+        VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit, VoxelFrameSnapshot,
+        VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelScaleRealization,
+        VoxelSemanticAuthority,
     },
 };
 
@@ -49,7 +49,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 }
 
 fn use_voxel_hand(
-    mut uses: MessageReader<UseItem>,
+    mut uses: MessageReader<UseItemRequest>,
     keyboard: Res<ButtonInput<KeyCode>>,
     active: Res<UsfPrimaryInteractionSlice>,
     spatial_frame: Res<UsfRuntimeChartState>,
@@ -57,7 +57,7 @@ fn use_voxel_hand(
         Query<
             (
                 Entity,
-                &VoxelWorld,
+                &VoxelScaleRealization,
                 &UsfScaleLayer,
                 Option<&UsfLogicalRealizationOf>,
             ),
@@ -66,7 +66,7 @@ fn use_voxel_hand(
         Query<
             (
                 Entity,
-                &mut VoxelWorld,
+                &mut VoxelScaleRealization,
                 &UsfScaleLayer,
                 Option<&UsfLogicalRealizationOf>,
             ),
@@ -77,7 +77,7 @@ fn use_voxel_hand(
     mut authorities: Query<(
         &UsfPosition,
         &UsfSemanticFrame,
-        &mut VoxelAuthority,
+        &mut VoxelSemanticAuthority,
         &VoxelScaleDomain,
     )>,
 ) {
@@ -163,7 +163,7 @@ fn use_voxel_hand(
         let Ok((_, mut world, _, _)) = writable_worlds.get_mut(world_entity) else {
             continue;
         };
-        if let Err(error) = world.record_edit(edit) {
+        if let Err(error) = world.record_inline_edit(edit) {
             error!(?error, "voxel edit scope could not be indexed canonically");
         }
     }
@@ -182,7 +182,7 @@ fn find_voxel_hand_hit(
     worlds: &Query<
         (
             Entity,
-            &VoxelWorld,
+            &VoxelScaleRealization,
             &UsfScaleLayer,
             Option<&UsfLogicalRealizationOf>,
         ),

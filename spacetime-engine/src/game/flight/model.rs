@@ -6,6 +6,40 @@ use crate::{
 };
 use bevy::prelude::*;
 
+/// Physical flight facilities installed on a subject.
+///
+/// These state what the subject can physically do. They do not select a
+/// locomotion regime, navigation assistance, controller or numerical solver.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct FlightCapabilities {
+    main_propulsion: bool,
+    reaction_control: bool,
+    landing: bool,
+}
+
+impl FlightCapabilities {
+    pub const fn spacecraft() -> Self {
+        Self {
+            main_propulsion: true,
+            reaction_control: true,
+            landing: true,
+        }
+    }
+
+    pub const fn main_propulsion(self) -> bool {
+        self.main_propulsion
+    }
+
+    pub const fn reaction_control(self) -> bool {
+        self.reaction_control
+    }
+
+    pub const fn landing(self) -> bool {
+        self.landing
+    }
+}
+
 /// Interpretation of a human pilot's look state for physical attitude.
 /// AI and autopilot controllers may write `FlightControlIntent` directly.
 #[derive(Component, Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +56,45 @@ impl PilotAttitudeLaw {
             Self::Hold => "HOLD",
             Self::FollowView => "FOLLOW VIEW",
         }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttitudeAutopilotCommand {
+    Off,
+    HoldCurrent,
+    Prograde,
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
+pub enum FlightControlCommand {
+    SetPilotAttitudeLaw(PilotAttitudeLaw),
+    SetMainPropulsion(bool),
+    SetReactionControl(bool),
+    SetAutopilot(AttitudeAutopilotCommand),
+}
+
+/// Stable flight-policy entrypoint.
+///
+/// Human input, scripts, AI and developer commands all request flight policy
+/// through the same boundary instead of mutating actuator/controller state.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct FlightControlRequest {
+    entity: Entity,
+    command: FlightControlCommand,
+}
+
+impl FlightControlRequest {
+    pub const fn new(entity: Entity, command: FlightControlCommand) -> Self {
+        Self { entity, command }
+    }
+
+    pub const fn entity(self) -> Entity {
+        self.entity
+    }
+
+    pub const fn command(self) -> FlightControlCommand {
+        self.command
     }
 }
 
@@ -44,14 +117,14 @@ impl AttitudeAutopilot {
     pub const fn mode(self) -> AttitudeAutopilotMode {
         self.mode
     }
-    pub fn disengage(&mut self) {
+    pub(super) fn disengage(&mut self) {
         self.mode = AttitudeAutopilotMode::Off;
     }
-    pub fn hold(&mut self, orientation: Quat) {
+    pub(super) fn hold(&mut self, orientation: Quat) {
         self.hold_target = orientation.normalize();
         self.mode = AttitudeAutopilotMode::Hold;
     }
-    pub fn point_prograde(&mut self) {
+    pub(super) fn point_prograde(&mut self) {
         self.mode = AttitudeAutopilotMode::Prograde;
     }
     pub const fn hold_target(self) -> Quat {

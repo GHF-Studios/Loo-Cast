@@ -8,8 +8,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    portal::Portal,
     physics::collision_topology::{CollisionClipSource, fit_rectangular_stencil},
+    portal::Portal,
 };
 
 const SUPPORT_PLANE_TOLERANCE: f32 = 0.025;

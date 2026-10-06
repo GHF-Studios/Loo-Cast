@@ -3,8 +3,8 @@
 use bevy::prelude::{Entity, Vec3};
 
 use super::metadata::{
-    InspectAccess, InspectActionId, InspectFieldId, InspectNumberFormat,
-    InspectNumberInput, InspectSectionId, InspectUnit,
+    InspectAccess, InspectActionId, InspectFieldId, InspectNumberFormat, InspectNumberInput,
+    InspectSectionId, InspectUnit,
 };
 use crate::devtools::StructureItemId;
 

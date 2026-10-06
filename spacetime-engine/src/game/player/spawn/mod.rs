@@ -5,16 +5,19 @@ use super::*;
 use crate::{
     game::{
         control::{LocalControlSubject, LocalController, LocalViewTarget},
-        flight::{AttitudeAutopilot, FlightTelemetry, PilotAttitudeLaw, TraversalPolicy},
+        flight::{
+            AttitudeAutopilot, FlightCapabilities, FlightTelemetry, PilotAttitudeLaw,
+            TraversalPolicy,
+        },
         locomotion::{
             CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation,
             FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
             MotionExecution, ScaleInteractionProxy,
         },
         navigation::{
-            AdaptiveCruise, ApproachRefinementState, NavigationPresentationProfile,
-            NavigationPresentationState, PrimaryBodyContext, TravelAssistanceState, TravelEnvelope,
-            TravelPace, TravelProfile, TravelState,
+            AdaptiveCruise, ApproachRefinementState, NavigationCapabilities,
+            NavigationPresentationProfile, NavigationPresentationState, PrimaryBodyContext,
+            TravelAssistanceState, TravelEnvelope, TravelPace, TravelProfile, TravelState,
         },
         surface::SurfaceContext,
     },
@@ -34,7 +37,7 @@ pub(super) fn spawn_player(
 
     // Semantic metres are independent from the current +35 observer chart.
     // Runtime coordinates are only the bounded projection of this identity.
-    let semantic_position = UsfPosition::from_scale0_local(position)
+    let semantic_position = UsfPosition::from_metres_local(position)
         .expect("initial player semantic position must be canonical");
     let runtime_position = semantic_position
         .relative_at_scale_bounded(
@@ -123,6 +126,8 @@ fn spawn_player_manifestation(
                 ViewCameraProfile::character(),
                 SpatialRefinementDemand::cuboid_metres(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
                 LocomotionCapabilities::character(),
+                FlightCapabilities::default(),
+                NavigationCapabilities::default(),
                 LocomotionEnabled(true),
                 CharacterStance::default(),
                 ControlledSubjectLocomotion::default(),
@@ -130,6 +135,8 @@ fn spawn_player_manifestation(
                 UsfCanonicalMotion::default(),
                 ScaleInteractionProxy::default(),
                 DetailedBodyScale::default(),
+            ),
+            (
                 TravelPace::default(),
                 TravelProfile::character(),
                 TravelEnvelope::default(),
@@ -162,7 +169,7 @@ fn spawn_player_manifestation(
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
                 CharacterMovementConfig::default(),
-                CharacterMovementInput::default(),
+                CharacterMovementIntent::default(),
                 CharacterGroundState::default(),
                 RigidBody::Kinematic,
                 CustomPositionIntegration,

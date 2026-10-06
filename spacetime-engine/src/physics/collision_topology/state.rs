@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 /// A bounded subtractive region in collision space.
 ///
 /// The stencil transform and dimensions are world-space gameplay state. The
-/// target host keeps its own transform and immutable [`CollisionClipSource`].
+/// target host keeps its own transform and immutable [`crate::physics::collision_topology::CollisionClipSource`].
 #[derive(Component, Debug, Clone, Copy)]
 pub struct CollisionStencil {
     pub enabled: bool,

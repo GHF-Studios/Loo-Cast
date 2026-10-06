@@ -7,7 +7,7 @@
 use avian3d::collision::hooks::CollisionHooks;
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::physics::slice::UsfPhysicsSlices;
+use crate::physics::slice::UsfPhysicsSliceQuery;
 
 /// Reserved proxy manifestation used while one authoritative spatial body is
 /// partitioned across topology.
@@ -32,7 +32,7 @@ pub struct SpatialSplitPeerActive;
 #[derive(SystemParam)]
 pub(crate) struct SpatialTopologyCollisionHooks<'w, 's> {
     peers: Query<'w, 's, &'static SpatialSplitPeer>,
-    charts: UsfPhysicsSlices<'w, 's>,
+    charts: UsfPhysicsSliceQuery<'w, 's>,
 }
 
 impl CollisionHooks for SpatialTopologyCollisionHooks<'_, '_> {

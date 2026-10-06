@@ -25,11 +25,6 @@ impl UsfPosition {
         Self::zero(SpatialScale::ZERO).translated_native(local_metres)
     }
 
-    /// Legacy metre-adapter spelling retained for existing callers.
-    pub fn from_scale0_local(local_metres: Vec3) -> Result<Self, UsfPositionError> {
-        Self::from_metres_local(local_metres)
-    }
-
     /// Builds one canonical hierarchical position from a bounded coordinate
     /// authored in `source_scale` native units, retaining f64 precision while
     /// refining down to `leaf_scale`.

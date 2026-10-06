@@ -1,6 +1,6 @@
 //! ECS ordering for request collection and residency reconciliation.
 
-use super::{UsfContextResidency, UsfResidencyRequestBuffer};
+use super::{UsfContextResidency, UsfResidencyRequests};
 use crate::spatial::{SpatialDemandSet, SpatialDemandSnapshot};
 use bevy::prelude::*;
 
@@ -11,24 +11,24 @@ pub enum UsfResidencySet {
     Reconcile,
 }
 
-fn clear_residency_requests(mut demand: ResMut<UsfResidencyRequestBuffer>) {
-    demand.clear();
+fn clear_residency_requests(mut requests: ResMut<UsfResidencyRequests>) {
+    requests.clear();
 }
 
 fn collect_spatial_residency_requests(
     spatial: Res<SpatialDemandSnapshot>,
-    mut demand: ResMut<UsfResidencyRequestBuffer>,
+    mut requests: ResMut<UsfResidencyRequests>,
 ) {
     for scope in spatial.iter() {
-        demand.request(scope);
+        requests.request(scope);
     }
 }
 
 fn reconcile_context_residency(
-    demand: Res<UsfResidencyRequestBuffer>,
+    requests: Res<UsfResidencyRequests>,
     mut residency: ResMut<UsfContextResidency>,
 ) {
-    if let Err(error) = residency.reconcile_from_scopes(demand.iter()) {
+    if let Err(error) = residency.reconcile_from_scopes(requests.iter()) {
         error!(
             ?error,
             "USF residency demand could not be represented canonically; retaining previous residency"
@@ -37,7 +37,7 @@ fn reconcile_context_residency(
 }
 
 pub(in crate::spatial) fn configure(app: &mut App) {
-    app.init_resource::<UsfResidencyRequestBuffer>()
+    app.init_resource::<UsfResidencyRequests>()
         .init_resource::<UsfContextResidency>()
         .configure_sets(
             Update,

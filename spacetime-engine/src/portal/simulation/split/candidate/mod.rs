@@ -3,17 +3,15 @@
 use bevy::prelude::*;
 
 use crate::{
+    physics::topology::SpatialSplitBox,
     portal::{
         Portal, PortalActive,
         domain::{ActivePortalSplit, PortalSide},
         topology::mapping::portal_plane,
     },
-    physics::topology::SpatialSplitBox,
 };
 
-use super::aperture::{
-    box_fits_aperture_at, projected_crossing_center, CROSSING_EPSILON,
-};
+use super::aperture::{CROSSING_EPSILON, box_fits_aperture_at, projected_crossing_center};
 
 const PREOPEN_MARGIN: f32 = 0.04;
 
@@ -32,8 +30,7 @@ pub(in crate::portal::simulation) fn active_portal_pair<'a>(
 ) -> Option<(&'a Portal, &'a Transform, &'a Transform)> {
     let (_, source_portal, source_active, source) = portals.get(split.source).ok()?;
     let (_, _, destination_active, destination) = portals.get(split.destination).ok()?;
-    (source_active.0 && destination_active.0)
-        .then_some((source_portal, source, destination))
+    (source_active.0 && destination_active.0).then_some((source_portal, source, destination))
 }
 
 pub(in crate::portal::simulation) fn find_split_candidate(
@@ -131,11 +128,7 @@ pub(in crate::portal::simulation) fn box_reaches_portal_this_tick(
         )
 }
 
-fn candidate_side(
-    distance: f32,
-    normal_speed: f32,
-    support_radius: f32,
-) -> Option<PortalSide> {
+fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Option<PortalSide> {
     let epsilon = CROSSING_EPSILON;
 
     // If the hull already touches/straddles the portal, allow a stationary or

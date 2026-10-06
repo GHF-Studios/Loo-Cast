@@ -1,13 +1,13 @@
-//! Hot-reload reconciliation for authored map scenes.
+//! Authored asset -> compiled model -> disposable runtime-scene reconciliation.
 
 use super::*;
 
-pub(in crate::geometry) fn rebuild_authored_maps(
+pub(in crate::geometry) fn reconcile_authored_map_scenes(
     mut commands: Commands,
     mut events: MessageReader<AssetEvent<AuthoredMap>>,
     maps: Res<Assets<AuthoredMap>>,
     mut scenes: Query<(Entity, &mut AuthoredMapScene)>,
-    generated: Query<(Entity, &GeneratedFromMap)>,
+    generated: Query<(Entity, &AuthoredMapManifestationOf)>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -45,11 +45,11 @@ pub(in crate::geometry) fn rebuild_authored_maps(
         }
 
         let material_handles = materialize_map_materials(map, &mut materials);
-        for node in compile_map(map) {
+        for node in compile_authored_map(map) {
             spawn_compiled_node(&mut commands, source, node, &material_handles, &mut meshes);
         }
 
-        debug!("rebuilt authored map {:?}", map.name);
+        debug!("reconciled authored map {:?}", map.name);
         scene.dirty = false;
     }
 }
@@ -90,7 +90,7 @@ fn spawn_compiled_node(
         CompiledNode::Marker(marker) => {
             commands.spawn((
                 Name::new(format!("Map Marker: {}", marker.id)),
-                GeneratedFromMap { source },
+                AuthoredMapManifestationOf { source },
                 AuthoredMapMarker {
                     id: marker.id,
                     zone: marker.zone,
@@ -103,7 +103,7 @@ fn spawn_compiled_node(
         CompiledNode::PointLight(light) => {
             commands.spawn((
                 Name::new(format!("Map Light: {}", light.id)),
-                GeneratedFromMap { source },
+                AuthoredMapManifestationOf { source },
                 AuthoredMapObject {
                     id: light.id,
                     zone: light.zone,
@@ -122,7 +122,7 @@ fn spawn_compiled_node(
         CompiledNode::DirectionalLight(light) => {
             commands.spawn((
                 Name::new(format!("Map Directional Light: {}", light.id)),
-                GeneratedFromMap { source },
+                AuthoredMapManifestationOf { source },
                 AuthoredMapObject {
                     id: light.id,
                     zone: light.zone,

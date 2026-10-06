@@ -21,7 +21,6 @@ use bevy::prelude::*;
 /// eye or third-person boom.
 pub const USF_PRESENTATION_LAYER: usize = 3;
 
-
 /// Marks the logical primary game view.
 ///
 /// This is deliberately presentation-neutral: the same view may occupy the whole

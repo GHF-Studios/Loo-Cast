@@ -107,11 +107,11 @@ pub(super) fn init_gpu_terrain_buffers(
     commands.insert_resource(GpuTerrainScratch(scratch));
 }
 
-pub(super) fn prepare_gpu_terrain_blocks(
-    blocks: Query<&GpuTerrainBlock>,
+pub(super) fn prepare_gpu_terrain_builds(
+    blocks: Query<&GpuTerrainBuild>,
     pipeline_cache: Res<PipelineCache>,
     pipeline: Res<GpuTerrainPipeline>,
-    mut state: ResMut<GpuTerrainRenderState>,
+    mut state: ResMut<GpuTerrainBuildState>,
     mut failure_reported: Local<bool>,
 ) {
     state.pending.clear();
@@ -237,7 +237,7 @@ fn emit_gpu_terrain_pressure(
     );
 }
 
-pub(super) fn compute_gpu_terrain(
+pub(super) fn execute_gpu_terrain_builds(
     mut render_context: RenderContext,
     mesh_allocator: Res<MeshAllocator>,
     pipeline_cache: Res<PipelineCache>,
@@ -245,8 +245,8 @@ pub(super) fn compute_gpu_terrain(
     tables: Res<GpuTransvoxelTables>,
     scratch: Res<GpuTerrainScratch>,
     render_queue: Res<RenderQueue>,
-    completion_sink: Res<GpuTerrainCompletionSink>,
-    mut state: ResMut<GpuTerrainRenderState>,
+    completion_sink: Res<GpuTerrainBuildCompletionSink>,
+    mut state: ResMut<GpuTerrainBuildState>,
 ) {
     let Some(density_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.density_pipeline)
     else {

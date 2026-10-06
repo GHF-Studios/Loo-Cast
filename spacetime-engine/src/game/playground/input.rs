@@ -1,7 +1,7 @@
 //! Built-in local input adapter for playground actions.
 //!
 //! This is the only playground layer that knows the default mouse/keyboard
-//! bindings. Item plugins receive semantic [`UseItem`] messages and
+//! bindings. Item plugins receive semantic [`UseItemRequest`] messages and
 //! remain independent from devices, hotbar UI and cursor capture.
 
 use bevy::prelude::*;
@@ -10,12 +10,11 @@ use crate::{
     game::{
         InputSet,
         inventory::Hotbar,
-        item::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItem},
+        item::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItemRequest},
         locomotion::CharacterStance,
         player::{
-            CameraMode, Player, PlayerAction, PlayerAim, PlayerCamera,
-            PlayerInputBindings, PlayerInputFrame, ViewCameraProfile,
-            cursor::CursorCapture,
+            CameraMode, Player, PlayerAction, PlayerAim, PlayerCamera, PlayerInputBindings,
+            PlayerInputFrame, ViewCameraProfile, cursor::CursorCapture,
         },
     },
     input_focus::{InputFocus, InputFocusSet},
@@ -35,17 +34,17 @@ pub(super) fn configure(app: &mut App) {
         PreUpdate,
         toggle_creative_menu.before(InputFocusSet::Resolve),
     )
-        .add_systems(
-            Update,
-            (
-                select_hotbar_slot,
-                scroll_hotbar,
-                update_aim,
-                use_selected_item,
-            )
-                .chain()
-                .in_set(InputSet::Gameplay),
-        );
+    .add_systems(
+        Update,
+        (
+            select_hotbar_slot,
+            scroll_hotbar,
+            update_aim,
+            use_selected_item,
+        )
+            .chain()
+            .in_set(InputSet::Gameplay),
+    );
 }
 
 fn toggle_creative_menu(
@@ -58,11 +57,7 @@ fn toggle_creative_menu(
     mut focus: ResMut<InputFocus>,
     mut menu: Query<&mut Node, With<CreativeMenuRoot>>,
 ) {
-    if !bindings.just_pressed_raw(
-        PlayerAction::ToggleCreativeMenu,
-        &keyboard,
-        &mouse,
-    ) {
+    if !bindings.just_pressed_raw(PlayerAction::ToggleCreativeMenu, &keyboard, &mouse) {
         return;
     }
 
@@ -91,10 +86,7 @@ fn toggle_creative_menu(
     }
 }
 
-fn select_hotbar_slot(
-    input: Res<PlayerInputFrame>,
-    mut hotbar: ResMut<Hotbar>,
-) {
+fn select_hotbar_slot(input: Res<PlayerInputFrame>, mut hotbar: ResMut<Hotbar>) {
     if !input.gameplay_active() {
         return;
     }
@@ -144,12 +136,11 @@ fn update_aim(
         return;
     }
 
-    let (actor, body, control, player_aim, stance, profile, layer) =
-        player.into_inner();
+    let (actor, body, control, player_aim, stance, profile, layer) = player.into_inner();
     let rig_rotation = profile.rig_rotation(body, control);
     let view_rotation = profile.view_rotation(body, control, player_aim);
-    let origin = body.translation
-        + rig_rotation * profile.eye_offset_native(Some(stance), layer.scale());
+    let origin =
+        body.translation + rig_rotation * profile.eye_offset_native(Some(stance), layer.scale());
 
     aim.set(Some(ItemAimContext {
         actor,
@@ -161,7 +152,7 @@ fn use_selected_item(
     input: Res<PlayerInputFrame>,
     hotbar: Res<Hotbar>,
     aim: Res<ItemAim>,
-    mut use_item: MessageWriter<UseItem>,
+    mut use_item: MessageWriter<UseItemRequest>,
     mut erase: MessageWriter<ErasePlaygroundObject>,
 ) {
     if !input.gameplay_active() {
@@ -177,7 +168,7 @@ fn use_selected_item(
     let selected = hotbar.selected_item();
     let mut send_action = |action| {
         if let Some(item) = selected {
-            use_item.write(UseItem {
+            use_item.write(UseItemRequest {
                 item,
                 action,
                 actor,

@@ -1,4 +1,13 @@
 //! Runtime editor shell, docking, toolbar and game viewport embedding.
+//!
+//! ## Module map
+//!
+//! - `tabs`: Dock-tab routing and ECS-inspector tab presentation.
+//! - `toolbar`: Editor-shell toolbar and Transform-gizmo controls.
+//! - `viewport`: Embedded game-camera viewport projection between egui and Bevy camera space.
+//!
+//! The plugin or configure entrypoint here wires the child systems and resources.
+//!
 
 use super::*;
 

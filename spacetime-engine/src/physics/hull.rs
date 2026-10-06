@@ -58,13 +58,8 @@ impl PhysicalBoxHull {
     ///
     /// `clearance_metres` is physical policy. Only this backend boundary
     /// converts it into the destination Scale Slice's native units.
-    pub fn bounding_sphere_collider(
-        self,
-        scale: SpatialScale,
-        clearance_metres: f32,
-    ) -> Collider {
-        let radius_metres =
-            self.bounding_radius_metres() + clearance_metres.max(0.0);
+    pub fn bounding_sphere_collider(self, scale: SpatialScale, clearance_metres: f32) -> Collider {
+        let radius_metres = self.bounding_radius_metres() + clearance_metres.max(0.0);
         Collider::sphere(
             scale
                 .metres_to_native_f32(radius_metres)

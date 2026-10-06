@@ -67,7 +67,7 @@ pub fn edit_inspectable<T: Inspect>(
 }
 
 /// Type-erased counterpart used when a host discovers a type through
-/// [`super::InspectTypeRegistry`].
+/// [`crate::devtools::InspectTypeRegistry`].
 pub fn show_registered_inspectable(
     ui: &mut egui::Ui,
     registration: InspectTypeRegistration,

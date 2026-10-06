@@ -9,9 +9,7 @@
 
 use bevy::prelude::Vec3;
 
-use super::super::{
-    SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChartMask,
-};
+use super::super::{SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfScaleSliceMask};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UsfRefinementStep {
@@ -59,7 +57,7 @@ impl UsfRefinementStep {
 pub struct UsfRefinementPlan {
     source_scale: SpatialScale,
     requested_tip: Option<SpatialScale>,
-    supported_slices: UsfChartMask,
+    supported_slices: UsfScaleSliceMask,
     tip_half_extent_native: Vec3,
     residency_halo_native: Vec3,
     tip_priority: i32,
@@ -70,7 +68,7 @@ impl UsfRefinementPlan {
     pub fn new(
         source_scale: SpatialScale,
         requested_tip: Option<SpatialScale>,
-        supported_slices: UsfChartMask,
+        supported_slices: UsfScaleSliceMask,
         tip_half_extent_native: Vec3,
         tip_priority: i32,
     ) -> Self {
@@ -96,7 +94,7 @@ impl UsfRefinementPlan {
         }
     }
 
-    pub const fn supported_slices(self) -> UsfChartMask {
+    pub const fn supported_slices(self) -> UsfScaleSliceMask {
         self.supported_slices
     }
 
@@ -129,13 +127,11 @@ impl UsfRefinementPlan {
         }
 
         let tip = self.tip_scale();
-        let exponent_delta =
-            i32::from(tip.exponent()) - i32::from(scale.exponent());
+        let exponent_delta = i32::from(tip.exponent()) - i32::from(scale.exponent());
         let factor = 10.0_f32.powi(exponent_delta);
         let half_extent_native = self.tip_half_extent_native * factor;
 
-        let coarser_levels =
-            i32::from(scale.exponent()) - i32::from(tip.exponent());
+        let coarser_levels = i32::from(scale.exponent()) - i32::from(tip.exponent());
         let priority_delta = self
             .coarser_priority_step
             .saturating_mul(coarser_levels.max(0));
@@ -144,8 +140,7 @@ impl UsfRefinementPlan {
             scale,
             parent_scale: self.parent_scale(scale),
             half_extent_native,
-            residency_half_extent_native: half_extent_native
-                + self.residency_halo_native,
+            residency_half_extent_native: half_extent_native + self.residency_halo_native,
             priority: self.tip_priority.saturating_add(priority_delta),
         })
     }
@@ -158,8 +153,7 @@ impl UsfRefinementPlan {
 
         let start = scale.exponent().checked_add(1)?;
         for raw in start..=SPATIAL_SCALE_MAX {
-            let candidate =
-                SpatialScale::new(raw).expect("bounded USF refinement scale");
+            let candidate = SpatialScale::new(raw).expect("bounded USF refinement scale");
             if self.requests_scale(candidate) {
                 return Some(candidate);
             }
@@ -168,14 +162,11 @@ impl UsfRefinementPlan {
     }
 
     /// Deterministic coarse-context -> requested-tip traversal.
-    pub fn steps_coarse_to_fine(
-        self,
-    ) -> impl Iterator<Item = UsfRefinementStep> {
+    pub fn steps_coarse_to_fine(self) -> impl Iterator<Item = UsfRefinementStep> {
         (SPATIAL_SCALE_MIN..=SPATIAL_SCALE_MAX)
             .rev()
             .filter_map(move |raw| {
-                let scale =
-                    SpatialScale::new(raw).expect("bounded USF refinement scale");
+                let scale = SpatialScale::new(raw).expect("bounded USF refinement scale");
                 self.step(scale)
             })
     }
@@ -190,9 +181,5 @@ fn sanitize_extent(value: Vec3) -> Vec3 {
 }
 
 fn sanitize_axis(value: f32) -> f32 {
-    if value.is_finite() {
-        value.abs()
-    } else {
-        0.0
-    }
+    if value.is_finite() { value.abs() } else { 0.0 }
 }

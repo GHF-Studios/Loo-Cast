@@ -1,4 +1,14 @@
 //! Developer overlay presentation, history, and input handling.
+//!
+//! ## Module map
+//!
+//! - `prompt`: Command prompt, completion and history input.
+//! - `record`: Structured diagnostic record styling.
+//! - `render`: Console window and script workspace presentation.
+//! - `state`: Prompt editing and bounded command history.
+//!
+//! Reexports here define the supported surface; child modules hold its implementation.
+//!
 
 use super::completion::{char_to_byte_index, complete_command_input, completion_candidates};
 use super::transport::{ConsoleLogLevel, ConsoleRecord, ConsoleRecordKind, timestamp_label};

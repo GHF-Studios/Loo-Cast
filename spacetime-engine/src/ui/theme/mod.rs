@@ -1,3 +1,5 @@
+//! Shared UI text roles, styles, and theme values.
+
 use bevy::{
     prelude::*,
     text::{FontSize, FontSource},
