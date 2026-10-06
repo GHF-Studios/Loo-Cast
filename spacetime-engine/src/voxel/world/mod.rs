@@ -63,6 +63,13 @@ impl VoxelWorld {
         &self.origin
     }
 
+    /// Rigid-translation reanchor for reconstructible worlds. Cache-local keys
+    /// remain valid; callers must rebuild instead if orientation changes.
+    pub(in crate::voxel) fn reanchor_reconstructible(&mut self, base: VoxelBase, origin: UsfPosition) -> Result<(), UsfPositionError> {
+        if origin.leaf_scale()!=self.origin.leaf_scale(){return Err(UsfPositionError::IncompatibleLeafScale);}
+        self.origin=origin; self.base=base; Ok(())
+    }
+
     /// Compatibility adapter from a nearby bounded lattice offset. Core Pass-B
     /// code addresses materializations directly with canonical addresses.
     pub fn chunk_address(

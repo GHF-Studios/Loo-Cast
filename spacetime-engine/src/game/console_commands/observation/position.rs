@@ -139,7 +139,7 @@ pub(in crate::game::console_commands) fn locate_command(
             "{:<14} {:<12} {} — {}",
             landmark.id,
             format!("[{}]", landmark.kind),
-            landmark.coordinate_label(),
+            landmark.coordinate_label(world.get::<UsfPosition>(landmark.body).copied()),
             landmark.description
         )
     }))

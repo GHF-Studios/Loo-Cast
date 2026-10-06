@@ -1,6 +1,7 @@
 //! Derived orbital telemetry for spacecraft presentation.
 
 use super::*;
+use crate::game::orbit::{KeplerianElements, OrbitalStateVector};
 
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
@@ -9,6 +10,8 @@ pub struct SpacecraftOrbit {
     pub bound: bool,
     pub altitude_metres: f64,
     pub speed_metres_per_second: f64,
+    pub vertical_speed_metres_per_second: f64,
+    pub horizontal_speed_metres_per_second: f64,
     pub semi_major_axis_metres: f64,
     pub eccentricity: f64,
     pub inclination_radians: f64,
@@ -17,6 +20,9 @@ pub struct SpacecraftOrbit {
     pub true_anomaly_radians: f64,
     pub periapsis_altitude_metres: f64,
     pub apoapsis_altitude_metres: f64,
+    pub period_seconds: f64,
+    pub time_to_periapsis_seconds: f64,
+    pub time_to_apoapsis_seconds: f64,
 }
 
 impl Default for SpacecraftOrbit {
@@ -26,6 +32,8 @@ impl Default for SpacecraftOrbit {
             bound: false,
             altitude_metres: 0.0,
             speed_metres_per_second: 0.0,
+            vertical_speed_metres_per_second: 0.0,
+            horizontal_speed_metres_per_second: 0.0,
             semi_major_axis_metres: f64::INFINITY,
             eccentricity: 0.0,
             inclination_radians: 0.0,
@@ -34,6 +42,9 @@ impl Default for SpacecraftOrbit {
             true_anomaly_radians: 0.0,
             periapsis_altitude_metres: f64::INFINITY,
             apoapsis_altitude_metres: f64::INFINITY,
+            period_seconds: f64::INFINITY,
+            time_to_periapsis_seconds: f64::INFINITY,
+            time_to_apoapsis_seconds: f64::INFINITY,
         }
     }
 }
@@ -43,183 +54,40 @@ impl Default for SpacecraftOrbit {
 pub(super) fn sync_spacecraft_orbit(
     ownership: UsfOwnershipQuery,
     semantic_positions: Query<&UsfPosition>,
+    semantic_motions: Query<&UsfCanonicalMotion>,
     gravity_sources: Query<&RadialGravitySource>,
-    mut ships: Query<
-        (
-            Entity,
-            &UsfCanonicalMotion,
-            &PrimaryBodyContext,
-            &mut SpacecraftOrbit,
-        ),
-        With<SpacecraftManifestation>,
-    >,
+    mut ships: Query<(Entity, &UsfCanonicalMotion, &PrimaryBodyContext, &mut SpacecraftOrbit), With<SpacecraftManifestation>>,
 ) {
-    for (ship_entity, motion, primary, mut orbit) in &mut ships {
-        orbit.valid = false;
-        let Some(primary_entity) = primary.entity() else {
-            continue;
+    for (ship_entity,motion,primary,mut orbit) in &mut ships {
+        orbit.valid=false;
+        let Some(primary_entity)=primary.entity() else {continue;};
+        let Ok(gravity)=gravity_sources.get(primary_entity).copied() else {continue;};
+        if gravity.surface_gravity_metres_per_second2()<=0.0{continue;}
+        let Some(ship_semantic)=ownership.semantic_of(ship_entity) else {continue;};
+        let Ok(position)=semantic_positions.get(ship_semantic).copied() else {continue;};
+        let Ok(primary_position)=semantic_positions.get(primary_entity).copied() else {continue;};
+        let field_scale=gravity.field_scale();
+        let Ok(relative_native)=position.relative_at_scale_bounded_f64(&primary_position,field_scale,f64::MAX) else {continue;};
+        let r=relative_native*field_scale.metres_per_native(); let radius=r.length(); if radius<=f64::EPSILON{continue;}
+        let primary_velocity=semantic_motions.get(primary_entity).map(|m|m.velocity_metres_per_second()).unwrap_or(DVec3::ZERO);
+        let v=motion.velocity_metres_per_second()-primary_velocity;
+        let mu=gravity.gravitational_parameter_metres3_per_second2(); let body_radius=gravity.radius_metres();
+        let state=OrbitalStateVector::new(r,v); let Some(elements)=KeplerianElements::from_state(state,mu,motion.epoch_seconds()) else {continue;};
+        let radial=r/radius; let vertical=v.dot(radial); let horizontal=(v.length_squared()-vertical*vertical).max(0.0).sqrt();
+        let peri=elements.periapsis_radius_metres(mu,state).unwrap_or(f64::INFINITY); let apo=elements.apoapsis_radius_metres().unwrap_or(f64::INFINITY);
+        *orbit=SpacecraftOrbit{
+            valid:true,bound:elements.is_bound(),altitude_metres:radius-body_radius,speed_metres_per_second:v.length(),
+            vertical_speed_metres_per_second:vertical,horizontal_speed_metres_per_second:horizontal,
+            semi_major_axis_metres:elements.semi_major_axis_metres,eccentricity:elements.eccentricity,inclination_radians:elements.inclination_radians,
+            longitude_ascending_node_radians:elements.longitude_ascending_node_radians,argument_periapsis_radians:elements.argument_periapsis_radians,
+            true_anomaly_radians:true_anomaly(state,elements),periapsis_altitude_metres:peri-body_radius,
+            apoapsis_altitude_metres:if apo.is_finite(){apo-body_radius}else{f64::INFINITY},
+            period_seconds:elements.period_seconds(mu).unwrap_or(f64::INFINITY),
+            time_to_periapsis_seconds:elements.time_to_periapsis_seconds(mu).unwrap_or(f64::INFINITY),
+            time_to_apoapsis_seconds:elements.time_to_apoapsis_seconds(mu).unwrap_or(f64::INFINITY),
         };
-        let Ok(gravity) = gravity_sources.get(primary_entity) else {
-            continue;
-        };
-        let Some(ship_semantic) = ownership.semantic_of(ship_entity) else {
-            continue;
-        };
-        let Ok(position) = semantic_positions.get(ship_semantic) else {
-            continue;
-        };
-        let Some(relative_metres) = relative_position_metres(position, primary, gravity) else {
-            continue;
-        };
-        let Some(next) = calculate_orbit(
-            relative_metres,
-            motion.velocity_metres_per_second(),
-            gravity.radius_metres(),
-            gravity.surface_gravity_metres_per_second2(),
-        ) else {
-            continue;
-        };
-        *orbit = next;
     }
 }
-
-/// Bound the canonical query before converting to SI. Orbital UI has no
-/// authority to demand an unbounded or lossy runtime-space position.
-fn relative_position_metres(
-    position: &UsfPosition,
-    primary: &PrimaryBodyContext,
-    gravity: &RadialGravitySource,
-) -> Option<DVec3> {
-    if gravity.surface_gravity_metres_per_second2() <= 0.0 {
-        return None;
-    }
-    let field_scale = gravity.field_scale();
-    let bound = gravity.radius_metres() * 16.0;
-    let bound_native = field_scale
-        .scale0_to_native_f64(bound)
-        .min(f64::from(f32::MAX)) as f32;
-    let relative = position
-        .relative_at_scale_bounded(&primary.center(), field_scale, bound_native)
-        .ok()?;
-    let metres_per_native = field_scale.scale0_units_per_native();
-    Some(
-        DVec3::new(
-            f64::from(relative.x),
-            f64::from(relative.y),
-            f64::from(relative.z),
-        ) * metres_per_native,
-    )
-}
-
-fn calculate_orbit(
-    r: DVec3,
-    v: DVec3,
-    body_radius: f64,
-    surface_gravity: f32,
-) -> Option<SpacecraftOrbit> {
-    let radius_from_center = r.length();
-    if radius_from_center <= f64::EPSILON {
-        return None;
-    }
-    let mu = f64::from(surface_gravity) * body_radius.powi(2);
-    if !mu.is_finite() || mu <= f64::EPSILON {
-        return None;
-    }
-    let h = r.cross(v);
-    let h_len = h.length();
-    if h_len <= f64::EPSILON {
-        return None;
-    }
-
-    let e_vec = v.cross(h) / mu - r / radius_from_center;
-    let eccentricity = e_vec.length();
-    let specific_energy = 0.5 * v.length_squared() - mu / radius_from_center;
-    let semi_major_axis = if specific_energy.abs() > 1.0e-12 {
-        -mu / (2.0 * specific_energy)
-    } else {
-        f64::INFINITY
-    };
-    let bound = specific_energy < 0.0 && eccentricity < 1.0;
-    let (inclination, longitude_ascending_node, argument_periapsis, true_anomaly) =
-        orbital_angles(r, v, h, h_len, e_vec, eccentricity, radius_from_center);
-
-    let periapsis_radius = if semi_major_axis.is_finite() {
-        semi_major_axis * (1.0 - eccentricity)
-    } else {
-        h_len * h_len / (mu * (1.0 + eccentricity))
-    };
-    let apoapsis_radius = if bound && semi_major_axis.is_finite() {
-        semi_major_axis * (1.0 + eccentricity)
-    } else {
-        f64::INFINITY
-    };
-
-    Some(SpacecraftOrbit {
-        valid: true,
-        bound,
-        altitude_metres: radius_from_center - body_radius,
-        speed_metres_per_second: v.length(),
-        semi_major_axis_metres: semi_major_axis,
-        eccentricity,
-        inclination_radians: inclination,
-        longitude_ascending_node_radians: longitude_ascending_node,
-        argument_periapsis_radians: argument_periapsis,
-        true_anomaly_radians: true_anomaly,
-        periapsis_altitude_metres: periapsis_radius - body_radius,
-        apoapsis_altitude_metres: if apoapsis_radius.is_finite() {
-            apoapsis_radius - body_radius
-        } else {
-            f64::INFINITY
-        },
-    })
-}
-
-/// The orientation angles use the engine's Y-up reference plane and keep the
-/// existing zero convention for equatorial and near-circular degeneracies.
-fn orbital_angles(
-    r: DVec3,
-    v: DVec3,
-    h: DVec3,
-    h_len: f64,
-    e_vec: DVec3,
-    eccentricity: f64,
-    radius_from_center: f64,
-) -> (f64, f64, f64, f64) {
-    let reference_normal = DVec3::Y;
-    let node = reference_normal.cross(h);
-    let node_len = node.length();
-    let inclination = (h.dot(reference_normal) / h_len).clamp(-1.0, 1.0).acos();
-    let longitude_ascending_node = if node_len > 1.0e-12 {
-        node.z.atan2(node.x).rem_euclid(std::f64::consts::TAU)
-    } else {
-        0.0
-    };
-    let argument_periapsis = if node_len > 1.0e-12 && eccentricity > 1.0e-12 {
-        let mut angle = (node.dot(e_vec) / (node_len * eccentricity))
-            .clamp(-1.0, 1.0)
-            .acos();
-        if e_vec.y < 0.0 {
-            angle = std::f64::consts::TAU - angle;
-        }
-        angle
-    } else {
-        0.0
-    };
-    let true_anomaly = if eccentricity > 1.0e-12 {
-        let mut angle = (e_vec.dot(r) / (eccentricity * radius_from_center))
-            .clamp(-1.0, 1.0)
-            .acos();
-        if r.dot(v) < 0.0 {
-            angle = std::f64::consts::TAU - angle;
-        }
-        angle
-    } else {
-        0.0
-    };
-    (
-        inclination,
-        longitude_ascending_node,
-        argument_periapsis,
-        true_anomaly,
-    )
+fn true_anomaly(state:OrbitalStateVector,elements:KeplerianElements)->f64{
+    let r=state.position_metres;let h=r.cross(state.velocity_metres_per_second).normalize();let raw=DVec3::Y.cross(h);let node=if raw.length_squared()>1.0e-20{raw.normalize()}else{DVec3::X};let q=h.cross(node).normalize();let (sa,ca)=elements.argument_periapsis_radians.sin_cos();let p=(node*ca+q*sa).normalize();h.dot(p.cross(r.normalize())).atan2(p.dot(r.normalize())).rem_euclid(std::f64::consts::TAU)
 }

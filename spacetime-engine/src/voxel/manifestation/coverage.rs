@@ -18,7 +18,7 @@ use super::{
     collision::{collision_requested, VoxelCollisionAggregateRegistry},
 };
 use super::super::{
-    VoxelCollisionDisabled,
+    CelestialVoxelFrameBinding, VoxelCollisionDisabled,
     VoxelRealizationDemandSnapshot,
     VoxelStreaming,
     MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
@@ -32,6 +32,7 @@ struct CapabilityWorldSignature {
     editing_disabled: bool,
     scale: crate::spatial::SpatialScale,
     logical: Option<Entity>,
+    frame_revision: u64,
 }
 
 #[derive(Default)]
@@ -52,6 +53,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
         Option<&VoxelStreaming>,
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
+        Option<&CelestialVoxelFrameBinding>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     collision_registry: Res<VoxelCollisionAggregateRegistry>,
@@ -73,6 +75,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
         streaming,
         collision_disabled,
         editing_disabled,
+        celestial_frame,
     ) in &worlds
     {
         world_signatures.insert(
@@ -84,6 +87,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
                 editing_disabled: editing_disabled.is_some(),
                 scale: layer.scale(),
                 logical: logical_realization.map(|logical| logical.0),
+                frame_revision: celestial_frame.map_or(0, |frame| frame.revision()),
             },
         );
     }
@@ -120,6 +124,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
         streaming,
         collision_disabled,
         editing_disabled,
+        _celestial_frame,
     ) in &worlds
     {
         let authority = logical_realization
@@ -220,6 +225,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
             streaming,
             collision_disabled,
             editing_disabled,
+            _celestial_frame,
         )) = worlds.get(runtime.world())
         else {
             if let Some(mut realization) = existing {

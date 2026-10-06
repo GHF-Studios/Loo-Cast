@@ -139,12 +139,24 @@ fn resolve_teleport_destination(
             }
             (*matches[0]).clone()
         };
+        let Some(center) = world.get::<UsfPosition>(landmark.body).copied() else {
+            return Err(ConsoleCommandResult::error(format!(
+                "landmark `{}` no longer has a live semantic position",
+                landmark.id
+            )));
+        };
+        let Some(arrival) = landmark.arrival_at(center) else {
+            return Err(ConsoleCommandResult::error(format!(
+                "landmark `{}` could not resolve a canonical arrival position",
+                landmark.id
+            )));
+        };
         return Ok(TeleportDestination {
             label: landmark.id.to_string(),
             scale: landmark.display_scale,
             view_exponent: landmark.view_exponent,
-            arrival: landmark.arrival,
-            look_at: Some(landmark.look_at),
+            arrival,
+            look_at: Some(center),
             explicit_scale: false,
         });
     }

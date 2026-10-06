@@ -21,7 +21,7 @@ use super::{
     VoxelRenderMaterial,
 };
 use super::super::{
-    VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
+    CelestialVoxelFrameBinding, VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::VoxelSurface, VoxelPresentationMaterial,
     streaming::{VoxelStreaming, compare_work_ranks},
 };
@@ -566,34 +566,21 @@ fn write_materialization_runtime_translation(
 }
 
 pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
+    mut commands: Commands,
     frame: Res<UsfRuntimeChartState>,
-    worlds: Query<&VoxelWorld>,
-    mut runtimes: Query<(
-        &VoxelMaterializationRuntime,
-        &UsfScaleLayer,
-        &mut Transform,
-    )>,
+    worlds: Query<(&VoxelWorld, Option<Ref<CelestialVoxelFrameBinding>>)>,
+    mut runtimes: Query<(&VoxelMaterializationRuntime, &UsfScaleLayer, &mut Transform)>,
 ) {
-    if !frame.is_changed() {
-        return;
-    }
-
-    for (runtime, layer, mut transform) in &mut runtimes {
-        if !runtime.active() {
-            continue;
-        }
-        let Ok(world) = worlds.get(runtime.world()) else {
-            continue;
-        };
-        let Ok(address) = world.materialization_address(runtime.key()) else {
-            continue;
-        };
-        let Some(translation) =
-            materialization_runtime_translation(layer, &frame, address)
-        else {
-            continue;
-        };
-
-        write_materialization_runtime_translation(&mut transform, translation);
+    let chart_changed=frame.is_changed();
+    for (runtime,layer,mut transform) in &mut runtimes {
+        if !runtime.active(){continue;}
+        let Ok((world,binding))=worlds.get(runtime.world()) else {continue;};
+        let pose_changed=binding.as_ref().is_some_and(|b|b.is_changed());
+        if !chart_changed && !pose_changed {continue;}
+        let Ok(address)=world.materialization_address(runtime.key()) else {continue;};
+        let Some(translation)=materialization_runtime_translation(layer,&frame,address) else {continue;};
+        write_materialization_runtime_translation(&mut transform,translation);
+        commands.entity(runtime.presentation()).insert(UsfScalePresentation::new(*address.origin(),layer.scale()));
+        if let Some(entity)=runtime.translucent_presentation(){commands.entity(entity).insert(UsfScalePresentation::new(*address.origin(),layer.scale()));}
     }
 }

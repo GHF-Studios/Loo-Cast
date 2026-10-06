@@ -5,21 +5,31 @@
 //! never redefine the physical velocity by accident.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{math::DVec3, prelude::*};
+use bevy::{math::DVec3, prelude::*, time::Virtual};
 
 use super::{SpatialScale, UsfScaleLayer};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UsfMotionAuthority {
+    RuntimePhysics,
+    CanonicalKinematics,
+}
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfCanonicalMotion {
     velocity_metres_per_second: DVec3,
-    canonical_authority: bool,
+    angular_velocity_radians_per_second: DVec3,
+    epoch_seconds: f64,
+    authority: UsfMotionAuthority,
 }
 
 impl Default for UsfCanonicalMotion {
     fn default() -> Self {
         Self {
             velocity_metres_per_second: DVec3::ZERO,
-            canonical_authority: false,
+            angular_velocity_radians_per_second: DVec3::ZERO,
+            epoch_seconds: 0.0,
+            authority: UsfMotionAuthority::RuntimePhysics,
         }
     }
 }
@@ -33,17 +43,31 @@ impl UsfCanonicalMotion {
         self.velocity_metres_per_second.length()
     }
 
-    pub const fn canonical_authority(self) -> bool {
-        self.canonical_authority
-    }
+    pub const fn angular_velocity_radians_per_second(self) -> DVec3 { self.angular_velocity_radians_per_second }
+    pub const fn epoch_seconds(self) -> f64 { self.epoch_seconds }
+    pub const fn authority(self) -> UsfMotionAuthority { self.authority }
+    pub fn canonical_at_rest() -> Self { Self { authority: UsfMotionAuthority::CanonicalKinematics, ..Self::default() } }
+
+    pub const fn canonical_authority(self) -> bool { matches!(self.authority, UsfMotionAuthority::CanonicalKinematics) }
 
     pub fn set_canonical_authority(&mut self, authoritative: bool) {
-        self.canonical_authority = authoritative;
+        self.authority = if authoritative { UsfMotionAuthority::CanonicalKinematics } else { UsfMotionAuthority::RuntimePhysics };
     }
+
+    pub fn set_authority(&mut self, authority: UsfMotionAuthority) { self.authority = authority; }
 
     pub fn set_velocity_metres_per_second(&mut self, velocity: DVec3) {
         assert!(velocity.is_finite(), "canonical velocity must be finite");
         self.velocity_metres_per_second = velocity;
+    }
+
+    pub fn set_angular_velocity_radians_per_second(&mut self, value: DVec3) {
+        assert!(value.is_finite(), "canonical angular velocity must be finite");
+        self.angular_velocity_radians_per_second = value;
+    }
+    pub fn set_epoch_seconds(&mut self, value: f64) {
+        assert!(value.is_finite(), "canonical motion epoch must be finite");
+        self.epoch_seconds = value;
     }
 
     pub fn stop(&mut self) {
@@ -86,6 +110,7 @@ fn saturating_f32(value: f64) -> f32 {
 /// and collision solvers leave it false and publish their chart-local velocity
 /// back through this adapter.
 pub(in crate::spatial) fn sync_canonical_motion_from_runtime(
+    time: Res<Time<Virtual>>,
     mut motions: Query<(&UsfScaleLayer, &LinearVelocity, &mut UsfCanonicalMotion)>,
 ) {
     for (layer, velocity, mut motion) in &mut motions {
@@ -93,5 +118,6 @@ pub(in crate::spatial) fn sync_canonical_motion_from_runtime(
             continue;
         }
         motion.set_from_native_velocity(layer.scale(), velocity.0);
+        motion.set_epoch_seconds(time.elapsed_secs_f64());
     }
 }

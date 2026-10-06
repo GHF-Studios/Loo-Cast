@@ -12,6 +12,7 @@ mod devtools;
 mod slice;
 mod interaction;
 mod motion;
+mod kinematic_frame;
 mod semantic_frame;
 mod navigation;
 mod refinement;
@@ -40,7 +41,8 @@ pub use slice::{
 pub use interaction::{
     UsfInteractionProjection, UsfInteractionScaleAffinity, UsfPrimaryInteractionSlice,
 };
-pub use motion::UsfCanonicalMotion;
+pub use motion::{UsfCanonicalMotion, UsfMotionAuthority};
+pub use kinematic_frame::UsfKinematicFrameState;
 pub use semantic_frame::UsfSemanticFrame;
 pub use crate::usf::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,

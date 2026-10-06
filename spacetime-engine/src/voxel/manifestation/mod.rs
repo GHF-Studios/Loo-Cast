@@ -78,6 +78,9 @@ impl VoxelMaterializationRuntime {
         self.active
     }
 
+    pub(super) const fn presentation(&self) -> Entity { self.presentation }
+    pub(super) const fn translucent_presentation(&self) -> Option<Entity> { self.translucent_presentation }
+
     pub(super) const fn parked(mut self) -> Self {
         self.active = false;
         self

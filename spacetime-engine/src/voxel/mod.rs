@@ -35,7 +35,7 @@ pub use celestial_field::CelestialVoxelField;
 pub(in crate::voxel) use celestial_field::CelestialPresentationFieldSampler;
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
-    CelestialVoxelRealization, CelestialVoxelRealizationRegistry,
+    CelestialVoxelFrameBinding, CelestialVoxelRealization, CelestialVoxelRealizationRegistry,
 };
 pub use base::{
     CelestialBodyProfile, CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase,

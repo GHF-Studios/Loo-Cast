@@ -35,6 +35,18 @@ impl UsfSemanticFrame {
         self.orientation
     }
 
+    pub fn local_direction_to_world_f64(self, local: DVec3) -> DVec3 { self.orientation * local }
+    pub fn world_direction_to_local_f64(self, world: DVec3) -> DVec3 { self.orientation.conjugate() * world }
+
+    /// Integrates world-axis angular velocity. Dense celestial rotation still
+    /// requires a frame-local lattice backend; this establishes the generic contract.
+    pub fn advanced(self, angular_velocity_radians_per_second: DVec3, delta_seconds: f64) -> Self {
+        if !angular_velocity_radians_per_second.is_finite() || !delta_seconds.is_finite() || delta_seconds == 0.0 { return self; }
+        let step=angular_velocity_radians_per_second*delta_seconds; let angle=step.length();
+        if angle<=f64::EPSILON { return self; }
+        Self::from_orientation(DQuat::from_axis_angle(step/angle,angle)*self.orientation)
+    }
+
     /// Rotates a body-local direction/vector into canonical USF axes.
     pub fn local_direction_to_world(self, local: Vec3) -> Vec3 {
         let world = self.orientation * DVec3::new(

@@ -56,6 +56,21 @@ impl CelestialVoxelRealization {
     }
 }
 
+/// Pose binding between a scale-local voxel world and semantic celestial frame.
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub(in crate::voxel) struct CelestialVoxelFrameBinding {
+    origin: UsfPosition,
+    frame: UsfSemanticFrame,
+    revision: u64,
+}
+impl CelestialVoxelFrameBinding {
+    fn new(origin: UsfPosition, frame: UsfSemanticFrame) -> Self { Self { origin, frame, revision: 0 } }
+    pub(in crate::voxel) const fn revision(self) -> u64 { self.revision }
+    fn translated(&mut self, origin: UsfPosition) {
+        if self.origin != origin { self.origin=origin; self.revision=self.revision.wrapping_add(1); }
+    }
+}
+
 #[derive(Resource, Debug, Default)]
 pub(in crate::voxel) struct CelestialVoxelRealizationRegistry {
     worlds: HashMap<VoxelRealizationTarget, Entity>,
@@ -85,127 +100,56 @@ pub(super) fn sync_celestial_voxel_realizations(
     mut registry: ResMut<CelestialVoxelRealizationRegistry>,
     mut commands: Commands,
     authorities: Query<(
-        Option<&Name>,
-        &UsfPosition,
-        &UsfSemanticFrame,
-        &CelestialVoxelField,
-        &VoxelScaleDomain,
-        &CelestialVoxelRealizationPolicy,
-        &UsfAuthorityPartitions,
+        Option<&Name>, &UsfPosition, &UsfSemanticFrame, &CelestialVoxelField,
+        &VoxelScaleDomain, &CelestialVoxelRealizationPolicy, &UsfAuthorityPartitions,
     )>,
-    existing: Query<(Entity, &CelestialVoxelRealization)>,
+    mut existing: Query<(Entity, &CelestialVoxelRealization, &mut VoxelWorld, &mut CelestialVoxelFrameBinding)>,
 ) {
     let desired = intents.celestial_targets().collect::<HashSet<_>>();
     registry.worlds.clear();
 
-    for (entity, realization) in &existing {
-        let target = realization.target();
+    for (entity, realization, mut world, mut binding) in &mut existing {
+        let target=realization.target();
+        let Ok((_,body_origin,body_frame,field,domain,_,_))=authorities.get(target.authority()) else { commands.entity(entity).despawn(); continue; };
+        if !domain.realizes(target.scale()) { commands.entity(entity).despawn(); continue; }
 
-        //
-        // Scale-world identity is owned by semantic authority + Scale, not by
-        // this frame's demand. If demand disappears temporarily, keep the
-        // `VoxelWorld` alive: the streaming reconciler will deactivate its
-        // materializations and preserve only the configured bounded warm cache.
-        //
-        // Destroy the container only when its semantic authority disappeared or
-        // the authority no longer supports that Scale Slice.
-        let Ok((_, _, _, _, domain, _, _)) =
-            authorities.get(target.authority())
-        else {
-            commands.entity(entity).despawn();
-            continue;
-        };
-        if !domain.realizes(target.scale()) {
-            commands.entity(entity).despawn();
-            continue;
+        // Translation preserves body-local dense cache identity. The present
+        // canonical-axis lattice cannot preserve arbitrary rotation honestly.
+        if binding.frame != *body_frame { commands.entity(entity).despawn(); continue; }
+        if binding.origin != *body_origin {
+            let Ok(grid_origin)=body_origin.reexpressed_at(target.scale()) else { commands.entity(entity).despawn(); continue; };
+            let base=field.realization(*body_origin,*body_frame,target.scale());
+            if world.reanchor_reconstructible(VoxelBase::celestial_body(base),grid_origin).is_err() { commands.entity(entity).despawn(); continue; }
+            binding.translated(*body_origin);
         }
 
-        if let Some(duplicate_of) = registry.worlds.get(&target).copied() {
-            warn!(
-                ?entity,
-                ?duplicate_of,
-                authority = ?target.authority(),
-                scale = %target.scale(),
-                "duplicate celestial voxel realization retired"
-            );
-            commands.entity(entity).despawn();
-            continue;
+        if let Some(duplicate_of)=registry.worlds.get(&target).copied() {
+            warn!(?entity,?duplicate_of,authority=?target.authority(),scale=%target.scale(),"duplicate celestial voxel realization retired");
+            commands.entity(entity).despawn(); continue;
         }
-
-        // Register parked and actively-demanded worlds alike. If this target
-        // becomes desired again later in the same or a future frame, it reuses
-        // the existing store instead of spawning a cold replacement.
-        registry.worlds.insert(target, entity);
+        registry.worlds.insert(target,entity);
     }
 
     for target in desired {
-        if registry.world_for(target).is_some() {
-            continue;
-        }
-
-        let Ok((name, body_origin, body_frame, field, domain, policy, partitions)) =
-            authorities.get(target.authority())
-        else {
-            continue;
-        };
-
-        if !domain.realizes(target.scale()) {
-            warn!(
-                authority = ?target.authority(),
-                scale = %target.scale(),
-                "celestial voxel realization demand targets unsupported scale"
-            );
-            continue;
-        }
-
-        let mut partitions = partitions.iter();
-        let Some(partition) = partitions.next() else {
-            warn!(
-                authority = ?target.authority(),
-                scale = %target.scale(),
-                "celestial voxel realization has no authority partition"
-            );
-            continue;
-        };
-        if partitions.next().is_some() {
-            error!(
-                authority = ?target.authority(),
-                scale = %target.scale(),
-                "celestial voxel realization requires one unambiguous ordinary authority partition"
-            );
-            continue;
-        }
-
-        let Ok(grid_origin) = body_origin.reexpressed_at(target.scale()) else {
-            error!(
-                authority = ?target.authority(),
-                scale = %target.scale(),
-                "celestial voxel realization origin cannot re-express at requested scale"
-            );
-            continue;
-        };
-
-        let base = field.realization(*body_origin, *body_frame, target.scale());
-        let body_name = name.map(|value| value.as_str()).unwrap_or("Celestial Body");
-        let mut world = commands.spawn((
-            Name::new(format!("{body_name} S{} Terrain", target.scale())),
-            UsfScaleLayer::new(target.scale()),
-            UsfLogicalRealizationOf(partition),
-            CelestialVoxelRealization::new(target),
-            VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
+        if registry.world_for(target).is_some(){continue;}
+        let Ok((name,body_origin,body_frame,field,domain,policy,partitions))=authorities.get(target.authority()) else {continue;};
+        if !domain.realizes(target.scale()) { warn!(authority=?target.authority(),scale=%target.scale(),"celestial voxel realization demand targets unsupported scale"); continue; }
+        let mut partitions=partitions.iter();
+        let Some(partition)=partitions.next() else { warn!(authority=?target.authority(),scale=%target.scale(),"celestial voxel realization has no authority partition"); continue; };
+        if partitions.next().is_some(){ error!(authority=?target.authority(),scale=%target.scale(),"celestial voxel realization requires one unambiguous ordinary authority partition"); continue; }
+        let Ok(grid_origin)=body_origin.reexpressed_at(target.scale()) else { error!(authority=?target.authority(),scale=%target.scale(),"celestial voxel realization origin cannot re-express at requested scale"); continue; };
+        let base=field.realization(*body_origin,*body_frame,target.scale());
+        let body_name=name.map(|v|v.as_str()).unwrap_or("Celestial Body");
+        let mut world=commands.spawn((
+            Name::new(format!("{body_name} S{} Terrain",target.scale())), UsfScaleLayer::new(target.scale()),
+            UsfLogicalRealizationOf(partition), CelestialVoxelRealization::new(target),
+            CelestialVoxelFrameBinding::new(*body_origin,*body_frame),
+            VoxelWorld::new_at(VoxelBase::celestial_body(base),grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
-            VoxelPresentationMaterial::new(policy.presentation_material().clone()),
-            Transform::IDENTITY,
-            Visibility::Inherited,
+            VoxelPresentationMaterial::new(policy.presentation_material().clone()), Transform::IDENTITY, Visibility::Inherited,
         ));
-
-        if !domain.collides(target.scale()) {
-            world.insert(VoxelCollisionDisabled);
-        }
-        if !domain.editable(target.scale()) {
-            world.insert(VoxelEditingDisabled);
-        }
-
-        registry.worlds.insert(target, world.id());
+        if !domain.collides(target.scale()){world.insert(VoxelCollisionDisabled);}
+        if !domain.editable(target.scale()){world.insert(VoxelEditingDisabled);}
+        registry.worlds.insert(target,world.id());
     }
 }

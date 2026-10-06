@@ -5,6 +5,7 @@ pub mod control;
 pub mod flight;
 pub mod locomotion;
 pub mod navigation;
+pub mod orbit;
 pub mod spacecraft;
 pub mod surface;
 mod console_commands;
@@ -70,6 +71,7 @@ impl Plugin for LooCastPlugin {
                 RunFixedMainLoop,
                 (
                     control::ControlSet::Sample,
+                    orbit::OrbitalSet::Advance,
                     crate::physics::gravity::GravitySet::Sample,
                     navigation::NavigationSet::Observe,
                     control::ControlSet::Request,
@@ -158,6 +160,7 @@ impl Plugin for LooCastPlugin {
             ))
             .add_plugins((
                 locomotion::LocomotionPlugin,
+                orbit::OrbitPlugin,
                 navigation::NavigationPlugin,
                 surface::SurfacePlugin,
                 flight::FlightPlugin,

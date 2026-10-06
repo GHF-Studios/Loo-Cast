@@ -13,7 +13,8 @@ use crate::{
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
         SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
-        UsfPosition, UsfSemanticFrame, UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfCanonicalMotion, UsfPosition, UsfSemanticFrame, UsfTravelBoundaryResolver,
+        UsfTravelInfluence,
     },
     voxel::{
         CelestialVoxelField, CelestialVoxelRealizationPolicy, VoxelAuthority,
@@ -42,7 +43,7 @@ pub(super) fn spawn_body(
     assets: &ProceduralAssetLibrary,
     landmarks: &mut UniverseLandmarkIndex,
     arrival_site: &mut FixtureArrivalSite,
-) {
+) -> Entity {
     let system_scale = scale(SYSTEM_SCALE);
     let center = UsfPosition::from_scale_native_f64(
         definition.center_metres,
@@ -88,6 +89,7 @@ pub(super) fn spawn_body(
             UsfEntity,
             center,
             frame,
+            UsfCanonicalMotion::canonical_at_rest(),
             field,
             scale_domain,
             CelestialVoxelRealizationPolicy::new(
@@ -126,7 +128,7 @@ pub(super) fn spawn_body(
 
     // Whole-body presentation is derived generically by voxel::planetary_surface.
     // The fixture owns semantic body input only; no presentation entity is authored here.
-    landmarks.register_body(definition, center, system_scale);
+    landmarks.register_body(definition, semantic, system_scale);
     if definition.arrival_direction.is_some() {
         let site = body_surface_site(
             semantic,
@@ -139,6 +141,8 @@ pub(super) fn spawn_body(
         .expect("authored Earth arrival direction must resolve a voxel surface");
         arrival_site.set(site);
     }
+
+    semantic
 }
 
 fn audit_canonical_surface_relief(
