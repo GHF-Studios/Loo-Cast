@@ -219,13 +219,12 @@ impl UsfPosition {
         let mut weight = USF_CHUNK_NATIVE_SIZE as f64 / f64::from(USF_CHILD_CHUNKS_PER_AXIS);
         for index in (0..requested_index).rev() {
             component += f64::from(normalized[index]) * weight;
-            weight /= f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+            weight *= 0.1;
         }
 
-        let leaf_units_per_requested =
-            f64::from(USF_CHILD_CHUNKS_PER_AXIS).powi(requested_index as i32);
+        let leaf_native_to_requested = self.leaf_scale.native_to_native_factor(scale);
         component += f64::from(axis_f32(self.offset, axis) - axis_f32(origin.offset, axis))
-            / leaf_units_per_requested;
+            * leaf_native_to_requested;
 
         if component.abs() > f64::from(max_abs.max(0.0)) {
             return Err(UsfPositionError::RelativePositionOutsideBound);
@@ -260,13 +259,12 @@ impl UsfPosition {
         let mut weight = USF_CHUNK_NATIVE_SIZE as f64 / f64::from(USF_CHILD_CHUNKS_PER_AXIS);
         for index in (0..requested_index).rev() {
             component += f64::from(normalized[index]) * weight;
-            weight /= f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+            weight *= 0.1;
         }
 
-        let leaf_units_per_requested =
-            f64::from(USF_CHILD_CHUNKS_PER_AXIS).powi(requested_index as i32);
+        let leaf_native_to_requested = self.leaf_scale.native_to_native_factor(scale);
         component += f64::from(axis_f32(self.offset, axis) - axis_f32(origin.offset, axis))
-            / leaf_units_per_requested;
+            * leaf_native_to_requested;
 
         if component.abs() > max_abs.max(0.0) {
             return Err(UsfPositionError::RelativePositionOutsideBound);

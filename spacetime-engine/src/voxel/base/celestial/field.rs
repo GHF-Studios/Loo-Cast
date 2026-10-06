@@ -4,21 +4,33 @@ use super::*;
 
 impl PreparedCelestialVoxelSampler {
     #[inline]
-    pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
-        // `chunk_local` is a bounded vector in the realization chart. Convert
-        // only that small delta to SI and rotate it into the semantic body
-        // frame; the large planet position was resolved once when this sampler
-        // was prepared.
+    pub(crate) fn sample(&self, chunk_local: Vec3) -> VoxelSample {
+        // Body/Scale invariants are resolved once in `prepare_local_sampler`.
+        // The inner 12^3 dense-lattice loop only converts a bounded delta and
+        // enters the prepared canonical evaluator.
         let world_delta_metres = DVec3::new(
             f64::from(chunk_local.x),
             f64::from(chunk_local.y),
             f64::from(chunk_local.z),
-        ) * self.body.realization_scale.metres_per_native();
-        let local_delta_metres =
-            self.body.frame_snapshot.orientation().conjugate() * world_delta_metres;
-        let local_point_metres = self.chunk_origin_local_metres + local_delta_metres;
+        ) * self.metres_per_native;
+        let local_point_metres =
+            self.chunk_origin_local_metres + self.world_to_local * world_delta_metres;
 
-        self.body.sample_body_local_metres(local_point_metres)
+        let Some(distance_metres) = self.body.signed_distance_local_metres(local_point_metres)
+        else {
+            return VoxelSample::empty(EMPTY_DISTANCE);
+        };
+        let distance = (distance_metres * self.native_per_metre)
+            .clamp(-f64::from(EMPTY_DISTANCE), f64::from(EMPTY_DISTANCE)) as f32;
+
+        VoxelSample::new(
+            distance,
+            if distance_metres < 0.0 {
+                VoxelMaterialId::ROCK
+            } else {
+                VoxelMaterialId::VOID
+            },
+        )
     }
 }
 
@@ -113,8 +125,11 @@ impl CelestialFieldRealization {
             .ok()?;
 
         Some(PreparedCelestialVoxelSampler {
-            body: self,
+            body: self.prepare_presentation_sampler(),
             chunk_origin_local_metres,
+            world_to_local: self.frame_snapshot.orientation().conjugate(),
+            metres_per_native: self.realization_scale.metres_per_native(),
+            native_per_metre: self.realization_scale.native_per_metre(),
         })
     }
 

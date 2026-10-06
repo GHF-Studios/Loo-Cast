@@ -34,12 +34,13 @@ impl PreparedCelestialResidualStack {
 
         let coarse_lower = floor.max(1);
         if coarse_lower <= root {
+            let (_, base_amplitude, growth, _) = body.detail_parameters();
+            let mut amplitude_native = base_amplitude;
             for raw in (coarse_lower..=root).rev() {
                 let level = SpatialScale::new(raw)
                     .expect("validated coarse celestial semantic detail scale");
                 let metres_per_native = level.metres_per_native();
-                let amplitude_native = body.detail_amplitude_native(level);
-                let radius_at_level = body.radius_metres / metres_per_native;
+                let radius_at_level = body.radius_metres * level.native_per_metre();
                 let angular_frequency = (radius_at_level * frequency_factor)
                     .max(4.0)
                     .min(f64::from(f32::MAX)) as f32;
@@ -53,22 +54,29 @@ impl PreparedCelestialResidualStack {
                     seed,
                 });
                 stack.coarse_len += 1;
+                amplitude_native *= growth;
             }
         }
 
         let fine_upper = root.min(0);
         if floor <= fine_upper {
+            let (_, base_amplitude, growth, _) = body.detail_parameters();
+            let mut amplitude_native = base_amplitude;
+            for _ in fine_upper..root {
+                amplitude_native *= growth;
+            }
             for raw in (floor..=fine_upper).rev() {
                 let level =
                     SpatialScale::new(raw).expect("validated fine celestial semantic detail scale");
                 stack.fine[stack.fine_len] = Some(PreparedCelestialResidualBand {
                     level,
                     metres_per_native: level.metres_per_native(),
-                    amplitude_native: body.detail_amplitude_native(level),
+                    amplitude_native,
                     angular_frequency: 0.0,
                     seed: scale_layer_seed(body.seed ^ salt, level),
                 });
                 stack.fine_len += 1;
+                amplitude_native *= growth;
             }
         }
 

@@ -14,6 +14,7 @@
 //! - `ecs`: Shared ECS identity, manifestation, constituency, and component-conflict facilities.
 //! - `game`: Loo Cast game composition built on Spacetime Engine domains.
 //! - `geometry`: Hot-reloadable authored geometry asset/compiler/runtime facility.
+//! - `gpu`: Reusable GPU-offload coordination and asynchronous completion facilities.
 //! - `input_focus`: Generic arbitration for UI/tools that temporarily own pointer or gameplay
 //!   input.
 //! - `physics`: Physics integration owned by Spacetime Engine.
@@ -48,6 +49,7 @@ pub mod diagnostics;
 pub mod ecs;
 pub mod game;
 pub mod geometry;
+pub mod gpu;
 pub mod input_focus;
 pub mod physics;
 pub mod portal;

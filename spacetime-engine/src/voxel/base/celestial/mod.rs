@@ -16,7 +16,7 @@
 //! Reexports here define the supported surface; child modules hold its implementation.
 //!
 
-use bevy::{math::DVec3, prelude::Vec3};
+use bevy::{math::{DQuat, DVec3}, prelude::Vec3};
 
 use crate::spatial::{
     SPATIAL_SCALE_COUNT, SpatialScale, UsfPosition, UsfPositionError, UsfSemanticFrame,
@@ -112,10 +112,13 @@ pub struct CelestialFieldRealization {
 ///
 /// Scale chooses only how large each `chunk_local` step is in metres. It never
 /// selects a different terrain algorithm.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub(crate) struct PreparedCelestialVoxelSampler {
-    body: CelestialFieldRealization,
+    body: PreparedCelestialPresentationBody,
     chunk_origin_local_metres: DVec3,
+    world_to_local: DQuat,
+    metres_per_native: f64,
+    native_per_metre: f64,
 }
 
 //

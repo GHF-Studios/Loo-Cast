@@ -12,6 +12,7 @@ use crate::spatial::{UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor
 #[derive(Debug, Clone)]
 struct UsfMeshLodLevel {
     max_distance_radii: f64,
+    max_distance_native_squared: f64,
     mesh: Handle<Mesh>,
     material: Option<Handle<StandardMaterial>>,
 }
@@ -23,7 +24,6 @@ struct UsfMeshLodLevel {
 /// moons, planets, stars, asteroids, megastructures, etc.
 #[derive(Component, Debug, Clone)]
 pub struct UsfDistanceMeshLod {
-    reference_radius_native: f64,
     levels: Vec<UsfMeshLodLevel>,
     current: Option<usize>,
 }
@@ -37,6 +37,7 @@ impl UsfDistanceMeshLod {
             .into_iter()
             .map(|(max_distance_radii, mesh)| UsfMeshLodLevel {
                 max_distance_radii,
+                max_distance_native_squared: 0.0,
                 mesh,
                 material: None,
             })
@@ -49,9 +50,12 @@ impl UsfDistanceMeshLod {
             "mesh LOD reference radius must be finite and positive"
         );
         assert!(!levels.is_empty(), "mesh LOD needs at least one level");
+        for level in &mut levels {
+            let max_distance_native = level.max_distance_radii * reference_radius_native;
+            level.max_distance_native_squared = max_distance_native * max_distance_native;
+        }
 
         Self {
-            reference_radius_native,
             levels,
             current: None,
         }
@@ -67,6 +71,7 @@ impl UsfDistanceMeshLod {
             .into_iter()
             .map(|(max_distance_radii, mesh, material)| UsfMeshLodLevel {
                 max_distance_radii,
+                max_distance_native_squared: 0.0,
                 mesh,
                 material: Some(material),
             })
@@ -79,19 +84,21 @@ impl UsfDistanceMeshLod {
             "mesh LOD reference radius must be finite and positive"
         );
         assert!(!levels.is_empty(), "mesh LOD needs at least one level");
+        for level in &mut levels {
+            let max_distance_native = level.max_distance_radii * reference_radius_native;
+            level.max_distance_native_squared = max_distance_native * max_distance_native;
+        }
 
         Self {
-            reference_radius_native,
             levels,
             current: None,
         }
     }
 
-    fn level_for_distance(&self, distance_native: f64) -> usize {
-        let distance_radii = distance_native / self.reference_radius_native;
+    fn level_for_distance_squared(&self, distance_native_squared: f64) -> usize {
         self.levels
             .iter()
-            .position(|level| distance_radii <= level.max_distance_radii)
+            .position(|level| distance_native_squared <= level.max_distance_native_squared)
             .unwrap_or(self.levels.len() - 1)
     }
 }
@@ -113,12 +120,12 @@ pub(in crate::spatial) fn select_distance_mesh_lods(
         ) else {
             continue;
         };
-        let distance_native = f64::from(relative.length());
-        if !distance_native.is_finite() {
+        let distance_native_squared = f64::from(relative.length_squared());
+        if !distance_native_squared.is_finite() {
             continue;
         }
 
-        let target = lod.level_for_distance(distance_native);
+        let target = lod.level_for_distance_squared(distance_native_squared);
         if lod.current == Some(target) {
             continue;
         }

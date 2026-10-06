@@ -26,12 +26,12 @@ pub(super) fn sample_refinement_hierarchy(
 
     for raw in (current.exponent()..=SPATIAL_SCALE_MAX).rev() {
         let level = SpatialScale::new(raw).expect("validated refinement scale");
-        let exponent_delta = i32::from(level.exponent() - current.exponent());
-        let factor = 10.0_f64.powi(exponent_delta);
+        let factor = level.native_to_native_factor(current);
+        let inverse_factor = current.native_to_native_factor(level);
         let level_local = Vec3::new(
-            (local.x as f64 / factor) as f32,
-            (local.y as f64 / factor) as f32,
-            (local.z as f64 / factor) as f32,
+            (f64::from(local.x) * inverse_factor) as f32,
+            (f64::from(local.y) * inverse_factor) as f32,
+            (f64::from(local.z) * inverse_factor) as f32,
         );
         let seed = hierarchy.seeds[level.index_from_top()];
 
@@ -59,11 +59,11 @@ pub(super) fn refinement_surface_height(local: Vec2, hierarchy: ScaleRefinementH
 
     for raw in (current.exponent()..=SPATIAL_SCALE_MAX).rev() {
         let level = SpatialScale::new(raw).expect("validated refinement scale");
-        let exponent_delta = i32::from(level.exponent() - current.exponent());
-        let factor = 10.0_f64.powi(exponent_delta);
+        let factor = level.native_to_native_factor(current);
+        let inverse_factor = current.native_to_native_factor(level);
         let level_local = Vec2::new(
-            (local.x as f64 / factor) as f32,
-            (local.y as f64 / factor) as f32,
+            (f64::from(local.x) * inverse_factor) as f32,
+            (f64::from(local.y) * inverse_factor) as f32,
         );
         let seed = hierarchy.seeds[level.index_from_top()];
 

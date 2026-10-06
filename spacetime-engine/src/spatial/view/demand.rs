@@ -231,6 +231,7 @@ impl UsfViewDemand {
 pub struct UsfViewDemandSnapshot {
     revision: u64,
     entries: Vec<UsfViewDemand>,
+    scratch: Vec<UsfViewDemand>,
 }
 
 impl UsfViewDemandSnapshot {
@@ -280,6 +281,7 @@ fn capture_view_demand(
     match policy.mode() {
         UsfViewDemandMode::Frozen => return,
         UsfViewDemandMode::Disabled => {
+            snapshot.scratch.clear();
             if !snapshot.entries.is_empty() {
                 snapshot.entries.clear();
                 snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
@@ -292,7 +294,14 @@ fn capture_view_demand(
     // Bevy change ticks are intentionally not used as semantic invalidation.
     // Camera synchronization may perform idempotent mutable writes; observer
     // demand only changes when values that can alter culling actually differ.
-    let mut entries = Vec::with_capacity(views.iter().len());
+    let snapshot = &mut *snapshot;
+    snapshot.scratch.clear();
+    let view_count = views.iter().len();
+    if snapshot.scratch.capacity() < view_count {
+        // `reserve` is relative to len (zero after clear), so request the full
+        // desired cardinality rather than the capacity delta.
+        snapshot.scratch.reserve(view_count);
+    }
 
     for (source, frustum, transform, camera, projection, view) in &views {
         if !camera.is_active {
@@ -316,7 +325,7 @@ fn capture_view_demand(
                 _ => (false, None, None, None),
             };
 
-        entries.push(UsfViewDemand {
+        snapshot.scratch.push(UsfViewDemand {
             source,
             anchor: *view.anchor(),
             velocity_metres_per_second: view.velocity_metres_per_second(),
@@ -332,15 +341,19 @@ fn capture_view_demand(
         });
     }
 
-    entries.sort_by_key(|entry| entry.source.to_bits());
+    snapshot
+        .scratch
+        .sort_by_key(|entry| entry.source.to_bits());
 
-    let observer_changed = entries.len() != snapshot.entries.len()
-        || entries
+    let observer_changed = snapshot.scratch.len() != snapshot.entries.len()
+        || snapshot
+            .scratch
             .iter()
             .zip(snapshot.entries.iter())
             .any(|(next, current)| !next.same_observer_state(current));
-    let motion_changed = entries.len() == snapshot.entries.len()
-        && entries
+    let motion_changed = snapshot.scratch.len() == snapshot.entries.len()
+        && snapshot
+            .scratch
             .iter()
             .zip(snapshot.entries.iter())
             .any(|(next, current)| {
@@ -350,7 +363,7 @@ fn capture_view_demand(
     if !observer_changed && !motion_changed {
         return;
     }
-    snapshot.entries = entries;
+    std::mem::swap(&mut snapshot.entries, &mut snapshot.scratch);
     if observer_changed {
         snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
     }

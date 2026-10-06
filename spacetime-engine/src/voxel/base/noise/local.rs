@@ -3,6 +3,7 @@
 use super::*;
 
 const VALUE_NOISE_CELL_CACHE_SLOTS: usize = 16_384;
+const U32_HASH_TO_SIGNED_UNIT: f32 = 2.0 / u32::MAX as f32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ValueNoiseCellKey {
@@ -133,7 +134,7 @@ fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
     value ^= value >> 15;
     value = value.wrapping_mul(0x846C_A68B);
     value ^= value >> 16;
-    (value as f32 / u32::MAX as f32) * 2.0 - 1.0
+    value as f32 * U32_HASH_TO_SIGNED_UNIT - 1.0
 }
 
 //
@@ -165,5 +166,5 @@ fn hash_noise(x: i32, y: i32, seed: u32) -> f32 {
     value = value.wrapping_mul(0x846C_A68B);
     value ^= value >> 16;
 
-    (value as f32 / u32::MAX as f32) * 2.0 - 1.0
+    value as f32 * U32_HASH_TO_SIGNED_UNIT - 1.0
 }

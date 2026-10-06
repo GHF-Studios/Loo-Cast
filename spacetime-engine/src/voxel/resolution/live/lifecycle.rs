@@ -495,6 +495,7 @@ pub(super) fn reconcile_celestial_clipmap_realizations(
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
     mut gpu_runtime: ResMut<GpuTerrainBuilds>,
+    mut completed_gpu_builds: Local<HashSet<u64>>,
 ) {
     let Some(view) = views.iter().next() else {
         return;
@@ -540,10 +541,7 @@ pub(super) fn reconcile_celestial_clipmap_realizations(
     // RenderWorld returns only a tiny dispatch acknowledgement. This is not
     // density/geometry readback; it preserves the make-before-break projection
     // barrier before the previous committed frontier may retire.
-    let completed_gpu_builds = gpu_runtime
-        .drain_completed()
-        .into_iter()
-        .collect::<HashSet<_>>();
+    gpu_runtime.drain_completed_into(&mut completed_gpu_builds);
     let mut inflight = poll_gpu_builds(
         &mut commands,
         &mut blocks,

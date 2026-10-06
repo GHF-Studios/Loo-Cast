@@ -253,13 +253,12 @@ fn build_coarse_bands(
 
     let (frequency_factor, amplitude, growth, salt) = detail_parameters(field.profile());
     let mut count = 0usize;
+    let mut amplitude_native = amplitude;
 
     for raw in (lower..=root).rev() {
         let level = SpatialScale::new(raw)?;
         let metres_per_native = level.metres_per_native();
-        let depth = i32::from(root - raw).max(0);
-        let amplitude_native = amplitude * growth.powi(depth);
-        let angular_frequency = (field.radius_metres() / metres_per_native * frequency_factor)
+        let angular_frequency = (field.radius_metres() * level.native_per_metre() * frequency_factor)
             .max(4.0)
             .min(f64::from(f32::MAX)) as f32;
 
@@ -274,6 +273,7 @@ fn build_coarse_bands(
             seeds: UVec4::new(scale_layer_seed(field.seed() ^ salt, raw), 0, 0, 0),
         };
         count += 1;
+        amplitude_native *= growth;
     }
 
     debug_assert!(count <= MAX_COARSE_BANDS);
@@ -295,12 +295,14 @@ fn build_fine_bands(
 
     let (_, amplitude, growth, salt) = detail_parameters(field.profile());
     let mut count = 0usize;
+    let mut amplitude_native = amplitude;
+    for _ in upper..root {
+        amplitude_native *= growth;
+    }
 
     for raw in (floor..=upper).rev() {
         let level = SpatialScale::new(raw)?;
         let metres_per_native = level.metres_per_native();
-        let depth = i32::from(root - raw).max(0);
-        let amplitude_native = amplitude * growth.powi(depth);
         let band = fine_band(
             anchor_pre_fine_surface,
             level,
@@ -310,6 +312,7 @@ fn build_fine_bands(
 
         *bands.get_mut(count)? = band;
         count += 1;
+        amplitude_native *= growth;
     }
 
     debug_assert!(count <= MAX_FINE_BANDS);

@@ -110,7 +110,8 @@ fn distribute_environmental_heat(
     }
     weights.clear();
     let mut total_weight = 0.0;
-    let radius_squared = f64::from(radius_metres).powi(2);
+    let radius_metres_f64 = f64::from(radius_metres);
+    let radius_squared = radius_metres_f64 * radius_metres_f64;
     for (&target, target_positions) in positions_by_semantic {
         if target == source {
             continue;
@@ -135,9 +136,9 @@ fn distribute_environmental_heat(
             total_weight += weight;
         }
     }
-    let normalization = total_weight.max(1.0);
+    let inverse_normalization = total_weight.max(1.0).recip();
     for &(target, weight) in weights.iter() {
         *energy_by_target.entry(target).or_default() +=
-            environmental_energy * weight / normalization;
+            environmental_energy * weight * inverse_normalization;
     }
 }

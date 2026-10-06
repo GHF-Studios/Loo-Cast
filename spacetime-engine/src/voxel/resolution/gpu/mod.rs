@@ -14,10 +14,7 @@
 //! The plugin or configure entrypoint here wires the child systems and resources.
 //!
 
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    sync::{Arc, Mutex},
-};
+use std::collections::{HashMap, HashSet};
 
 use bevy::{
     asset::{AssetId, RenderAssetUsages, load_internal_asset, uuid_handle},
@@ -49,6 +46,7 @@ use render::{
 };
 
 use crate::{
+    gpu::{GpuCompletionQueue, GpuCompletionSink, GpuWorkSequence},
     spatial::{SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale},
     voxel::{
         CelestialBodyProfile, CelestialVoxelField,
@@ -169,32 +167,32 @@ impl GpuTerrainBuild {
 
 #[derive(Resource)]
 pub(crate) struct GpuTerrainBuilds {
-    next_build_id: u64,
-    completed: Arc<Mutex<VecDeque<u64>>>,
+    sequence: GpuWorkSequence,
+    completed: GpuCompletionQueue<u64>,
 }
 
 impl GpuTerrainBuilds {
     pub(crate) fn next_build_id(&mut self) -> u64 {
-        self.next_build_id = self.next_build_id.wrapping_add(1).max(1);
-        self.next_build_id
+        self.sequence.allocate()
     }
 
-    pub(crate) fn drain_completed(&self) -> Vec<u64> {
-        let mut completed = self
-            .completed
-            .lock()
-            .expect("GPU terrain completion queue poisoned");
-        completed.drain(..).collect()
+    pub(crate) fn drain_completed_into(&self, target: &mut HashSet<u64>) {
+        target.clear();
+        self.completed.drain_with(|build_id| {
+            target.insert(build_id);
+        });
     }
 }
 
 #[derive(Resource, Clone)]
-struct GpuTerrainBuildCompletionSink(Arc<Mutex<VecDeque<u64>>>);
+struct GpuTerrainBuildCompletionSink(GpuCompletionSink<u64>);
 
 #[derive(Resource, Default)]
 struct GpuTerrainBuildState {
     processed: HashMap<AssetId<Mesh>, u64>,
+    active_meshes: HashSet<AssetId<Mesh>>,
     pending: Vec<GpuTerrainBuild>,
+    completed_batch: Vec<u64>,
     extracted_blocks: usize,
 }
 
@@ -237,10 +235,10 @@ impl Plugin for GpuTerrainBackendPlugin {
             Shader::from_wgsl
         );
 
-        let completed = Arc::new(Mutex::new(VecDeque::new()));
+        let (completed, completion_sink) = GpuCompletionQueue::channel();
         app.insert_resource(GpuTerrainBuilds {
-            next_build_id: 0,
-            completed: completed.clone(),
+            sequence: GpuWorkSequence::default(),
+            completed,
         });
         app.add_plugins(ExtractComponentPlugin::<GpuTerrainBuild>::default());
 
@@ -248,7 +246,7 @@ impl Plugin for GpuTerrainBackendPlugin {
             return;
         };
         render_app
-            .insert_resource(GpuTerrainBuildCompletionSink(completed))
+            .insert_resource(GpuTerrainBuildCompletionSink(completion_sink))
             .init_resource::<GpuTerrainBuildState>()
             .add_systems(
                 RenderStartup,

@@ -47,7 +47,7 @@ pub(crate) struct PreparedProceduralVolume {
 
 impl PreparedProceduralVolume {
     #[inline]
-    pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
+    pub(crate) fn sample(&self, chunk_local: Vec3) -> VoxelSample {
         self.volume
             .sample_local(self.chunk_origin_from_world + chunk_local)
     }

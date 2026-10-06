@@ -115,14 +115,20 @@ pub(super) fn prepare_gpu_terrain_builds(
     mut failure_reported: Local<bool>,
 ) {
     state.pending.clear();
-    let active_meshes = blocks
-        .iter()
-        .map(|block| block.mesh.id())
-        .collect::<HashSet<_>>();
-    state.extracted_blocks = blocks.iter().count();
+    state.active_meshes.clear();
+    for block in &blocks {
+        state.active_meshes.insert(block.mesh.id());
+    }
+    state.extracted_blocks = state.active_meshes.len();
+
     // Completed components are removed on the main world after publication.
     // Their build IDs cannot retain render-world bookkeeping indefinitely.
-    state.processed.retain(|id, _| active_meshes.contains(id));
+    let GpuTerrainBuildState {
+        processed,
+        active_meshes,
+        ..
+    } = &mut *state;
+    processed.retain(|id, _| active_meshes.contains(id));
 
     let mut failed = None;
     let density_ready = match pipeline_cache.get_compute_pipeline_state(pipeline.density_pipeline) {
@@ -268,7 +274,8 @@ pub(super) fn execute_gpu_terrain_builds(
     let diagnostics = render_context.diagnostic_recorder();
     let diagnostics = diagnostics.as_deref();
 
-    let pending = std::mem::take(&mut state.pending);
+    let mut pending = std::mem::take(&mut state.pending);
+    state.completed_batch.clear();
     #[cfg(feature = "profiling-tracy")]
     let pending_count = pending.len();
     let mut dispatched = 0usize;
@@ -276,7 +283,7 @@ pub(super) fn execute_gpu_terrain_builds(
     let mut density_sample_calls = 0u64;
     let mut fine_band_visits = 0u64;
 
-    for block in pending {
+    for block in pending.drain(..) {
         let mesh_id = block.mesh.id();
         let Some(vertex_slice) = mesh_allocator.mesh_vertex_slice(&mesh_id) else {
             continue;
@@ -359,11 +366,14 @@ pub(super) fn execute_gpu_terrain_builds(
 
         dispatched = dispatched.saturating_add(1);
         state.processed.insert(mesh_id, block.build_id);
-        completion_sink
-            .0
-            .lock()
-            .expect("GPU terrain completion queue poisoned")
-            .push_back(block.build_id);
+        state.completed_batch.push(block.build_id);
+    }
+
+    // Preserve allocation capacity across render frames and publish the whole
+    // completion batch under one synchronization acquisition.
+    state.pending = pending;
+    if !state.completed_batch.is_empty() {
+        completion_sink.0.extend(state.completed_batch.drain(..));
     }
 
     #[cfg(feature = "profiling-tracy")]

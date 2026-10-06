@@ -156,7 +156,7 @@ impl VoxelBase {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub(crate) enum PreparedVoxelBase {
     CelestialBody(celestial::PreparedCelestialVoxelSampler),
     LocalVolume(PreparedProceduralVolume),
@@ -169,7 +169,7 @@ pub(crate) enum PreparedVoxelBase {
 
 impl PreparedVoxelBase {
     #[inline]
-    pub(crate) fn sample(self, local: Vec3) -> VoxelSample {
+    pub(crate) fn sample(&self, local: Vec3) -> VoxelSample {
         match self {
             Self::CelestialBody(body) => body.sample(local),
             Self::LocalVolume(volume) => volume.sample(local),
@@ -181,7 +181,7 @@ impl PreparedVoxelBase {
                 let Ok(point) = chunk_origin.translated(local) else {
                     return VoxelSample::empty(f32::INFINITY);
                 };
-                base.sample_in_world(world_origin, point)
+                (*base).sample_in_world(*world_origin, point)
             }
         }
     }
