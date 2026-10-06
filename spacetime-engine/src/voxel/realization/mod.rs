@@ -34,8 +34,7 @@ use crate::{
     spatial::{
         SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSnapshot,
         SpatialRefinementDemand, SpatialScale, UsfPosition, UsfRefinementPlan,
-        UsfResidencyRequests, UsfScaleLayer, UsfScaleRoleMask,
-        UsfScaleSliceMask, UsfSemanticFrame,
+        UsfResidencyRequests, UsfScaleLayer, UsfScaleRoleMask, UsfScaleSliceMask, UsfSemanticFrame,
     },
 };
 
