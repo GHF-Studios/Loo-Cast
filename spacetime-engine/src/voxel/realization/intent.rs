@@ -15,7 +15,7 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
 fn roles_for_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
-    physical_scope_scale: SpatialScale,
+    physical_target_scale: SpatialScale,
 ) -> UsfScaleRoleMask {
     // Decimal USF Scale is an interaction/numerical domain, not graphical LOD.
     // Binary voxel resolution owns automatic visual refinement.
@@ -25,7 +25,7 @@ fn roles_for_scale(
     // presentation, collision and editing capability.
     let mut roles = UsfScaleRoleMask::REALIZATION;
 
-    if target_scale != physical_scope_scale {
+    if target_scale != physical_target_scale {
         return roles;
     }
 
@@ -84,6 +84,7 @@ fn append_celestial_intents(
     authority: CelestialAuthority<'_>,
     source: VoxelDemandSource,
     motions: &SpatialDemandMotionSnapshot,
+    physical_target_scale: SpatialScale,
 ) {
     let Some(contact) = observe_celestial_contact(
         authority.origin,
@@ -119,12 +120,7 @@ fn append_celestial_intents(
                 scale,
             )),
             scope,
-            // Each explicit spatial-demand scope owns physical readiness
-            // at its own Scale. During a coverage-gated transition both the
-            // outgoing scope and semantic destination scope may coexist, giving
-            // make-before-break collision readiness without making the global
-            // interaction slice a prerequisite for its own destination.
-            roles: roles_for_scale(authority.domain, scale, source.scope.scale()),
+            roles: roles_for_scale(authority.domain, scale, physical_target_scale),
             view_source: None,
             residency_half_extent_native: materialization_residency_extent(
                 scope.half_extent_native(),
@@ -176,6 +172,7 @@ fn append_standalone_intents(
 pub(in crate::voxel) fn collect_voxel_realization_intents(
     spatial: Res<SpatialDemandSnapshot>,
     motions: Res<SpatialDemandMotionSnapshot>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     voxel_sources: Query<Option<&SpatialRefinementDemand>, With<VoxelMaterializationDemand>>,
     standalone_realizations: Query<
         (
@@ -197,10 +194,12 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
     mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
     let mut next = VoxelRealizationIntentSnapshot::default();
+    //
+    // The destination must be able to build the capability that gates entry
+    // into it. `scale()` is the committed outgoing chart; `target_scale()` is
+    // the requested destination during a handoff and therefore owns prep work.
+    let physical_target_scale = interaction.target_scale();
 
-    // Current and pending-destination scopes are explicit generic demand facts.
-    // Voxel capability ownership follows those facts rather than consulting the
-    // globally committed interaction slice and recreating a circular wait.
     let sources = collect_sources(&spatial, &voxel_sources);
 
     for (entity, origin, frame, field, domain) in &celestial_authorities {
@@ -212,7 +211,13 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
             domain: *domain,
         };
         for source in sources.iter().copied() {
-            append_celestial_intents(&mut next, authority, source, &motions);
+            append_celestial_intents(
+                &mut next,
+                authority,
+                source,
+                &motions,
+                physical_target_scale,
+            );
         }
     }
 

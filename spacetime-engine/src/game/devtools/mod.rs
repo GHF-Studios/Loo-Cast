@@ -31,10 +31,12 @@ const IDENTITY_SECTION: InspectSectionId = InspectSectionId("identity");
 mod focus;
 mod inspection;
 pub(crate) mod lab;
+mod runtime_audit;
 mod view;
 
 use focus::{handle_focus_pin, resolve_player_focus};
 use inspection::collect_identity_inspection;
+use runtime_audit::audit_primary_runtime_coherence;
 use view::resolve_developer_view;
 
 pub struct LooCastDeveloperAdaptersPlugin;
@@ -58,6 +60,10 @@ impl Plugin for LooCastDeveloperAdaptersPlugin {
         .add_systems(
             PostUpdate,
             collect_identity_inspection.in_set(DeveloperSet::CollectInspection),
+        )
+        .add_systems(
+            PostUpdate,
+            audit_primary_runtime_coherence.after(crate::spatial::UsfSpatialSet::ViewProjection),
         );
     }
 }
