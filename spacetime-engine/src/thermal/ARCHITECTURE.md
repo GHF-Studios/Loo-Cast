@@ -38,6 +38,11 @@ interact or appear in more than one spatial location.
 Runtime sample positions are converted through their Scale Slice to SI metres
 before comparing them with the physical heat radius. Split peers inherit their
 authority's slice, while unlayered samples follow the current runtime anchor.
+Those converted sample positions are disposable interaction evidence. Heat
+energy accumulates per semantic target and is applied once to its authoritative
+`ThermalBody`; no manifestation owns a separate thermal budget. The current
+global SI comparison is a local-scene approximation, not a canonical USF
+distance contract for arbitrarily distant bodies.
 
 The current propagation pass is O(n^2) over thermal semantic entities and uses
 the closest manifestation pair. That is intentionally replaceable. World chunks,
@@ -75,9 +80,9 @@ Those belong in later mechanisms layered on the same state/event boundaries.
 
 ## Developer tooling
 
-`devtools.rs` exposes structured inspection of aggregate temperature, the internal
+`devtools/inspection` exposes structured inspection of aggregate temperature, the internal
 field's minimum/maximum temperature, energy and SI material properties.
-`world_draw.rs` independently renders thermal bodies/cells and the optional
+`world_draw` independently renders thermal bodies/cells and the optional
 combustion-coupling scalar field through the engine's text-free World Draw API.
 Neither path owns thermal simulation state, and inspection remains available even
 when every thermal visualization is disabled.
@@ -89,6 +94,6 @@ presentation. `ThermalPresentationPlugin` exposes that presentation through
 `ThermalPresentationSet::Derived`, allowing a host to place it in its own
 presentation schedule without introducing a game dependency.
 
-The test game nests `ThermalSet` and `ThermalPresentationSet` directly into its
+The current Loo Cast game nests `ThermalSet` and `ThermalPresentationSet` directly into its
 schedule. Biological thermal injury is adapted to generic combat `Damage` under
 `game::combat::thermal_injury`; there is no parallel `game::thermal` namespace.

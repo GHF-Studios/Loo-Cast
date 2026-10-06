@@ -7,6 +7,7 @@
 mod generation_scope;
 mod async_pipeline;
 mod authority;
+mod celestial_field;
 mod celestial_realization;
 mod base;
 mod chunk;
@@ -29,14 +30,15 @@ mod store;
 mod streaming;
 mod world;
 
-pub use authority::{CelestialVoxelField, VoxelAuthority};
-pub(in crate::voxel) use authority::CelestialPresentationFieldSampler;
+pub use authority::VoxelAuthority;
+pub use celestial_field::CelestialVoxelField;
+pub(in crate::voxel) use celestial_field::CelestialPresentationFieldSampler;
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
     CelestialVoxelRealization, CelestialVoxelRealizationRegistry,
 };
 pub use base::{
-    CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
+    CelestialBodyProfile, CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase,
 };
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,

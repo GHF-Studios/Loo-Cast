@@ -3,10 +3,65 @@
 use super::*;
 use crate::devtools::FocusTarget;
 
-pub(super) fn transform_context_visible(target: FocusTarget, structure: &StructureSelection) -> bool {
+pub(super) fn transform_context_visible(
+    target: FocusTarget,
+    structure: &StructureSelection,
+) -> bool {
     structure
         .item_for(target)
         .map_or(true, |item| item == TRANSFORM_STRUCTURE)
+}
+
+/// One axis's handle geometry, shared by world drawing and viewport picking.
+/// Keeping these points together prevents a visible handle from drifting away
+/// from the region the editor can actually select.
+pub(super) struct AxisHandleGeometry {
+    pub(super) translate_start: Vec3,
+    pub(super) translate_end: Vec3,
+    pub(super) scale_end: Vec3,
+    ring_center: Vec3,
+    ring_a: Vec3,
+    ring_b: Vec3,
+    ring_radius: f32,
+}
+
+impl AxisHandleGeometry {
+    pub(super) fn new(
+        axis: TransformAxis,
+        origin: Vec3,
+        size: f32,
+        rotation: Quat,
+        space: EditorTransformSpace,
+    ) -> Self {
+        let translate = TransformHandle {
+            operation: TransformOperation::Translate,
+            axis,
+        };
+        let scale = TransformHandle {
+            operation: TransformOperation::Scale,
+            axis,
+        };
+        let translate_direction = handle_world_axis(translate, space, rotation);
+        let scale_direction = handle_world_axis(scale, space, rotation);
+        let (ring_a, ring_b) = ring_basis(axis, space, rotation);
+        Self {
+            translate_start: origin + translate_direction * size * 0.68,
+            translate_end: origin + translate_direction * size * 1.12,
+            scale_end: origin + scale_direction * size * 0.58,
+            ring_center: origin,
+            ring_a,
+            ring_b,
+            ring_radius: size * 0.82,
+        }
+    }
+
+    pub(super) fn ring_points(&self) -> impl Iterator<Item = Vec3> + '_ {
+        (0..=RING_SEGMENTS).map(|segment| {
+            let angle = std::f32::consts::TAU * segment as f32 / RING_SEGMENTS as f32;
+            self.ring_center
+                + (self.ring_a * angle.cos() + self.ring_b * angle.sin()) * self.ring_radius
+        })
+    }
 }
 
 pub(super) fn hit_test(
@@ -23,16 +78,12 @@ pub(super) fn hit_test(
     let mut best: Option<(f32, TransformHandle)> = None;
 
     for axis in TransformAxis::ALL {
+        let geometry = AxisHandleGeometry::new(axis, origin, size, transform.rotation, space);
         let scale_handle = TransformHandle {
             operation: TransformOperation::Scale,
             axis,
         };
-        let scale_direction = handle_world_axis(scale_handle, space, transform.rotation);
-        if let Some(point) = project(
-            camera,
-            camera_transform,
-            origin + scale_direction * size * 0.58,
-        ) {
+        if let Some(point) = project(camera, camera_transform, geometry.scale_end) {
             consider_handle(
                 &mut best,
                 cursor.distance(point),
@@ -45,18 +96,9 @@ pub(super) fn hit_test(
             operation: TransformOperation::Translate,
             axis,
         };
-        let translate_direction = handle_world_axis(translate_handle, space, transform.rotation);
         if let (Some(a), Some(b)) = (
-            project(
-                camera,
-                camera_transform,
-                origin + translate_direction * size * 0.68,
-            ),
-            project(
-                camera,
-                camera_transform,
-                origin + translate_direction * size * 1.12,
-            ),
+            project(camera, camera_transform, geometry.translate_start),
+            project(camera, camera_transform, geometry.translate_end),
         ) {
             consider_handle(
                 &mut best,
@@ -70,13 +112,12 @@ pub(super) fn hit_test(
             operation: TransformOperation::Rotate,
             axis,
         };
-        let (basis_a, basis_b) = ring_basis(axis, space, transform.rotation);
-        let radius = size * 0.82;
-        let mut previous = project(camera, camera_transform, origin + basis_a * radius);
+        let mut ring_points = geometry.ring_points();
+        let mut previous = ring_points
+            .next()
+            .and_then(|point| project(camera, camera_transform, point));
         let mut ring_distance = f32::INFINITY;
-        for segment in 1..=RING_SEGMENTS {
-            let angle = std::f32::consts::TAU * segment as f32 / RING_SEGMENTS as f32;
-            let point = origin + (basis_a * angle.cos() + basis_b * angle.sin()) * radius;
+        for point in ring_points {
             let current = project(camera, camera_transform, point);
             if let (Some(a), Some(b)) = (previous, current) {
                 ring_distance = ring_distance.min(point_segment_distance(cursor, a, b));
@@ -120,7 +161,11 @@ fn point_segment_distance(point: Vec2, a: Vec2, b: Vec2) -> f32 {
     point.distance(a + ab * t)
 }
 
-pub(super) fn project(camera: &Camera, camera_transform: &GlobalTransform, point: Vec3) -> Option<Vec2> {
+pub(super) fn project(
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    point: Vec3,
+) -> Option<Vec2> {
     camera.world_to_viewport(camera_transform, point).ok()
 }
 
@@ -139,7 +184,11 @@ fn world_axis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) 
     }
 }
 
-pub(super) fn handle_world_axis(handle: TransformHandle, space: EditorTransformSpace, rotation: Quat) -> Vec3 {
+pub(super) fn handle_world_axis(
+    handle: TransformHandle,
+    space: EditorTransformSpace,
+    rotation: Quat,
+) -> Vec3 {
     // `Transform::scale` is local-axis data. A true world-space scale operation
     // on a rotated transform would need decomposition/authority semantics beyond
     // this generic direct-runtime adapter, so scale handles deliberately remain
@@ -152,7 +201,7 @@ pub(super) fn handle_world_axis(handle: TransformHandle, space: EditorTransformS
     world_axis(handle.axis, effective_space, rotation)
 }
 
-pub(super) fn ring_basis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) -> (Vec3, Vec3) {
+fn ring_basis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) -> (Vec3, Vec3) {
     let (a, b) = match axis {
         TransformAxis::X => (Vec3::Y, Vec3::Z),
         TransformAxis::Y => (Vec3::Z, Vec3::X),

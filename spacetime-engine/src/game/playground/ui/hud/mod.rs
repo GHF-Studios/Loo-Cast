@@ -5,18 +5,9 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         GameSet,
-        health::Health,
-        inventory::Hotbar,
-        item::{ItemAction, ItemCatalog},
         control::LocalControlSubject,
-        locomotion::{
-            ControlledSubjectLocomotion, LocomotionCapabilities, LocomotionRegime,
-            LocomotionRequest, MotionKernel,
-        },
-        navigation::TravelState,
-        player::{
-            CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings,
-        },
+        health::Health,
+        locomotion::{ControlledSubjectLocomotion, MotionKernel},
         surface::SurfaceContext,
     },
     physics::character::CharacterGroundState,
@@ -26,6 +17,9 @@ use crate::{
 
 use super::creative_menu::CreativeMenuState;
 use super::hotbar::{spawn_hud_hotbar, sync_hud_hotbar};
+
+mod context_actions;
+use context_actions::update_context_actions;
 
 #[derive(Component)]
 struct Crosshair;
@@ -145,7 +139,11 @@ fn update_crosshair_visibility(
     menu: Res<CreativeMenuState>,
     mut crosshair: Single<&mut Node, With<Crosshair>>,
 ) {
-    let next = if menu.open { Display::None } else { Display::Flex };
+    let next = if menu.open {
+        Display::None
+    } else {
+        Display::Flex
+    };
     if crosshair.display != next {
         crosshair.display = next;
     }
@@ -163,9 +161,15 @@ fn update_fps_counter(
         return;
     }
     *next_update = now + 0.25;
-    let Some(children) = roots.iter().next() else { return; };
-    let Some(child) = children.iter().next() else { return; };
-    let Ok((mut text, mut color)) = texts.get_mut(child) else { return; };
+    let Some(children) = roots.iter().next() else {
+        return;
+    };
+    let Some(child) = children.iter().next() else {
+        return;
+    };
+    let Ok((mut text, mut color)) = texts.get_mut(child) else {
+        return;
+    };
 
     let fps = diagnostics.frame.fps.unwrap_or(0.0);
     let ms = diagnostics.frame.frame_time_ms.unwrap_or(0.0);
@@ -254,8 +258,16 @@ fn update_player_status(
         .map(format_hud_distance)
         .unwrap_or_else(|| "--".to_string());
 
-    let contact = if ground.is_grounded() { "GROUNDED" } else { "AIRBORNE" };
-    let surface_state = if surface.collision_ready() { "SOLID" } else { "STREAMING" };
+    let contact = if ground.is_grounded() {
+        "GROUNDED"
+    } else {
+        "AIRBORNE"
+    };
+    let surface_state = if surface.collision_ready() {
+        "SOLID"
+    } else {
+        "STREAMING"
+    };
 
     let next = format!(
         "HEALTH {health}\nON FOOT • {contact}\n{body} • AGL {agl}\nSPD {} • SURFACE {surface_state}",
@@ -282,171 +294,5 @@ fn format_hud_distance(value: f64) -> String {
         format!("{:.2} km", value / 1_000.0)
     } else {
         format!("{:.1} m", value)
-    }
-}
-
-
-fn action_binding(action: ItemAction) -> Option<PlayerAction> {
-    if action == ItemAction::PRIMARY {
-        Some(PlayerAction::ItemPrimary)
-    } else if action == ItemAction::SECONDARY {
-        Some(PlayerAction::ItemSecondary)
-    } else if action == ItemAction::RELOAD {
-        Some(PlayerAction::ItemReload)
-    } else {
-        None
-    }
-}
-
-fn update_context_actions(
-    bindings: Res<PlayerInputBindings>,
-    menu: Res<CreativeMenuState>,
-    hotbar: Res<Hotbar>,
-    catalog: Res<ItemCatalog>,
-    camera: Single<&PlayerCamera>,
-    player: Single<
-        (
-            &TravelState,
-            &ControlledSubjectLocomotion,
-            &LocomotionCapabilities,
-        ),
-        With<LocalControlSubject>,
-    >,
-    mut text: Single<&mut Text, With<ContextActionText>>,
-) {
-    if menu.open {
-        let next = format!(
-            "CREATIVE\n{:<10}Close menu",
-            bindings.label(PlayerAction::ToggleCreativeMenu),
-        );
-        if text.0 != next {
-            text.0 = next;
-        }
-        return;
-    }
-
-    let (travel, locomotion, capabilities) = player.into_inner();
-    let mut lines = Vec::<String>::with_capacity(12);
-
-    if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
-        lines.push(item.name.to_ascii_uppercase());
-        for hint in &item.action_hints {
-            if let Some(action) = action_binding(hint.action) {
-                lines.push(format!("{:<10}{}", bindings.label(action), hint.label));
-            }
-        }
-    }
-
-    let movement = bindings.movement_cluster_label();
-    let vertical = format!(
-        "{}/{}",
-        bindings.label(PlayerAction::Ascend),
-        bindings.label(PlayerAction::Descend),
-    );
-
-    match locomotion.kernel() {
-        MotionKernel::Character => {
-            lines.push(format!("{movement:<10}Move"));
-            lines.push(format!("{:<10}Jump", bindings.label(PlayerAction::Jump)));
-            lines.push(format!("{:<10}Sprint", bindings.label(PlayerAction::Sprint)));
-            lines.push(format!("{:<10}Crouch", bindings.label(PlayerAction::Crouch)));
-        }
-        MotionKernel::ThrusterFlight
-        | MotionKernel::InertialFlight
-        | MotionKernel::ScaleNavigation => {
-            lines.push(format!("{movement:<10}Flight"));
-            lines.push(format!("{vertical:<10}Vertical"));
-            lines.push(format!("{:<10}Boost", bindings.label(PlayerAction::Boost)));
-        }
-        MotionKernel::OrbitalFlight => {
-            lines.push(format!("{movement:<10}Orbital thrust"));
-            lines.push(format!("{vertical:<10}Radial thrust"));
-        }
-        MotionKernel::Cruise => {
-            lines.push(format!(
-                "{}/{}      Throttle",
-                bindings.label(PlayerAction::MoveForward),
-                bindings.label(PlayerAction::MoveBackward),
-            ));
-        }
-        MotionKernel::Disabled => {}
-    }
-
-    let cruising = locomotion.kernel() == MotionKernel::Cruise;
-    if capabilities.cruise() {
-        if cruising {
-            if travel.planetary_handoff_available {
-                lines.push(format!(
-                    "{:<10}Drop to planetary",
-                    bindings.label(PlayerAction::ToggleCruise),
-                ));
-            } else {
-                lines.push(format!(
-                    "{:<10}Disengage cruise",
-                    bindings.label(PlayerAction::ToggleCruise),
-                ));
-            }
-        } else if !travel.critical_dropout {
-            lines.push(format!(
-                "{:<10}Engage cruise",
-                bindings.label(PlayerAction::ToggleCruise),
-            ));
-        }
-    }
-
-    if capabilities.local_flight() {
-        let explicit_local_flight = locomotion.request()
-            == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
-        lines.push(format!(
-            "{:<10}{}",
-            bindings.label(PlayerAction::ToggleLocalFlight),
-            if explicit_local_flight {
-                "Release local mode"
-            } else {
-                "Local flight"
-            },
-        ));
-
-        if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
-            lines.push(format!(
-                "{:<10}Thrusters {}",
-                bindings.label(PlayerAction::ToggleThrusters),
-                if locomotion.thrusters_enabled() { "off" } else { "on" }
-            ));
-            lines.push(format!(
-                "{:<10}RCS {}",
-                bindings.label(PlayerAction::ToggleRcs),
-                if locomotion.rcs_enabled() { "off" } else { "on" }
-            ));
-        }
-    }
-
-    lines.push(format!(
-        "{:<10}{}",
-        bindings.label(PlayerAction::ToggleCameraMode),
-        match camera.mode {
-            CameraMode::FirstPerson => "Third-person view",
-            CameraMode::ThirdPerson => "First-person view",
-        },
-    ));
-
-    let hotbar = bindings.hotbar_range_label();
-    lines.push(match camera.mode {
-        CameraMode::FirstPerson => format!("{hotbar}/WHEEL Hotbar"),
-        CameraMode::ThirdPerson => format!("{hotbar:<10}Hotbar • WHEEL camera"),
-    });
-    lines.push(format!(
-        "{:<10}Creative",
-        bindings.label(PlayerAction::ToggleCreativeMenu),
-    ));
-
-    const MAX_LINES: usize = 12;
-    if lines.len() > MAX_LINES {
-        lines.truncate(MAX_LINES);
-    }
-
-    let next = lines.join("\n");
-    if text.0 != next {
-        text.0 = next;
     }
 }

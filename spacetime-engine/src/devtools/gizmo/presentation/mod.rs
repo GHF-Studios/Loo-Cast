@@ -36,52 +36,22 @@ pub(super) fn collect_transform_gizmo(
     let mut batch = WorldDrawBatch::default();
 
     for axis in TransformAxis::ALL {
-        let translate = TransformHandle {
-            operation: TransformOperation::Translate,
+        let geometry = AxisHandleGeometry::new(
             axis,
-        };
-        let scale = TransformHandle {
-            operation: TransformOperation::Scale,
-            axis,
-        };
-        let rotate = TransformHandle {
-            operation: TransformOperation::Rotate,
-            axis,
-        };
-        let translate_direction =
-            handle_world_axis(translate, settings.transform_space(), transform.rotation);
-        let scale_direction =
-            handle_world_axis(scale, settings.transform_space(), transform.rotation);
-
-        batch.arrow(
-            origin + translate_direction * size * 0.68,
-            origin + translate_direction * size * 1.12,
-            handle_color(axis, state.hovered == Some(translate), editable),
-            DrawDepth::Overlay,
-        );
-        batch.line(
             origin,
-            origin + scale_direction * size * 0.58,
-            handle_color(axis, state.hovered == Some(scale), editable),
-            DrawDepth::Overlay,
+            size,
+            transform.rotation,
+            settings.transform_space(),
         );
-        batch.cross(
-            Isometry3d::new(origin + scale_direction * size * 0.58, Quat::IDENTITY),
-            size * 0.055,
-            handle_color(axis, state.hovered == Some(scale), editable),
-            DrawDepth::Overlay,
+        draw_axis_handles(
+            &mut batch,
+            origin,
+            size,
+            axis,
+            &geometry,
+            state.hovered,
+            editable,
         );
-
-        let ring_color = handle_color(axis, state.hovered == Some(rotate), editable);
-        let (basis_a, basis_b) = ring_basis(axis, settings.transform_space(), transform.rotation);
-        let radius = size * 0.82;
-        let mut previous = origin + basis_a * radius;
-        for segment in 1..=RING_SEGMENTS {
-            let angle = std::f32::consts::TAU * segment as f32 / RING_SEGMENTS as f32;
-            let point = origin + (basis_a * angle.cos() + basis_b * angle.sin()) * radius;
-            batch.line(previous, point, ring_color, DrawDepth::Overlay);
-            previous = point;
-        }
     }
 
     batch.cross(
@@ -95,4 +65,56 @@ pub(super) fn collect_transform_gizmo(
         DrawDepth::Overlay,
     );
     frame.submit(batch);
+}
+
+/// Draw from the same handle geometry used for viewport hit testing.
+fn draw_axis_handles(
+    batch: &mut WorldDrawBatch,
+    origin: Vec3,
+    size: f32,
+    axis: TransformAxis,
+    geometry: &AxisHandleGeometry,
+    hovered: Option<TransformHandle>,
+    editable: bool,
+) {
+    let translate = TransformHandle {
+        operation: TransformOperation::Translate,
+        axis,
+    };
+    let scale = TransformHandle {
+        operation: TransformOperation::Scale,
+        axis,
+    };
+    let rotate = TransformHandle {
+        operation: TransformOperation::Rotate,
+        axis,
+    };
+    batch.arrow(
+        geometry.translate_start,
+        geometry.translate_end,
+        handle_color(axis, hovered == Some(translate), editable),
+        DrawDepth::Overlay,
+    );
+    batch.line(
+        origin,
+        geometry.scale_end,
+        handle_color(axis, hovered == Some(scale), editable),
+        DrawDepth::Overlay,
+    );
+    batch.cross(
+        Isometry3d::new(geometry.scale_end, Quat::IDENTITY),
+        size * 0.055,
+        handle_color(axis, hovered == Some(scale), editable),
+        DrawDepth::Overlay,
+    );
+
+    let ring_color = handle_color(axis, hovered == Some(rotate), editable);
+    let mut ring_points = geometry.ring_points();
+    let mut previous = ring_points
+        .next()
+        .expect("ring geometry has its first point");
+    for point in ring_points {
+        batch.line(previous, point, ring_color, DrawDepth::Overlay);
+        previous = point;
+    }
 }

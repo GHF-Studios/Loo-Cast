@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use bevy::prelude::*;
 use bevy::math::DVec3;
+use bevy::prelude::*;
 
 use crate::physics::topology::{
     SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
@@ -17,9 +17,11 @@ use super::{
 
 mod combustion;
 mod energy;
+mod heat;
 
-use combustion::{propagate_combustion_heat, update_combustion};
+use combustion::update_combustion;
 use energy::{apply_thermal_impulses, cool_thermal_bodies};
+use heat::propagate_combustion_heat;
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(

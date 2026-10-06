@@ -17,6 +17,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 
 mod command;
+mod completion;
 mod overlay;
 mod runtime_variables;
 mod transport;

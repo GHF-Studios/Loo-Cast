@@ -4,12 +4,10 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
+    physics::topology::{SpatialSplitBox, SpatialSplitPeerActive, partition_box_by_plane},
     portal::{
         PortalRigidSplitBody,
         topology::mapping::{map_transform, portal_mapping, portal_plane},
-    },
-    physics::topology::{
-        SpatialSplitBox, SpatialSplitPeerActive, partition_box_by_plane,
     },
 };
 
@@ -26,6 +24,13 @@ pub(super) struct PeerComponents<'a> {
     pub collider: &'a mut Collider,
 }
 
+/// Preparation captures the solver's initial mapped motion. Reconciliation
+/// preserves that baseline while updating the disposable peer's current pose.
+pub(super) enum SolverBaseline {
+    Capture,
+    Preserve,
+}
+
 pub(super) struct PeerMaterialization<'a> {
     pub entity: Entity,
     pub split_box: SpatialSplitBox,
@@ -34,7 +39,7 @@ pub(super) struct PeerMaterialization<'a> {
     pub authority_collider: &'a mut Collider,
     pub peer: PeerComponents<'a>,
     pub rigid_split: &'a mut PortalRigidSplitBody,
-    pub capture_solver_baseline: bool,
+    pub solver_baseline: SolverBaseline,
 }
 
 pub(super) fn materialize_peer(
@@ -50,7 +55,7 @@ pub(super) fn materialize_peer(
         authority_collider,
         peer,
         rigid_split,
-        capture_solver_baseline,
+        solver_baseline,
     } = materialization;
 
     let mapping = portal_mapping(source, destination);
@@ -58,7 +63,7 @@ pub(super) fn materialize_peer(
     peer.linear.0 = mapping.transform_vector3(authority.linear);
     peer.angular.0 = mapping.transform_vector3(authority.angular);
 
-    if capture_solver_baseline {
+    if matches!(solver_baseline, SolverBaseline::Capture) {
         rigid_split.peer_baseline_linear = peer.linear.0;
         rigid_split.peer_baseline_angular = peer.angular.0;
     }

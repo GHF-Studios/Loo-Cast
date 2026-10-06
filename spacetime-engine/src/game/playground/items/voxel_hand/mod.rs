@@ -8,14 +8,24 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame, UsfRuntimeChartState},
-    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit, VoxelFrameSnapshot, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelWorld},
+    spatial::{
+        SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfRuntimeChartState, UsfScaleLayer,
+        UsfSemanticFrame,
+    },
+    voxel::{
+        VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit,
+        VoxelFrameSnapshot, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain,
+        VoxelWorld,
+    },
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
 
 const TOOL_RANGE: f32 = 64.0;
 const BRUSH_RADIUS: f32 = 2.0;
+// Search remains local to the active Scale Slice; unprojectable distant chunks
+// are not candidate hits for this bounded hand tool.
+const MAX_CHUNK_QUERY_OFFSET_NATIVE: f32 = 1_000_000.0;
 
 pub struct VoxelHandItemPlugin;
 
@@ -64,97 +74,49 @@ fn use_voxel_hand(
         >,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    mut authorities: Query<(&UsfPosition, &UsfSemanticFrame, &mut VoxelAuthority, &VoxelScaleDomain)>,
+    mut authorities: Query<(
+        &UsfPosition,
+        &UsfSemanticFrame,
+        &mut VoxelAuthority,
+        &VoxelScaleDomain,
+    )>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
-            || (request.action != ItemAction::PRIMARY
-                && request.action != ItemAction::SECONDARY)
+            || (request.action != ItemAction::PRIMARY && request.action != ItemAction::SECONDARY)
         {
             continue;
         }
 
-        let mut nearest: Option<(Entity, Option<Entity>, VoxelQueryPosition, f32)> = None;
-        {
-            let worlds = worlds.p0();
-
-            for (world_entity, world, layer, realization) in &worlds {
-                if layer.scale() != active.scale() {
-                    continue;
-                }
-
-                let Ok(local_origin) = spatial_frame.origin().reexpressed_at(layer.scale()) else {
-                    continue;
-                };
-
-                for (address, chunk) in world.active_dense_materializations() {
-                    let Ok(chunk_translation) = address
-                        .query_origin()
-                        .usf()
-                        .relative_native_bounded(&local_origin, 1_000_000.0)
-                    else {
-                        continue;
-                    };
-                    let chunk_local_origin = request.aim.origin - chunk_translation;
-
-                    let Some(VoxelRayHit { position, distance }) =
-                        chunk.raycast(chunk_local_origin, request.aim.direction, TOOL_RANGE)
-                    else {
-                        continue;
-                    };
-                    let Ok(semantic_hit) = address.query_origin().translated(position) else {
-                        continue;
-                    };
-
-                    if nearest.is_none_or(|(_, _, _, current)| distance < current) {
-                        let authority_entity = realization
-                            .and_then(|logical| authority_partitions.get(logical.0).ok())
-                            .map(|partition| partition.0);
-                        nearest = Some((
-                            world_entity,
-                            authority_entity,
-                            semantic_hit,
-                            distance,
-                        ));
-                    }
-                }
-            }
-        }
-
-        let Some((world_entity, authority_entity, hit, _)) = nearest else {
+        let hit = {
+            let readable_worlds = worlds.p0();
+            find_voxel_hand_hit(
+                &readable_worlds,
+                &authority_partitions,
+                &spatial_frame,
+                active.scale(),
+                request.aim.origin,
+                request.aim.direction,
+            )
+        };
+        let Some(hit) = hit else {
             continue;
         };
-
-        let direction = request.aim.direction.normalize_or_zero();
-        let offset = if request.action == ItemAction::PRIMARY {
-            direction * (BRUSH_RADIUS * 0.35)
-        } else {
-            -direction * (BRUSH_RADIUS * 0.35)
-        };
-        let Ok(center) = hit.translated(offset) else {
+        let Some(edit) = voxel_hand_edit(
+            request.action,
+            request.aim.direction,
+            hit.position,
+            &keyboard,
+        ) else {
             continue;
         };
-        let brush = VoxelBrush::sphere(center, BRUSH_RADIUS);
-
-        let edit = if request.action == ItemAction::PRIMARY {
-            VoxelEdit::Remove { brush }
-        } else {
-            let control =
-                keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
-            let shift =
-                keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
-            let material = if control {
-                VoxelMaterialId::NEBULA
-            } else if shift {
-                VoxelMaterialId::GLASS
-            } else {
-                VoxelMaterialId::ROCK
-            };
-            VoxelEdit::Add { brush, material }
-        };
+        let world_entity = hit.world;
+        let authority_entity = hit.authority;
 
         if let Some(authority_entity) = authority_entity {
-            let Ok((body_origin, body_frame, mut authority, domain)) = authorities.get_mut(authority_entity) else {
+            let Ok((body_origin, body_frame, mut authority, domain)) =
+                authorities.get_mut(authority_entity)
+            else {
                 error!(
                     ?authority_entity,
                     "voxel realization points at a missing semantic authority"
@@ -166,7 +128,10 @@ fn use_voxel_hand(
             let domain = *domain;
             let edit_snapshot = VoxelFrameSnapshot::new(body_origin, body_frame, active.scale());
             let Ok(frame_edit) = VoxelFrameEdit::from_world(edit, edit_snapshot) else {
-                error!(?authority_entity, "voxel edit could not be expressed in semantic body-local coordinates");
+                error!(
+                    ?authority_entity,
+                    "voxel edit could not be expressed in semantic body-local coordinates"
+                );
                 continue;
             };
             authority.record_edit(frame_edit);
@@ -204,3 +169,100 @@ fn use_voxel_hand(
     }
 }
 
+/// Query returns one semantic hit, preserving nearest-distance tie behavior.
+/// The runtime chunk translations are disposable search data, not edit authority.
+struct VoxelHandHit {
+    world: Entity,
+    authority: Option<Entity>,
+    position: VoxelQueryPosition,
+    distance: f32,
+}
+
+fn find_voxel_hand_hit(
+    worlds: &Query<
+        (
+            Entity,
+            &VoxelWorld,
+            &UsfScaleLayer,
+            Option<&UsfLogicalRealizationOf>,
+        ),
+        Without<VoxelEditingDisabled>,
+    >,
+    authority_partitions: &Query<&UsfAuthorityPartitionOf>,
+    spatial_frame: &UsfRuntimeChartState,
+    active_scale: SpatialScale,
+    origin: Vec3,
+    direction: Vec3,
+) -> Option<VoxelHandHit> {
+    let mut nearest: Option<VoxelHandHit> = None;
+    for (world_entity, world, layer, realization) in worlds {
+        if layer.scale() != active_scale {
+            continue;
+        }
+        let Ok(local_origin) = spatial_frame.origin().reexpressed_at(layer.scale()) else {
+            continue;
+        };
+        for (address, chunk) in world.active_dense_materializations() {
+            let Ok(chunk_translation) = address
+                .query_origin()
+                .usf()
+                .relative_native_bounded(&local_origin, MAX_CHUNK_QUERY_OFFSET_NATIVE)
+            else {
+                continue;
+            };
+            let chunk_local_origin = origin - chunk_translation;
+            let Some(VoxelRayHit { position, distance }) =
+                chunk.raycast(chunk_local_origin, direction, TOOL_RANGE)
+            else {
+                continue;
+            };
+            let Ok(semantic_hit) = address.query_origin().translated(position) else {
+                continue;
+            };
+            if nearest
+                .as_ref()
+                .is_none_or(|current| distance < current.distance)
+            {
+                let authority = realization
+                    .and_then(|logical| authority_partitions.get(logical.0).ok())
+                    .map(|partition| partition.0);
+                nearest = Some(VoxelHandHit {
+                    world: world_entity,
+                    authority,
+                    position: semantic_hit,
+                    distance,
+                });
+            }
+        }
+    }
+    nearest
+}
+
+fn voxel_hand_edit(
+    action: ItemAction,
+    aim_direction: Vec3,
+    hit: VoxelQueryPosition,
+    keyboard: &ButtonInput<KeyCode>,
+) -> Option<VoxelEdit> {
+    let direction = aim_direction.normalize_or_zero();
+    let offset = if action == ItemAction::PRIMARY {
+        direction * (BRUSH_RADIUS * 0.35)
+    } else {
+        -direction * (BRUSH_RADIUS * 0.35)
+    };
+    let center = hit.translated(offset).ok()?;
+    let brush = VoxelBrush::sphere(center, BRUSH_RADIUS);
+    if action == ItemAction::PRIMARY {
+        return Some(VoxelEdit::Remove { brush });
+    }
+    let control = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
+    let shift = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+    let material = if control {
+        VoxelMaterialId::NEBULA
+    } else if shift {
+        VoxelMaterialId::GLASS
+    } else {
+        VoxelMaterialId::ROCK
+    };
+    Some(VoxelEdit::Add { brush, material })
+}

@@ -7,20 +7,61 @@ use crate::portal::simulation::split::active_portal_pair;
 
 use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
-    portal::{Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterMotor,
         topology::{SpatialSplitBox, SpatialSplitPeer},
     },
+    portal::{Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler},
     spatial::{SpatialScale, UsfScaleLayer},
 };
 
-use super::peer::{AuthorityMotion, PeerComponents, PeerMaterialization, deactivate_peer, materialize_peer};
 use super::super::split::{
     activate_split_partition, active_pair_is_valid, box_reaches_portal_this_tick,
     find_split_candidate, retire_split_partition,
 };
+use super::peer::{
+    AuthorityMotion, PeerComponents, PeerMaterialization, SolverBaseline, deactivate_peer,
+    materialize_peer,
+};
+
+/// Keep partition membership current before touching either solver collider.
+/// A peer is only materialized after this has selected a valid portal pair.
+fn refresh_split_partition(
+    commands: &mut Commands,
+    portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
+    partitions: &Query<&UsfAuthorityPartitionOf>,
+    primary: &UsfLogicalRealizationOf,
+    split: &mut PortalSplitTraveler,
+    peer_entity: Entity,
+    split_box: SpatialSplitBox,
+    body: &Transform,
+    velocity: Vec3,
+    dt: f32,
+) {
+    if let Some(active) = split.active {
+        if !active_pair_is_valid(active, portals)
+            || !box_reaches_portal_this_tick(split_box, body, velocity, dt, active.source, portals)
+        {
+            retire_split_partition(commands, split);
+        }
+    }
+
+    split.tick_start = *body;
+    if split.active.is_none()
+        && let Some((source, destination)) =
+            find_split_candidate(split_box, body, velocity, dt, portals)
+    {
+        split.active = activate_split_partition(
+            commands,
+            primary,
+            partitions,
+            peer_entity,
+            source,
+            destination,
+        );
+    }
+}
 
 pub(crate) fn prepare_rigid_splits(
     time: Res<Time<Fixed>>,
@@ -84,35 +125,18 @@ pub(crate) fn prepare_rigid_splits(
             continue;
         };
 
-        if let Some(active) = split.active {
-            if !active_pair_is_valid(active, &portals)
-                || !box_reaches_portal_this_tick(
-                    split_box,
-                    body,
-                    velocity.0,
-                    dt,
-                    active.source,
-                    &portals,
-                )
-            {
-                retire_split_partition(&mut commands, &mut split);
-            }
-        }
-
-        split.tick_start = *body;
-        if split.active.is_none()
-            && let Some((source, destination)) =
-                find_split_candidate(split_box, body, velocity.0, dt, &portals)
-        {
-            split.active = activate_split_partition(
-                &mut commands,
-                primary,
-                &partitions,
-                peer_entity,
-                source,
-                destination,
-            );
-        }
+        refresh_split_partition(
+            &mut commands,
+            &portals,
+            &partitions,
+            primary,
+            &mut split,
+            peer_entity,
+            split_box,
+            body,
+            velocity.0,
+            dt,
+        );
 
         let Some(active) = split.active else {
             deactivate_peer(
@@ -161,7 +185,7 @@ pub(crate) fn prepare_rigid_splits(
                     collider: &mut peer_collider,
                 },
                 rigid_split: &mut rigid_split,
-                capture_solver_baseline: true,
+                solver_baseline: SolverBaseline::Capture,
             },
         ) {
             deactivate_peer(

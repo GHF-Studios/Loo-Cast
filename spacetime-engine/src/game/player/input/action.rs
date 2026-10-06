@@ -1,0 +1,97 @@
+//! Semantic actions sampled from bound devices.
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum PlayerAction {
+    MoveForward,
+    MoveBackward,
+    MoveLeft,
+    MoveRight,
+    Jump,
+    Ascend,
+    Crouch,
+    Descend,
+    Sprint,
+    Boost,
+    ToggleLocalFlight,
+    ToggleThrusters,
+    ToggleRcs,
+    ToggleCruise,
+    ToggleLanding,
+    ToggleSpatialDemand,
+    ToggleCameraMode,
+    ViewScaleModifier,
+    FastModifier,
+    ItemPrimary,
+    ItemSecondary,
+    ItemReload,
+    EraseObject,
+    ToggleCreativeMenu,
+    Interact,
+    TakeOff,
+    Hotbar1,
+    Hotbar2,
+    Hotbar3,
+    Hotbar4,
+    Hotbar5,
+    Hotbar6,
+    Hotbar7,
+    Hotbar8,
+    Hotbar9,
+}
+
+impl PlayerAction {
+    pub(super) const ALL: [Self; 35] = [
+        Self::MoveForward,
+        Self::MoveBackward,
+        Self::MoveLeft,
+        Self::MoveRight,
+        Self::Jump,
+        Self::Ascend,
+        Self::Crouch,
+        Self::Descend,
+        Self::Sprint,
+        Self::Boost,
+        Self::ToggleLocalFlight,
+        Self::ToggleThrusters,
+        Self::ToggleRcs,
+        Self::ToggleCruise,
+        Self::ToggleLanding,
+        Self::ToggleSpatialDemand,
+        Self::ToggleCameraMode,
+        Self::ViewScaleModifier,
+        Self::FastModifier,
+        Self::ItemPrimary,
+        Self::ItemSecondary,
+        Self::ItemReload,
+        Self::EraseObject,
+        Self::ToggleCreativeMenu,
+        Self::Interact,
+        Self::TakeOff,
+        Self::Hotbar1,
+        Self::Hotbar2,
+        Self::Hotbar3,
+        Self::Hotbar4,
+        Self::Hotbar5,
+        Self::Hotbar6,
+        Self::Hotbar7,
+        Self::Hotbar8,
+        Self::Hotbar9,
+    ];
+
+    pub(super) const HOTBAR: [Self; 9] = [
+        Self::Hotbar1,
+        Self::Hotbar2,
+        Self::Hotbar3,
+        Self::Hotbar4,
+        Self::Hotbar5,
+        Self::Hotbar6,
+        Self::Hotbar7,
+        Self::Hotbar8,
+        Self::Hotbar9,
+    ];
+
+    pub(super) const fn bit(self) -> u64 {
+        1_u64 << self as u8
+    }
+}

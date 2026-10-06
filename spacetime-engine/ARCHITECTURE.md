@@ -18,10 +18,28 @@ A runtime chart rebase changes representation only. Spatial preflight and the
 physics backend resolve direct and attached-body Scale Slice membership through
 the same rule before any origin shift is applied.
 
+Canonical position construction, balanced carry arithmetic, bounded relative projection,
+and decimal display live in separate USF position owners. A projected number is a
+bounded adapter, never a replacement for the digit stack.
+
 Runtime interactions must resolve Scale Slice membership before comparing
 positions or converting physical distances. A split peer inherits its
 authoritative realization's slice; unlayered runtime samples follow the chart
 anchor. Authored motion bases follow rebases alongside their transforms.
+
+Spatial transition requests and continuous interaction requirements carry the
+same destination coverage contract. Admission reads realized coverage and
+backend veto evidence; applying an admitted transition alone reanchors the
+runtime chart and publishes the transition message. View context publishes a
+coherent semantic/runtime/render observer snapshot without granting view state
+authority over the interaction slice.
+
+Canonical context residency is an ancestor-closed runtime responsibility
+snapshot. Demand is normalized to discrete context ranges before rebuilding
+that graph; movement inside the same ranges does not revise residency. Travel
+influences are semantic navigation hints: boundary providers refine hard-body
+distance, while the observer-local neighborhood cache selects candidates and
+refreshes independently of collision or presentation authority.
 
 ## Terrain presentation and work
 
@@ -40,6 +58,16 @@ projection barrier.
 GPU build admission rotates across authorities when frame limits are reached;
 render-side processed build records are retired with their extracted blocks.
 The admission limits bound work submission, not total GPU memory residency.
+Clipmap publication advances in order: derive plan input, settle the plan,
+admit bounded GPU work, receive a dispatch acknowledgment, project new shells,
+then commit the complete frontier and retire old shells. The acknowledgment
+alone never satisfies the projection barrier.
+
+The live binary clipmap separates semantic-field planning, balanced frontier
+transactions, GPU work admission/publication, and view projection. Its registry
+and coverage snapshots are reconstructible presentation state. GPU descriptor
+projection consumes one bounded block chart; render-world dispatch owns buffers,
+pipelines and acknowledgments.
 
 The resolution domain separates dyadic block topology, field classification,
 and body-local view demand. The field cache is keyed by the canonical field and block; it does not
@@ -57,6 +85,29 @@ layout. Numeric agreement is domain-limited by descriptor projection and f32
 evaluation, and bitwise CPU/GPU parity is not assumed. Edited authorities
 currently stay on the dense presentation path until an edit-aware GPU snapshot
 exists.
+
+Voxel streaming converts semantic demand into ranked materialization work.
+Motion prediction biases a bounded sparse tube; it does not define canonical
+residency. Region traversal, hot/warm reconciliation and work ranking have
+separate owners. Local cached value noise and canonical lattice noise likewise
+remain distinct; exact corner hashing, worker caches and diagnostics cannot
+change field identity.
+
+Voxel realization translates generic spatial demand into capability intent.
+Celestial contact observation measures the semantic field and canonical motion;
+its bounded scopes feed a sorted intent snapshot and canonical residency
+requests. A separate resolver maps authority-and-Scale intent to disposable
+voxel worlds. Snapshot ordering is owned by the snapshot, not by ECS systems.
+
+The semantic `CelestialVoxelField` owns the authored radius, profile, seed and
+terrain bandwidth. `CelestialFieldRealization` adapts that field to one bounded
+Scale Slice for voxel sampling; its Scale does not select another planet.
+Rocky morphology is composed of keyed features introduced at semantic Scales.
+Those Scales describe when a feature enters refinement, while the feature's
+recipe owns its shape and conservative bounds. Prepared presentation sampling
+may cache Scale-derived parameters but uses the same residual noise law as
+canonical field evaluation. The descriptive `worldgen` registry is separate:
+it does not currently construct or replace the live celestial field.
 
 Worker tickets distinguish pending output from terminal failure. A failed
 generation reservation and a failed surface derivation remain unavailable;
@@ -77,6 +128,50 @@ independent concerns such as:
 
 `mod.rs` should primarily document, compose, and re-export a subsystem. It
 should not become the subsystem implementation.
+
+The game adapters keep their model, runtime transaction, and presentation
+owners distinct. Local control transfers semantic ownership before its view
+focus adapter requests a chart handoff. Navigation travel profiles belong to
+the subject; automatic presentation state belongs to the view. Player input
+bindings translate devices to actions, while the sampled frame is the only
+hardware snapshot consumed by gameplay. Flight telemetry observes resolved
+locomotion, navigation, surface, and safety state.
+The authored binding registry supplies defaults through the same mutable
+binding API used by the console; command dispatch alone reads console binds
+after focus arbitration. Debug freecam settings, local motion, and the
+reversible view-only observer override are separate owners. Console
+observation commands report position, presentation readiness, or runtime
+history without mutating simulation authority.
+Camera profiles are target-owned intent; local pose, contextual projection,
+self visibility and physical FOV resolve that intent in presentation. The
+script workbench owns document actions and committed revisions; its explorer
+and editor issue actions and display current state.
+Controlled flight resolves intent to a canonical SI velocity in its policy
+module. Cruise owns throttle/steering policy; the commit adapter alone crosses
+between semantic USF position, bounded runtime pose and local collision.
+
+Spacecraft boarding proves physical SI reach across runtime Scale Slices before
+requesting a semantic control transfer. Disembark proves a walkable standing
+pose before mutating player position, constituency, or control. The flight HUD
+only formats resolved telemetry and owns its presentation refresh cadence.
+
+Developer scripts use a draft → compiled candidate → committed revision
+lifecycle. The document owns that transition; the workspace owns live/default
+storage and open documents; console and editor code are adapters. A compiled
+candidate is never runtime authority until committed. Canonical collision
+query contracts and their frame journal are separate from ECS collection and
+provider scheduling; a candidate is evidence, not a collision response.
+Collision topology keeps authored stencil state and a change-driven host index;
+the reconciliation system alone replaces Avian colliders. Rectangular stencil
+fitting corrects placement against a cuboid face, while the strict support
+predicate only validates an unchanged placement. Both use the same face-axis
+geometry without moving portal policy into the collision layer.
+
+Developer Lab presets compose typed runtime-variable adapters. A preset
+transaction captures previous effective values, rebuilds from baselines and
+active assignments, and commits active state only after setters succeed.
+Clearing a preset restores all captured baselines before dropping paths no
+longer controlled by any active preset.
 
 Meaningful domain/concept modules get explicit named module boundaries: for
 example `physics`, `worldgen`, `player`, `portal`, or `voxel`. Generic role

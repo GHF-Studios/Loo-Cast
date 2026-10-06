@@ -53,16 +53,12 @@ pub(in crate::spatial) fn sync_view_context(
         };
 
     let (render_anchor, mut view) = observer.into_inner();
-    if view.anchor != canonical
-        || view.runtime_anchor != runtime_translation
-        || view.render_anchor != render_anchor.translation
-        || view.velocity_metres_per_second != velocity_metres_per_second
-    {
-        view.anchor = canonical;
-        view.runtime_anchor = runtime_translation;
-        view.render_anchor = render_anchor.translation;
-        view.velocity_metres_per_second = velocity_metres_per_second;
-    }
+    view.sync_observer(
+        canonical,
+        runtime_translation,
+        render_anchor.translation,
+        velocity_metres_per_second,
+    );
 }
 
 

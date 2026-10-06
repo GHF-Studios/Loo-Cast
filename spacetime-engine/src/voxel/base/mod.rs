@@ -14,7 +14,7 @@ mod terrain;
 mod celestial;
 mod volume;
 
-pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
+pub use celestial::{CelestialBodyProfile, CelestialFieldRealization};
 pub(crate) use celestial::{
     CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES,
     CelestialFieldSample, PreparedCelestialPresentationBody,
@@ -38,7 +38,7 @@ pub enum VoxelBase {
         material: VoxelMaterialId,
     },
     /// Spherical celestial-body baseline sampled by the ordinary voxel pipeline.
-    CelestialBody(ProceduralCelestialBody),
+    CelestialBody(CelestialFieldRealization),
     /// Active local-world base: genuine 3D density/material field.
     Volume(ProceduralVolume),
     /// Legacy/reference heightfield retained for tests and compatibility.
@@ -79,7 +79,7 @@ impl VoxelBase {
         Self::Terrain(ProceduralTerrain::new(seed))
     }
 
-    pub const fn celestial_body(body: ProceduralCelestialBody) -> Self {
+    pub const fn celestial_body(body: CelestialFieldRealization) -> Self {
         Self::CelestialBody(body)
     }
 
@@ -151,7 +151,7 @@ impl VoxelBase {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum PreparedVoxelBase {
-    CelestialBody(celestial::PreparedProceduralCelestialBody),
+    CelestialBody(celestial::PreparedCelestialVoxelSampler),
     LocalVolume(PreparedProceduralVolume),
     Canonical {
         base: VoxelBase,

@@ -9,9 +9,7 @@ use bevy::prelude::*;
 
 use crate::{
     physics::{
-        PhysicalBoxHull,
-        slice::UsfPhysicsSlices,
-        character::CharacterDimensions,
+        PhysicalBoxHull, character::CharacterDimensions, slice::UsfPhysicsSlices,
         topology::KinematicQueryExclusions,
     },
     portal::PortalTraveler,
@@ -63,68 +61,50 @@ pub fn update_stance(
 
     let (character_kernel, dead, crouched, detailed_slice) = {
         let player = params.p2();
-        let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) =
-            player.into_inner();
+        let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) = player.into_inner();
         (
-            locomotion.kernel() == MotionKernel::Character
-                && layer.scale() == detailed.0,
+            locomotion.kernel() == MotionKernel::Character && layer.scale() == detailed.0,
             dead.is_some(),
             stance.crouched,
             layer.scale() == detailed.0,
         )
     };
 
-    if dead
-        || !character_kernel
-        || !detailed_slice
-        || wants_crouch == crouched
-    {
+    if dead || !character_kernel || !detailed_slice || wants_crouch == crouched {
         return;
     }
 
-    let center_delta_metres =
-        CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
-
     if wants_crouch {
         let player = params.p2();
-        let (
-            _,
-            mut body,
-            collider,
-            layer,
-            _,
-            mut stance,
-            _,
-            _,
-            mut traveler,
-            mut hull,
-            _,
-        ) = player.into_inner();
+        let (_, mut body, collider, layer, _, mut stance, _, _, mut traveler, mut hull, _) =
+            player.into_inner();
         let Some(mut collider) = collider else {
             return;
         };
 
-        let up = physical_up(&body);
-        let center_delta_native =
-            layer.scale().metres_to_native_f32(center_delta_metres);
-        body.translation -= up * center_delta_native;
-
-        let crouching = CharacterDimensions::crouching_hull();
-        *collider = crouching.collider(layer.scale());
-        *hull = crouching;
-        stance.crouched = true;
-        traveler.commit_position(body.translation);
+        let center = stance_center(&body, layer.scale(), true);
+        let next_hull = CharacterDimensions::crouching_hull();
+        let next_collider = next_hull.collider(layer.scale());
+        apply_stance(
+            &mut body,
+            &mut collider,
+            &mut stance,
+            &mut traveler,
+            &mut hull,
+            center,
+            next_hull,
+            next_collider,
+            true,
+        );
         return;
     }
 
     let (entity, target_center, rotation, scale, excluded) = {
         let player = params.p2();
         let (entity, body, _, layer, _, _, _, _, _, _, exclusions) = player.into_inner();
-        let center_delta_native =
-            layer.scale().metres_to_native_f32(center_delta_metres);
         (
             entity,
-            body.translation + physical_up(&body) * center_delta_native,
+            stance_center(&body, layer.scale(), false),
             body.rotation,
             layer.scale(),
             exclusions
@@ -148,28 +128,49 @@ pub fn update_stance(
     }
 
     let player = params.p2();
-    let (
-        _,
-        mut body,
-        collider,
-        _,
-        _,
-        mut stance,
-        _,
-        _,
-        mut traveler,
-        mut hull,
-        _,
-    ) = player.into_inner();
+    let (_, mut body, collider, _, _, mut stance, _, _, mut traveler, mut hull, _) =
+        player.into_inner();
     let Some(mut collider) = collider else {
         return;
     };
 
-    body.translation = target_center;
-    *collider = standing;
-    *hull = standing_hull;
-    stance.crouched = false;
-    traveler.commit_position(body.translation);
+    apply_stance(
+        &mut body,
+        &mut collider,
+        &mut stance,
+        &mut traveler,
+        &mut hull,
+        target_center,
+        standing_hull,
+        standing,
+        false,
+    );
+}
+
+/// A stance commit changes the physical hull and its backend realization in
+/// the same operation, then updates the traveler's cached local position.
+fn apply_stance(
+    body: &mut Transform,
+    collider: &mut Collider,
+    stance: &mut CharacterStance,
+    traveler: &mut PortalTraveler,
+    hull: &mut PhysicalBoxHull,
+    center: Vec3,
+    next_hull: PhysicalBoxHull,
+    next_collider: Collider,
+    crouched: bool,
+) {
+    body.translation = center;
+    *collider = next_collider;
+    *hull = next_hull;
+    stance.crouched = crouched;
+    traveler.commit_position(center);
+}
+
+fn stance_center(body: &Transform, scale: crate::spatial::SpatialScale, crouched: bool) -> Vec3 {
+    let delta_metres = CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
+    let direction = if crouched { -1.0 } else { 1.0 };
+    body.translation + physical_up(body) * scale.metres_to_native_f32(delta_metres) * direction
 }
 
 fn physical_up(body: &Transform) -> Vec3 {

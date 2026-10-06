@@ -2,6 +2,13 @@
 
 use super::*;
 
+const SHIP_SIZE: Vec3 = Vec3::new(4.0, 2.0, 8.0);
+const SHIP_PROXY_CLEARANCE_METRES: f32 = 0.08;
+// Authored in physical metres. Recharting S0 -> S+1 must not turn this into a
+// ~960x640x960-metre half-extent.
+const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
+const SHIP_DEMAND_PRIORITY: i32 = 120;
+
 pub(super) fn spawn_reference_spacecraft(
     world: Res<State<GameWorld>>,
     existing_ships: Query<(), With<SpacecraftManifestation>>,
@@ -75,6 +82,35 @@ pub(super) fn spawn_reference_spacecraft(
         ))
         .id();
 
+    let ship = spawn_ship_manifestation(&mut commands, ship_partition, body_layer, body_transform);
+    spawn_ship_model(&mut commands, ship, &mut meshes, &mut materials);
+
+    commands
+        .entity(player_semantic)
+        .insert(UsfConstituentOf(semantic_ship));
+    commands
+        .entity(body_entity)
+        .remove::<Collider>()
+        .remove::<CharacterMotor>();
+
+    body_demand.set_enabled(false);
+    body_enabled.0 = false;
+    *body_visibility = Visibility::Hidden;
+
+    // Initial piloting is a normal control transaction. Vehicle code never
+    // mutates global LocalControlSubject / LocalViewTarget / UsfViewAnchor /
+    // UsfInteractionProjection ownership directly.
+    control_transfers.write(LocalControlTransferRequest::new(player_semantic, ship));
+}
+
+/// Assemble the initial runtime realization. Component groups remain explicit
+/// here so identity, movement, physics and travel share the same manifestation.
+fn spawn_ship_manifestation(
+    commands: &mut Commands,
+    ship_partition: Entity,
+    body_layer: &UsfScaleLayer,
+    body_transform: &Transform,
+) -> Entity {
     let mut locomotion = ControlledSubjectLocomotion::default();
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(true);
@@ -85,7 +121,7 @@ pub(super) fn spawn_reference_spacecraft(
     let ship_interaction_scale =
         SpatialScale::new(1).expect("reference spacecraft S+1 is a valid USF Scale");
 
-    let ship = commands
+    commands
         .spawn((
             (
                 Name::new("Reference Spacecraft Manifestation"),
@@ -153,8 +189,16 @@ pub(super) fn spawn_reference_spacecraft(
                     .with_rotation(body_transform.rotation),
             ),
         ))
-        .id();
+        .id()
+}
 
+/// Keep the visible model disposable and parented to the ship realization.
+fn spawn_ship_model(
+    commands: &mut Commands,
+    ship: Entity,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+) {
     commands.entity(ship).with_children(|parent| {
         parent.spawn((
             Name::new("Reference Spacecraft Model"),
@@ -172,21 +216,4 @@ pub(super) fn spawn_reference_spacecraft(
             Visibility::Inherited,
         ));
     });
-
-    commands
-        .entity(player_semantic)
-        .insert(UsfConstituentOf(semantic_ship));
-    commands
-        .entity(body_entity)
-        .remove::<Collider>()
-        .remove::<CharacterMotor>();
-
-    body_demand.set_enabled(false);
-    body_enabled.0 = false;
-    *body_visibility = Visibility::Hidden;
-
-    // Initial piloting is a normal control transaction. Vehicle code never
-    // mutates global LocalControlSubject / LocalViewTarget / UsfViewAnchor /
-    // UsfInteractionProjection ownership directly.
-    control_transfers.write(LocalControlTransferRequest::new(player_semantic, ship));
 }

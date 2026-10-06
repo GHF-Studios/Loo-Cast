@@ -9,21 +9,20 @@ use bevy::prelude::*;
 use crate::portal::simulation::split::active_portal_pair;
 
 use crate::{
-    portal::{
-        Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler,
-    },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterMotor,
         topology::{SpatialSplitBox, SpatialSplitPeer},
     },
+    portal::{Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler},
     spatial::{SpatialScale, UsfScaleLayer},
 };
 
-use super::peer::{
-    AuthorityMotion, PeerComponents, PeerMaterialization, deactivate_peer, materialize_peer,
-};
 use super::super::split::retire_split_partition;
+use super::peer::{
+    AuthorityMotion, PeerComponents, PeerMaterialization, SolverBaseline, deactivate_peer,
+    materialize_peer,
+};
 
 mod completion;
 mod crossing;
@@ -108,8 +107,8 @@ pub(crate) fn reconcile_rigid_splits(
                 &mut rigid_split,
             );
         } else if let Some(active) = split.active {
-            let materialized = active_portal_pair(active, &portals)
-                .is_some_and(|(_, source, destination)| {
+            let materialized =
+                active_portal_pair(active, &portals).is_some_and(|(_, source, destination)| {
                     materialize_peer(
                         &mut commands,
                         AuthorityMotion {
@@ -130,7 +129,7 @@ pub(crate) fn reconcile_rigid_splits(
                                 collider: &mut peer_collider,
                             },
                             rigid_split: &mut rigid_split,
-                            capture_solver_baseline: false,
+                            solver_baseline: SolverBaseline::Preserve,
                         },
                     )
                 });

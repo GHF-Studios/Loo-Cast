@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 
-use crate::physics::gravity::GravitySample;
+mod systems;
 
-use super::{CharacterGroundState, CharacterMotor};
+pub(super) use systems::{
+    settle_character_control_frames, sync_character_body_alignment,
+    sync_gravity_aligned_locomotion_frames,
+};
 
 const FRAME_EPSILON: f32 = 1.0e-6;
 
@@ -66,7 +69,6 @@ impl CharacterLocomotionFrame {
     }
 }
 
-
 /// Opts a locomotion frame into gravity-derived `up`.
 ///
 /// The marker keeps the policy explicit: future magnetic boots, artificial
@@ -75,49 +77,6 @@ impl CharacterLocomotionFrame {
 #[derive(Component, Reflect, Clone, Copy, Debug, Default)]
 #[reflect(Component)]
 pub struct GravityAlignedLocomotionFrame;
-
-pub(super) fn sync_gravity_aligned_locomotion_frames(
-    mut frames: Query<
-        (&GravitySample, &mut CharacterLocomotionFrame),
-        With<GravityAlignedLocomotionFrame>,
-    >,
-) {
-    for (gravity, mut frame) in &mut frames {
-        let acceleration = gravity.acceleration_metres_per_second2();
-        if acceleration.length_squared() <= 1.0e-12 {
-            continue;
-        }
-
-        let down = Vec3::new(
-            acceleration.x as f32,
-            acceleration.y as f32,
-            acceleration.z as f32,
-        )
-        .normalize_or_zero();
-        if down != Vec3::ZERO {
-            frame.up = -down;
-        }
-    }
-}
-
-pub(super) fn sync_character_body_alignment(
-    mut characters: Query<
-        (
-            &CharacterLocomotionFrame,
-            &CharacterGroundState,
-            &mut CharacterControlFrame,
-            &mut Transform,
-        ),
-        With<CharacterMotor>,
-    >,
-) {
-    for (frame, ground, mut control, mut transform) in &mut characters {
-        control.follow_locomotion_frame(frame);
-        if ground.is_grounded() {
-            transform.rotation = frame.aligned_rotation(transform.rotation);
-        }
-    }
-}
 
 /// World-space basis used by view and locomotion input.
 ///
@@ -215,7 +174,7 @@ impl CharacterControlFrame {
         smoothstep((settle.elapsed / settle.input_blend_duration).clamp(0.0, 1.0))
     }
 
-    fn tick(&mut self, dt: f32) {
+    pub(super) fn tick(&mut self, dt: f32) {
         let Some(mut settle) = self.settle else {
             return;
         };
@@ -230,15 +189,6 @@ impl CharacterControlFrame {
         } else {
             self.settle = Some(settle);
         }
-    }
-}
-
-pub(super) fn settle_character_control_frames(
-    time: Res<Time>,
-    mut frames: Query<&mut CharacterControlFrame>,
-) {
-    for mut frame in &mut frames {
-        frame.tick(time.delta_secs());
     }
 }
 

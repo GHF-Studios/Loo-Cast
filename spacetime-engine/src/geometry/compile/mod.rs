@@ -6,96 +6,19 @@ use super::asset::{
     StepSweepDef, V2, V3,
 };
 
-#[derive(Debug, Clone)]
-pub(super) enum CompiledNode {
-    Geometry(CompiledGeometry),
-    Marker(CompiledMarker),
-    PointLight(CompiledPointLight),
-    DirectionalLight(CompiledDirectionalLight),
-}
+mod model;
 
-#[derive(Debug, Clone)]
-pub(super) struct CompiledGeometry {
-    pub id: String,
-    pub zone: String,
-    pub tags: Vec<String>,
-    pub transform: Transform,
-    pub shape: CompiledShape,
-    pub material: String,
-    pub solid: bool,
-    pub motion: Option<CompiledMotion>,
-}
-
-#[derive(Debug, Clone)]
-pub(super) enum CompiledShape {
-    Box {
-        size: Vec3,
-    },
-    Cylinder {
-        radius: f32,
-        height: f32,
-    },
-    Sphere {
-        radius: f32,
-    },
-    Capsule {
-        radius: f32,
-        length: f32,
-    },
-    ConvexPrism {
-        cross_section: Vec<Vec2>,
-        depth: f32,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct CompiledMotion {
-    pub travel: Vec3,
-    pub period_seconds: f32,
-    pub phase: f32,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct CompiledMarker {
-    pub id: String,
-    pub zone: String,
-    pub kind: String,
-    pub tags: Vec<String>,
-    pub transform: Transform,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct CompiledPointLight {
-    pub id: String,
-    pub zone: String,
-    pub position: Vec3,
-    pub color: Color,
-    pub intensity: f32,
-    pub range: f32,
-    pub shadows: bool,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct CompiledDirectionalLight {
-    pub id: String,
-    pub zone: String,
-    pub rotation: Quat,
-    pub color: Color,
-    pub illuminance: f32,
-    pub shadows: bool,
-}
+pub(super) use model::*;
 
 mod generators;
 mod lighting;
 mod primitives;
 
-use generators::{
-    compile_pillar_grid, compile_slope_sweep, compile_staircase, compile_step_sweep,
-};
+use generators::{compile_pillar_grid, compile_slope_sweep, compile_staircase, compile_step_sweep};
 use lighting::{compile_directional_light, compile_point_light};
 use primitives::{
-    compile_box, compile_capsule, compile_convex_prism, compile_cylinder,
-    compile_moving_box, compile_ramp, compile_sphere,
+    compile_box, compile_capsule, compile_convex_prism, compile_cylinder, compile_moving_box,
+    compile_ramp, compile_sphere,
 };
 
 pub(super) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {

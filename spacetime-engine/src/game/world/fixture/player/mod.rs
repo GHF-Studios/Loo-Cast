@@ -12,8 +12,7 @@ use crate::{
         control::LocalControlSubject,
         flight::FlightContactState,
         locomotion::{
-            ControlledSubjectLocomotion, LocomotionInhibition,
-            LocomotionInhibitionReason,
+            ControlledSubjectLocomotion, LocomotionInhibition, LocomotionInhibitionReason,
         },
     },
     physics::{
@@ -21,19 +20,95 @@ use crate::{
         character::{CharacterControlFrame, CharacterLocomotionFrame},
     },
     portal::PortalTraveler,
-    voxel::CelestialVoxelField,
     spatial::{
-        SpatialRefinementDemand, UsfCanonicalMotion, UsfInteractionScaleAffinity,
-        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfRuntimeChartState,
-        UsfSpatialTransition,
+        SpatialRefinementDemand, SpatialScale, UsfCanonicalMotion, UsfInteractionScaleAffinity,
+        UsfPosition, UsfRuntimeChartState, UsfScaleLayer, UsfSemanticFrame, UsfSpatialTransition,
         UsfSpatialTransitionQueue, UsfTransitionVelocity,
     },
+    voxel::CelestialVoxelField,
 };
 
-use super::{FixtureArrivalSite, spawn::resolve_good_spawn};
+use super::{BodySurfaceSite, FixtureArrivalSite, spawn::resolve_good_spawn};
 
 const FIXTURE_SPAWN_GAP_METRES: f32 = 0.75;
 const FIXTURE_SPACECRAFT_AIR_GAP_METRES: f32 = 25.0;
+
+/// Canonical placement is derived from the authored surface and physical hull;
+/// the runtime point is only its projection in the current bootstrap chart.
+struct FixtureArrivalPlacement {
+    site: BodySurfaceSite,
+    canonical: UsfPosition,
+    runtime_position: Vec3,
+    support_metres: f32,
+    gap_metres: f32,
+}
+
+enum FixtureArrivalError {
+    Offset,
+    Projection,
+}
+
+impl FixtureArrivalPlacement {
+    fn resolve(
+        site: BodySurfaceSite,
+        hull: PhysicalBoxHull,
+        aligned: Quat,
+        spacecraft: bool,
+        chart_origin: &UsfPosition,
+        subject_scale: SpatialScale,
+    ) -> Result<Self, FixtureArrivalError> {
+        let support_metres = hull.projection_radius_metres(aligned, site.up());
+        let gap_metres = if spacecraft {
+            FIXTURE_SPACECRAFT_AIR_GAP_METRES
+        } else {
+            FIXTURE_SPAWN_GAP_METRES
+        };
+        let clearance_native = site
+            .scale()
+            .metres_to_native_f32(support_metres + gap_metres);
+        let canonical = site
+            .surface()
+            .translated_at_scale(site.scale(), site.up() * clearance_native)
+            .map_err(|_| FixtureArrivalError::Offset)?;
+        let runtime_position = canonical
+            .relative_at_scale_bounded(chart_origin, subject_scale, f32::MAX)
+            .map_err(|_| FixtureArrivalError::Projection)?;
+        Ok(Self {
+            site,
+            canonical,
+            runtime_position,
+            support_metres,
+            gap_metres,
+        })
+    }
+
+    /// The site chooses position and initial view scale. The controlled
+    /// manifestation's affinity owns interaction scale and coverage roles.
+    /// Using the site's scale here previously requeued an S0 transition for
+    /// an S+1 flight subject indefinitely.
+    fn transition(
+        &self,
+        subject: Entity,
+        affinity: &UsfInteractionScaleAffinity,
+        hull: PhysicalBoxHull,
+    ) -> UsfSpatialTransition {
+        let interaction_scale = affinity.scale();
+        let mut transition =
+            UsfSpatialTransition::new(subject, self.canonical, UsfTransitionVelocity::Zero)
+                .with_scale(interaction_scale)
+                .with_view_exponent(f32::from(self.site.scale().exponent()));
+        let roles = affinity.required_roles();
+        if !roles.is_empty() {
+            let coverage_metres = hull.half_extents_metres().length() + self.gap_metres;
+            transition = transition.requiring_coverage_from(
+                self.site.body(),
+                roles,
+                interaction_scale.metres_to_native_f32(coverage_metres),
+            );
+        }
+        transition
+    }
+}
 
 pub(super) fn prepare_controlled_subject(
     arrival_site: Res<FixtureArrivalSite>,
@@ -86,10 +161,10 @@ pub(super) fn prepare_controlled_subject(
         return;
     };
 
-    let Ok((body_origin, body_frame, field)) =
-        positions.p1().get(authored_site.body()).map(|(origin, frame, field)| {
-            (*origin, *frame, *field)
-        })
+    let Ok((body_origin, body_frame, field)) = positions
+        .p1()
+        .get(authored_site.body())
+        .map(|(origin, frame, field)| (*origin, *frame, *field))
     else {
         error!(
             body = ?authored_site.body(),
@@ -98,13 +173,8 @@ pub(super) fn prepare_controlled_subject(
         return;
     };
 
-    let Some(site) = resolve_good_spawn(
-        authored_site,
-        body_origin,
-        body_frame,
-        field,
-        *hull,
-    ) else {
+    let Some(site) = resolve_good_spawn(authored_site, body_origin, body_frame, field, *hull)
+    else {
         error!(
             body = ?authored_site.body(),
             "fixture bootstrap could not resolve a safe canonical spawn near the authored hint"
@@ -125,35 +195,29 @@ pub(super) fn prepare_controlled_subject(
     transform.rotation = aligned;
     control.snap_to(aligned);
 
-    // Generic oriented-body support radius, in metres.
-    let support_metres = hull.projection_radius_metres(aligned, site.up());
-    let spawn_gap_metres = if flight_contact.is_some() {
-        FIXTURE_SPACECRAFT_AIR_GAP_METRES
-    } else {
-        FIXTURE_SPAWN_GAP_METRES
-    };
-    let clearance_metres = support_metres + spawn_gap_metres;
-    let clearance_native = site.scale().metres_to_native_f32(clearance_metres);
-
-    let Ok(canonical) = site
-        .surface()
-        .translated_at_scale(site.scale(), site.up() * clearance_native)
-    else {
-        error!("fixture bootstrap could not offset its body-surface arrival site");
-        return;
-    };
-
-    let Ok(runtime_position) = canonical.relative_at_scale_bounded(
+    let placement = match FixtureArrivalPlacement::resolve(
+        site,
+        *hull,
+        aligned,
+        flight_contact.is_some(),
         frame.origin(),
         layer.scale(),
-        f32::MAX,
-    ) else {
-        error!(
-            subject_scale = %layer.scale(),
-            "canonical fixture bootstrap spawn could not project into subject runtime chart"
-        );
-        return;
+    ) {
+        Ok(placement) => placement,
+        Err(FixtureArrivalError::Offset) => {
+            error!("fixture bootstrap could not offset its body-surface arrival site");
+            return;
+        }
+        Err(FixtureArrivalError::Projection) => {
+            error!(
+                subject_scale = %layer.scale(),
+                "canonical fixture bootstrap spawn could not project into subject runtime chart"
+            );
+            return;
+        }
     };
+    let canonical = placement.canonical;
+    let runtime_position = placement.runtime_position;
 
     let mut semantic_positions = positions.p0();
     let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
@@ -171,39 +235,11 @@ pub(super) fn prepare_controlled_subject(
     // destination immediately. Interaction itself is coverage-gated below.
     traveler.commit_position(runtime_position);
 
-    //
-    // The site owns canonical arrival POSITION. The controlled manifestation's
-    // affinity owns interaction SCALE. Runtime evidence showed a flight-capable
-    // S+1 subject first requesting +1, then this fixture path forcing +0 and
-    // requeueing that wrong one-shot transition forever.
     let interaction_scale = affinity.scale();
     let required_roles = affinity.required_roles();
 
     refinement.request_through(interaction_scale);
-
-    let coverage_radius_metres =
-        hull.half_extents_metres().length() + spawn_gap_metres;
-    let coverage_radius_native =
-        interaction_scale.metres_to_native_f32(coverage_radius_metres);
-
-    let mut transition = UsfSpatialTransition::new(
-        semantic_entity,
-        canonical,
-        UsfTransitionVelocity::Zero,
-    )
-    .with_scale(interaction_scale)
-    // View framing is presentation policy; the authored site may still seed it.
-    .with_view_exponent(f32::from(site.scale().exponent()));
-
-    if !required_roles.is_empty() {
-        transition = transition.requiring_coverage_from(
-            site.body(),
-            required_roles,
-            coverage_radius_native,
-        );
-    }
-
-    transitions.request(transition);
+    transitions.request(placement.transition(semantic_entity, affinity, *hull));
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
@@ -226,8 +262,8 @@ pub(super) fn prepare_controlled_subject(
         site_scale = %site.scale(),
         interaction_scale = %interaction_scale,
         interaction_required_roles = required_roles.bits(),
-        support_metres,
-        gap_metres = spawn_gap_metres,
+        support_metres = placement.support_metres,
+        gap_metres = placement.gap_metres,
         runtime = ?runtime_position,
         "prepared coverage-gated canonical body-surface arrival"
     );

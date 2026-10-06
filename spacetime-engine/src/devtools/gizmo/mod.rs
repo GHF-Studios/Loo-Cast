@@ -35,141 +35,14 @@ pub(in crate::devtools) const SCALE_FIELD: InspectFieldId = InspectFieldId("tran
 const HANDLE_PICK_PIXELS: f32 = 9.0;
 const RING_SEGMENTS: usize = 40;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum EditorTransformSpace {
-    #[default]
-    World,
-    Local,
-}
+mod model;
+mod widget;
 
-#[derive(Resource, Debug, Default, Clone, Copy, spacetime_engine_macros::Inspect)]
-#[inspect(label = "Transform gizmo")]
-pub struct EditorTransformGizmoSettings {
-    #[inspect(
-        label = "Space",
-        direct,
-        role = "transform_space",
-        widget = "editor.transform_space"
-    )]
-    transform_space: EditorTransformSpace,
-}
-
-impl EditorTransformGizmoSettings {
-    pub fn transform_space(&self) -> EditorTransformSpace {
-        self.transform_space
-    }
-
-    pub fn set_transform_space(&mut self, space: EditorTransformSpace) {
-        self.transform_space = space;
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-struct EditorTransformSpaceWidget;
-
-impl InspectorWidget<EditorTransformSpace> for EditorTransformSpaceWidget {
-    fn show(
-        &self,
-        ui: &mut egui::Ui,
-        value: &EditorTransformSpace,
-        context: &InspectWidgetContext<'_>,
-    ) {
-        ui.horizontal(|ui| {
-            ui.label(context.label);
-            ui.monospace(match value {
-                EditorTransformSpace::World => "World",
-                EditorTransformSpace::Local => "Local",
-            });
-        });
-    }
-
-    fn edit(
-        &self,
-        ui: &mut egui::Ui,
-        value: &mut EditorTransformSpace,
-        context: &InspectWidgetContext<'_>,
-    ) -> bool {
-        let before = *value;
-        ui.horizontal(|ui| {
-            ui.label(context.label);
-            for (candidate, label) in [
-                (EditorTransformSpace::World, "World"),
-                (EditorTransformSpace::Local, "Local"),
-            ] {
-                if ui.selectable_label(*value == candidate, label).clicked() {
-                    *value = candidate;
-                }
-            }
-        });
-        *value != before
-    }
-}
-
-/// Explicit permission for the generic gizmo to mutate this runtime Transform.
-///
-/// Mere presence of [`Transform`] grants observation, never authority. Generated,
-/// simulated, asset-authored or otherwise derived transforms should instead gain
-/// domain-specific authoring adapters that commit to their real source of truth.
-#[derive(Component, Debug, Default, Clone, Copy)]
-pub struct EditorTransformWritable;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TransformOperation {
-    Translate,
-    Rotate,
-    Scale,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TransformAxis {
-    X,
-    Y,
-    Z,
-}
-
-impl TransformAxis {
-    const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
-
-    fn vector(self) -> Vec3 {
-        match self {
-            Self::X => Vec3::X,
-            Self::Y => Vec3::Y,
-            Self::Z => Vec3::Z,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct TransformHandle {
-    operation: TransformOperation,
-    axis: TransformAxis,
-}
-
-#[derive(Debug, Clone)]
-struct TransformDrag {
-    entity: Entity,
-    handle: TransformHandle,
-    start_transform: Transform,
-    start_cursor: Vec2,
-    origin_screen: Vec2,
-    axis_screen: Vec2,
-    pixels_per_world: f32,
-    axis_pixels: f32,
-    world_axis: Vec3,
-    space: EditorTransformSpace,
-}
-
-#[derive(Resource, Debug, Default)]
-struct TransformGizmoInteraction {
-    hovered: Option<TransformHandle>,
-    drag: Option<TransformDrag>,
-}
-
-impl TransformGizmoInteraction {
-    fn active(&self) -> bool {
-        self.drag.is_some()
-    }
-}
+pub use model::{EditorTransformGizmoSettings, EditorTransformSpace, EditorTransformWritable};
+use model::{
+    TransformAxis, TransformDrag, TransformGizmoInteraction, TransformHandle, TransformOperation,
+};
+use widget::EditorTransformSpaceWidget;
 
 mod geometry;
 mod inspection;
@@ -177,12 +50,11 @@ mod interaction;
 mod presentation;
 
 use geometry::{
-    gizmo_world_size, handle_color, handle_world_axis, hit_test, project, ring_basis,
+    AxisHandleGeometry, gizmo_world_size, handle_color, handle_world_axis, hit_test, project,
     transform_context_visible,
 };
 use inspection::{
-    apply_transform_inspection_edits, collect_transform_inspection,
-    collect_transform_structure,
+    apply_transform_inspection_edits, collect_transform_inspection, collect_transform_structure,
 };
 use interaction::{claim_gizmo_input, select_from_primary_view, update_transform_gizmo};
 use presentation::collect_transform_gizmo;
