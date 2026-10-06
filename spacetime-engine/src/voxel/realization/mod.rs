@@ -33,8 +33,8 @@ use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
         SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSnapshot,
-        SpatialRefinementDemand, SpatialScale, UsfPosition, UsfPrimaryInteractionSlice,
-        UsfRefinementPlan, UsfResidencyRequests, UsfScaleLayer, UsfScaleRoleMask,
+        SpatialRefinementDemand, SpatialScale, UsfPosition, UsfRefinementPlan,
+        UsfResidencyRequests, UsfScaleLayer, UsfScaleRoleMask,
         UsfScaleSliceMask, UsfSemanticFrame,
     },
 };

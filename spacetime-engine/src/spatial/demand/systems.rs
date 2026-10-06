@@ -1,7 +1,10 @@
 //! ECS collection of canonical bounded spatial-interest scopes.
 
 use super::*;
-use crate::spatial::{UsfCanonicalMotion, UsfSpatialTransitions};
+use crate::{
+    ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
+    spatial::{UsfCanonicalMotion, UsfSpatialTransitions},
+};
 
 const TRANSITION_DESTINATION_PRIORITY_BIAS: i32 = 10_000;
 
@@ -18,12 +21,14 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 fn collect_spatial_demand(
     frame: Res<UsfRuntimeChartState>,
     transitions: Res<UsfSpatialTransitions>,
+    ownership: UsfOwnershipQuery,
     sources: Query<(
         Entity,
         &GlobalTransform,
         &SpatialDemandSource,
         Option<&UsfScaleLayer>,
         Option<&UsfCanonicalMotion>,
+        Option<&UsfLogicalRealizationOf>,
     )>,
     mut snapshot: ResMut<SpatialDemandSnapshot>,
     mut motion_snapshot: ResMut<SpatialDemandMotionSnapshot>,
@@ -31,7 +36,7 @@ fn collect_spatial_demand(
     let mut next = SpatialDemandSnapshot::default();
     let mut next_motion = SpatialDemandMotionSnapshot::default();
 
-    for (entity, transform, source, source_layer, canonical_motion) in &sources {
+    for (entity, transform, source, source_layer, canonical_motion, realization) in &sources {
         let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
         let half_extent_native = source.half_extent_native_at(source_scale);
 
@@ -69,7 +74,15 @@ fn collect_spatial_demand(
             source.priority(),
         ));
 
-        if let Some(transition) = transitions.pending_relocation_for(entity) {
+        // Relocations are canonical commands keyed by semantic subject, while
+        // SpatialDemandSource normally lives on a runtime realization. Resolve
+        // through the generic ownership graph so destination capability demand
+        // exists before a coverage-gated rechart can commit.
+        let transition_subject = realization
+            .and_then(|realization| ownership.semantic_for(realization))
+            .unwrap_or(entity);
+
+        if let Some(transition) = transitions.pending_relocation_for(transition_subject) {
             let target_scale = transition.target_scale().unwrap_or(source_scale);
             let target_half_extent_native = source.half_extent_native_at(target_scale);
             next.scopes.push(SpatialDemandScope::at_scale(

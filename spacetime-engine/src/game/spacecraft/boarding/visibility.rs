@@ -2,18 +2,17 @@
 
 use super::*;
 
-pub(in crate::game::spacecraft) fn enforce_embarked_player_hidden(
+/// Player-body visibility is derived from semantic constituency, not from which
+/// runtime subject currently owns local control.
+///
+/// This makes the projection total: stale `Visibility::Hidden` cannot survive a
+/// completed disembark/control transfer merely because a spacecraft still exists.
+pub(in crate::game::spacecraft) fn sync_embarked_player_visibility(
     ownership: UsfOwnershipQuery,
     constituents: Query<&UsfConstituentOf>,
-    controlled_ship: Query<Entity, (With<SpacecraftManifestation>, With<LocalControlSubject>)>,
+    spacecraft: Query<(), With<Spacecraft>>,
     mut player: Query<(Entity, &mut Visibility), (With<Player>, Without<SpacecraftManifestation>)>,
 ) {
-    let Ok(ship_entity) = controlled_ship.single() else {
-        return;
-    };
-    let Some(ship_semantic) = ownership.semantic_of(ship_entity) else {
-        return;
-    };
     let Ok((player_entity, mut visibility)) = player.single_mut() else {
         return;
     };
@@ -23,8 +22,14 @@ pub(in crate::game::spacecraft) fn enforce_embarked_player_hidden(
 
     let embarked = constituents
         .get(player_semantic)
-        .is_ok_and(|relationship| relationship.0 == ship_semantic);
-    if embarked && *visibility != Visibility::Hidden {
-        *visibility = Visibility::Hidden;
+        .is_ok_and(|relationship| spacecraft.contains(relationship.0));
+    let desired = if embarked {
+        Visibility::Hidden
+    } else {
+        Visibility::Inherited
+    };
+
+    if *visibility != desired {
+        *visibility = desired;
     }
 }
