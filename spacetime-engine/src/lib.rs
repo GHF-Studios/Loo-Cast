@@ -118,11 +118,23 @@ pub fn engine_app() -> EngineApp {
     use bevy::prelude::*;
 
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins.set(bevy::log::LogPlugin {
-        custom_layer: console::console_log_layer,
-        ..default()
-    }))
-    .add_plugins(SpacetimeEnginePlugin);
+    app
+        .add_plugins(
+            DefaultPlugins
+                .set(bevy::log::LogPlugin {
+                    custom_layer: console::console_log_layer,
+                    ..default()
+                })
+                .set(bevy::window::WindowPlugin {
+                    primary_window: Some(bevy::window::Window {
+                        present_mode: bevy::window::PresentMode::AutoNoVsync,
+                        desired_maximum_frame_latency: std::num::NonZeroU32::new(3),
+                        ..default()
+                    }),
+                    ..default()
+                }),
+        )
+        .add_plugins(SpacetimeEnginePlugin);
     app
 }
 
