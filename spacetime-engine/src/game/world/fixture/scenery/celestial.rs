@@ -51,16 +51,8 @@ pub(super) fn construct_authored_celestial_body(
     let frame = UsfSemanticFrame::identity();
     let radius_metres = definition.radius_metres;
     let detail_root = celestial_coarsest_scale(radius_metres);
-    let field = CelestialVoxelField::new(
-        radius_metres,
-        detail_root,
-        scale(definition.surface_detail_scale),
-        definition.terrain_noise_key,
-        definition.profile,
-    );
+    let field = CelestialVoxelField::sphere(radius_metres, detail_root);
     let name = definition.name;
-
-    audit_canonical_surface_relief(name, field);
 
     //
     // The domain describes where this semantic body *can* realize a capability;
@@ -134,51 +126,6 @@ pub(super) fn construct_authored_celestial_body(
     }
 
     semantic
-}
-
-fn audit_canonical_surface_relief(name: &str, field: CelestialVoxelField) {
-    let mut minimum = f64::INFINITY;
-    let mut maximum = f64::NEG_INFINITY;
-    let mut valid = 0usize;
-    let samples = 512usize;
-    let golden_ratio = (1.0 + 5.0_f32.sqrt()) * 0.5;
-
-    for index in 0..samples {
-        let i = index as f32 + 0.5;
-        let n = samples as f32;
-        let y = 1.0 - 2.0 * i / n;
-        let horizontal = (1.0 - y * y).max(0.0).sqrt();
-        let theta = std::f32::consts::TAU * index as f32 / golden_ratio;
-        let direction =
-            Vec3::new(theta.cos() * horizontal, y, theta.sin() * horizontal).normalize();
-
-        let Ok(surface) = field.surface_local_metres(direction) else {
-            continue;
-        };
-        let relief = surface.length() - field.radius_metres();
-        if relief.is_finite() {
-            minimum = minimum.min(relief);
-            maximum = maximum.max(relief);
-            valid += 1;
-        }
-    }
-
-    if valid == 0 {
-        error!(
-            body = name,
-            "canonical celestial terrain audit produced no valid surface samples"
-        );
-        return;
-    }
-
-    info!(
-        body = name,
-        samples = valid,
-        minimum_relief_metres = minimum,
-        maximum_relief_metres = maximum,
-        relief_span_metres = maximum - minimum,
-        "canonical celestial terrain relief audit"
-    );
 }
 
 fn body_surface_site(

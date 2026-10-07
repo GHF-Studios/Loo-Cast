@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use bevy::{
     asset::{AssetId, RenderAssetUsages, load_internal_asset, uuid_handle},
     core_pipeline::schedule::camera_driver,
-    math::{DVec3, IVec4, UVec4, Vec3, Vec4},
+    math::{DVec3, UVec4, Vec3, Vec4},
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
     render::{
@@ -31,7 +31,7 @@ use bevy::{
             binding_types::{storage_buffer, storage_buffer_read_only, uniform_buffer},
             *,
         },
-        renderer::{RenderContext, RenderGraph, RenderQueue},
+        renderer::{RenderContext, RenderGraph, RenderGraphSystems, RenderQueue},
     },
     shader::{Shader, ShaderCacheError, load_shader_library},
 };
@@ -47,11 +47,7 @@ use render::{
 
 use crate::{
     gpu::{GpuCompletionQueue, GpuCompletionSink, GpuWorkSequence},
-    spatial::{SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale},
-    voxel::{
-        CelestialBodyProfile, CelestialVoxelField,
-        base::{CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES},
-    },
+    voxel::CelestialVoxelField,
 };
 
 const GPU_TERRAIN_DENSITY_SHADER: Handle<Shader> =
@@ -70,65 +66,19 @@ const TRANSITION_MAX_VERTICES_PER_FACE: usize = TRANSITION_MAX_TRIANGLES_PER_FAC
 const TRANSITION_MAX_INDICES_PER_FACE: usize = TRANSITION_MAX_TRIANGLES_PER_FACE * 3;
 const GPU_VERTEX_FLOATS: u32 = 8;
 
-const MAX_COARSE_BANDS: usize = 35;
-const MAX_FINE_BANDS: usize = 36;
-const HASH_DIGIT_WINDOW: usize = 20;
-const HASH_DIGIT_PACKS: usize = HASH_DIGIT_WINDOW / 4;
 const UV_PHASE_WRAP_METRES: f64 = 65_536.0;
-
-#[derive(Debug, Clone, Copy, Default, ShaderType)]
-pub(crate) struct GpuCoarseBand {
-    /// x = amplitude metres, y = angular frequency.
-    params: Vec4,
-    /// x = keyed residual seed.
-    seeds: UVec4,
-}
-
-#[derive(Debug, Clone, Copy, Default, ShaderType)]
-pub(crate) struct GpuFineBand {
-    /// x = metres/native, y = amplitude metres.
-    params: Vec4,
-    /// xyz = canonical native offset in [-500, 500).
-    base_offset: Vec4,
-    /// x = semantic leaf exponent, y = number of low balanced-decimal digits.
-    meta: IVec4,
-    /// x = broad prefix state, y = fine prefix state.
-    prefix: UVec4,
-    digits_x: [IVec4; HASH_DIGIT_PACKS],
-    digits_y: [IVec4; HASH_DIGIT_PACKS],
-    digits_z: [IVec4; HASH_DIGIT_PACKS],
-}
-
-#[derive(Debug, Clone, Copy, Default, ShaderType)]
-pub(crate) struct GpuCaveChart {
-    /// xyz = integer cell containing the CPU-resolved chart anchor.
-    base_cell: IVec4,
-    /// xyz = sub-cell anchor phase, w = wavelength in metres.
-    fraction_and_wavelength: Vec4,
-    /// x = keyed noise seed.
-    seed: UVec4,
-}
 
 #[derive(Debug, Clone, Copy, ShaderType)]
 pub(crate) struct GpuTerrainDescriptor {
-    /// xyz = block origin relative to the CPU-resolved pre-fine surface anchor.
+    /// xyz = block origin relative to the CPU-resolved surface anchor.
     /// w = regular sample spacing in metres.
     chart_origin_and_spacing: Vec4,
     /// xyz = anchor direction, w = 1 / anchor radius. No absolute radius/position.
     anchor_direction_and_inverse_radius: Vec4,
     /// x = block extent, y/z = bounded UV phase, w = semantic body radius scalar.
     extent_uv_radius: Vec4,
-    /// x = CPU-resolved pre-fine relief; y/z = cave start/max depth metres.
-    reference_relief_and_cave_depths: Vec4,
-    /// x = profile, y = transition bits, z = coarse count, w = fine count.
+    /// y = transition face bits.
     meta: UVec4,
-    /// x = semantic surface floor exponent, y = cave evaluation enabled.
-    semantic_meta: IVec4,
-    /// x = body seed.
-    seed_meta: UVec4,
-    coarse: [GpuCoarseBand; MAX_COARSE_BANDS],
-    fine: [GpuFineBand; MAX_FINE_BANDS],
-    caves: [GpuCaveChart; 5],
 }
 
 impl Default for GpuTerrainDescriptor {
@@ -137,13 +87,7 @@ impl Default for GpuTerrainDescriptor {
             chart_origin_and_spacing: Vec4::ZERO,
             anchor_direction_and_inverse_radius: Vec4::ZERO,
             extent_uv_radius: Vec4::ZERO,
-            reference_relief_and_cave_depths: Vec4::ZERO,
             meta: UVec4::ZERO,
-            semantic_meta: IVec4::ZERO,
-            seed_meta: UVec4::ZERO,
-            coarse: [GpuCoarseBand::default(); MAX_COARSE_BANDS],
-            fine: [GpuFineBand::default(); MAX_FINE_BANDS],
-            caves: [GpuCaveChart::default(); 5],
         }
     }
 }
@@ -255,7 +199,9 @@ impl Plugin for GpuTerrainBackendPlugin {
             .add_systems(Render, prepare_gpu_terrain_builds)
             .add_systems(
                 RenderGraph,
-                execute_gpu_terrain_builds.before(camera_driver),
+                execute_gpu_terrain_builds
+                    .in_set(RenderGraphSystems::Render)
+                    .before(camera_driver),
             );
     }
 

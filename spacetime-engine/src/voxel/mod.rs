@@ -71,9 +71,7 @@ mod worker;
 mod world;
 
 pub use authority::VoxelSemanticAuthority;
-pub use base::{
-    CelestialBodyProfile, CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase,
-};
+pub use base::{CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase};
 pub(in crate::voxel) use celestial_field::CelestialPresentationFieldSampler;
 pub use celestial_field::CelestialVoxelField;
 pub use celestial_realization::CelestialVoxelRealizationPolicy;

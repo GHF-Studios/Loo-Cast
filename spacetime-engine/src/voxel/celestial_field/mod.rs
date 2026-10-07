@@ -1,7 +1,7 @@
 //! Semantic celestial field definition and canonical surface queries.
 //!
-//! This field owns terrain identity and bandwidth. Numerical Scale is chosen
-//! only when adapting it to a bounded voxel sampler or presentation cache.
+//! This field owns the body's volumetric terrain identity. Numerical Scale is
+//! chosen only when adapting it to a bounded voxel sampler or presentation.
 //!
 //! ## Module map
 //!
@@ -18,8 +18,8 @@ use crate::spatial::{
     UsfTravelBoundarySample,
 };
 
+use super::CelestialFieldRealization;
 use super::base::CelestialFieldSample;
-use super::{CelestialBodyProfile, CelestialFieldRealization};
 
 /// One semantic celestial field definition.
 ///
@@ -29,11 +29,6 @@ use super::{CelestialBodyProfile, CelestialFieldRealization};
 pub struct CelestialVoxelField {
     radius_metres: f64,
     coarsest_detail_scale: SpatialScale,
-    /// Finest semantic terrain band owned by this body definition.
-    /// Realization Scale Slices never change this value.
-    surface_detail_scale: SpatialScale,
-    seed: u32,
-    profile: CelestialBodyProfile,
 }
 
 mod boundary;
@@ -42,27 +37,15 @@ mod sampler;
 pub(crate) use sampler::CelestialPresentationFieldSampler;
 
 impl CelestialVoxelField {
-    pub fn new(
-        radius_metres: f64,
-        coarsest_detail_scale: SpatialScale,
-        surface_detail_scale: SpatialScale,
-        seed: u32,
-        profile: CelestialBodyProfile,
-    ) -> Self {
+    /// Plain volumetric sphere. Detail and cave algorithms are not authored here.
+    pub fn sphere(radius_metres: f64, coarsest_detail_scale: SpatialScale) -> Self {
         assert!(
             radius_metres.is_finite() && radius_metres > 0.0,
             "celestial authority radius must be finite and positive"
         );
-        assert!(
-            surface_detail_scale <= coarsest_detail_scale,
-            "celestial surface detail floor must not be coarser than its detail root"
-        );
         Self {
             radius_metres,
             coarsest_detail_scale,
-            surface_detail_scale,
-            seed,
-            profile,
         }
     }
 
@@ -72,16 +55,6 @@ impl CelestialVoxelField {
     pub const fn coarsest_detail_scale(self) -> SpatialScale {
         self.coarsest_detail_scale
     }
-    pub const fn surface_detail_scale(self) -> SpatialScale {
-        self.surface_detail_scale
-    }
-    pub const fn profile(self) -> CelestialBodyProfile {
-        self.profile
-    }
-    pub(crate) const fn seed(self) -> u32 {
-        self.seed
-    }
-
     /// One canonical semantic surface. No realization Scale parameter exists
     /// here by design: callers cannot request a different planet by choosing a
     /// different numerical chart.
@@ -91,7 +64,7 @@ impl CelestialVoxelField {
         body_frame: UsfSemanticFrame,
         direction: Vec3,
     ) -> Result<UsfPosition, UsfPositionError> {
-        self.realization(*body_origin, body_frame, self.surface_detail_scale)
+        self.realization(*body_origin, body_frame, SpatialScale::ZERO)
             .surface_position(direction)
     }
 
@@ -99,7 +72,7 @@ impl CelestialVoxelField {
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),
             UsfSemanticFrame::identity(),
-            self.surface_detail_scale,
+            SpatialScale::ZERO,
         )
         .surface_local_metres(direction)
     }
@@ -111,16 +84,7 @@ impl CelestialVoxelField {
         body_frame: UsfSemanticFrame,
         scale: SpatialScale,
     ) -> CelestialFieldRealization {
-        CelestialFieldRealization::new(
-            body_origin,
-            body_frame,
-            self.radius_metres,
-            scale,
-            self.coarsest_detail_scale,
-            self.surface_detail_scale,
-            self.seed,
-            self.profile,
-        )
+        CelestialFieldRealization::new(body_origin, body_frame, self.radius_metres, scale)
     }
 
     pub(crate) fn presentation_sampler(
@@ -142,54 +106,6 @@ impl CelestialVoxelField {
                 )
                 .prepare_presentation_sampler(),
         })
-    }
-
-    // These are ONE-SHOT adapters. Constructing PreparedCelestialPresentationBody
-    // here allocated a 4096-slot semantic-corner cache for every planner sample.
-    // Reuse belongs to explicit `presentation_sampler()` owners instead.
-    pub(crate) fn presentation_surface_local_metres(
-        self,
-        direction: Vec3,
-        sample_spacing_metres: f64,
-    ) -> Result<DVec3, UsfPositionError> {
-        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
-            return Err(UsfPositionError::NonFiniteTranslation);
-        }
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .surface_local_metres(direction)
-    }
-
-    pub(crate) fn presentation_signed_distance_local_metres(
-        self,
-        local_point_metres: DVec3,
-        sample_spacing_metres: f64,
-    ) -> Option<f64> {
-        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
-            return None;
-        }
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .signed_distance_local_metres(local_point_metres)
-    }
-
-    pub(crate) fn presentation_caves_may_intersect_aabb(
-        self,
-        center_local_metres: DVec3,
-        half_extent_metres: DVec3,
-    ) -> bool {
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .cave_void_may_intersect_local_aabb(center_local_metres, half_extent_metres)
     }
 
     pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
@@ -245,24 +161,11 @@ impl CelestialVoxelField {
             .map(CelestialFieldSample::signed_distance_metres)
     }
 
-    /// Optional void SDF used to subtract caves from a presentation shell.
-    pub(crate) fn volumetric_void_signed_distance_local_metres(
-        self,
-        local_point_metres: DVec3,
-    ) -> Option<f64> {
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .volumetric_void_signed_distance_local_metres(local_point_metres)
-    }
-
     pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),
             UsfSemanticFrame::identity(),
-            self.surface_detail_scale,
+            SpatialScale::ZERO,
         )
         .conservative_outer_radius_metres()
     }

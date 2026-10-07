@@ -2,7 +2,7 @@
 
 use bevy::{math::DVec3, prelude::*};
 
-use crate::{game::orbit::KeplerianElements, voxel::CelestialBodyProfile};
+use crate::game::orbit::KeplerianElements;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct AuthoredCelestialOrbit {
@@ -17,11 +17,7 @@ pub(super) struct AuthoredCelestialBody {
     pub aliases: &'static [&'static str],
     pub center_metres: DVec3,
     pub radius_metres: f64,
-    /// Finest semantic terrain band owned by this body.
-    pub surface_detail_scale: i8,
     pub gravity_metres_per_second2: f32,
-    pub profile: CelestialBodyProfile,
-    pub terrain_noise_key: u32,
     pub arrival_direction: Option<Vec3>,
     pub orbit: Option<AuthoredCelestialOrbit>,
 }
@@ -40,10 +36,7 @@ pub(super) fn bodies() -> [AuthoredCelestialBody; 2] {
             aliases: &["planet", "world"],
             center_metres: earth_center,
             radius_metres: earth_radius,
-            surface_detail_scale: 0,
             gravity_metres_per_second2: 9.80665,
-            profile: CelestialBodyProfile::Rocky,
-            terrain_noise_key: 0x4541_5254,
             arrival_direction: Some(Vec3::Y),
             orbit: None,
         },
@@ -54,10 +47,7 @@ pub(super) fn bodies() -> [AuthoredCelestialBody; 2] {
             aliases: &["luna", "satellite"],
             center_metres: earth_center + DVec3::X * lunar_periapsis,
             radius_metres: 1_737_400.0,
-            surface_detail_scale: 0,
             gravity_metres_per_second2: 1.62,
-            profile: CelestialBodyProfile::Lunar,
-            terrain_noise_key: 0x4D4F_4F4E,
             arrival_direction: None,
             orbit: Some(AuthoredCelestialOrbit {
                 primary_id: "earth",

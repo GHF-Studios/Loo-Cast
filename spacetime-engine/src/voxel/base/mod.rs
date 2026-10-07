@@ -24,11 +24,8 @@ mod noise;
 mod terrain;
 mod volume;
 
-pub(crate) use celestial::{
-    CAVE_MAX_DEPTH_METRES, CAVE_START_DEPTH_METRES, CelestialFieldSample,
-    PreparedCelestialPresentationBody,
-};
-pub use celestial::{CelestialBodyProfile, CelestialFieldRealization};
+pub use celestial::CelestialFieldRealization;
+pub(crate) use celestial::{CelestialFieldSample, PreparedCelestialPresentationBody};
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 

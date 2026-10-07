@@ -185,7 +185,6 @@ fn emit_gpu_terrain_pressure(
     dispatched_blocks: usize,
     transition_faces: u64,
     density_sample_calls: u64,
-    fine_band_visits: u64,
     processed_records: usize,
 ) {
     let Some(client) = tracy_client::Client::running() else {
@@ -211,10 +210,6 @@ fn emit_gpu_terrain_pressure(
     client.plot(
         tracy_client::plot_name!("GPU terrain/density samples/frame"),
         density_sample_calls as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("GPU terrain/fine-band visits/frame"),
-        fine_band_visits as f64,
     );
 
     // These MeshAllocator values cover the renderer's shared mesh slab domain,
@@ -281,7 +276,6 @@ pub(super) fn execute_gpu_terrain_builds(
     let mut dispatched = 0usize;
     let mut transition_faces = 0u64;
     let mut density_sample_calls = 0u64;
-    let mut fine_band_visits = 0u64;
 
     for block in pending.drain(..) {
         let mesh_id = block.mesh.id();
@@ -301,8 +295,6 @@ pub(super) fn execute_gpu_terrain_builds(
 
         transition_faces = transition_faces.saturating_add(block_transition_faces);
         density_sample_calls = density_sample_calls.saturating_add(block_density_calls);
-        fine_band_visits = fine_band_visits
-            .saturating_add(block_density_calls.saturating_mul(u64::from(block.descriptor.meta.w)));
 
         let dispatch = GpuTerrainDispatch {
             ranges: UVec4::new(
@@ -384,7 +376,6 @@ pub(super) fn execute_gpu_terrain_builds(
         dispatched,
         transition_faces,
         density_sample_calls,
-        fine_band_visits,
         state.processed.len(),
     );
 }
