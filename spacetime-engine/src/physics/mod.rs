@@ -36,7 +36,7 @@ pub use hull::{DetailedBodyCollision, PhysicalBoxHull};
 use std::time::Duration;
 
 use avian3d::{
-    collider_tree::{ColliderTreeOptimization, update_moved_collider_aabbs},
+    collider_tree::update_moved_collider_aabbs,
     prelude::{Collider, Gravity, PhysicsPlugins},
 };
 use bevy::{prelude::*, time::Virtual};
@@ -72,20 +72,10 @@ impl Plugin for SpacetimePhysicsPlugin {
                 PhysicsPlugins::default()
                     .with_collision_hooks::<topology::SpatialTopologyCollisionHooks>(),
             )
-            // On low-core-count machines Bevy's AsyncComputeTaskPool can be a
-            // single worker shared with long-running background jobs. Avian's
-            // default async tree optimizer can then be queued behind unrelated
-            // work and force EndOptimize to block on scheduler latency.
-            //
-            // Run the tree optimizer synchronously as a focused A/B: this also
-            // avoids Avian's async BVH clone path. If Tracy merely moves the
-            // same cost into optimize_trees, this setting should be reverted;
-            // if frame cost collapses, shared-pool starvation/cloning was the
-            // remaining block_on_optimize_trees pathology.
-            .insert_resource(ColliderTreeOptimization {
-                use_async_tasks: false,
-                ..default()
-            })
+            // Keep Avian tree maintenance asynchronous so BVH work may
+            // overlap unrelated CPU work instead of extending PhysicsSchedule's
+            // serial critical path. If Tracy shows EndOptimize waiting again,
+            // the durable fix is dedicated physics-maintenance capacity.
             // Avian's one-vector world gravity is intentionally disabled.
             // Canonical spatial gravity is queried through physics::gravity.
             .insert_resource(Gravity::ZERO)

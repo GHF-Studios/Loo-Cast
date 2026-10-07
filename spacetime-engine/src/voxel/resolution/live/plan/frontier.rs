@@ -271,8 +271,13 @@ pub(super) fn build_plan_inner(
         &classifier,
         input.visibility,
     )?;
-    let bootstrap =
-        (!warm_replan).then(|| specs_for_frontier(&leaves, input.observer_anchor_local));
+    // Cold start is latency-sensitive. Publish the cheapest complete
+    // whole-body frontier immediately instead of first solving the eventual
+    // fine frontier and synthesizing a coarse stage afterwards.
+    if !warm_replan {
+        let bootstrap = specs_for_frontier(&leaves, input.observer_anchor_local);
+        return (!bootstrap.is_empty()).then_some(vec![bootstrap]);
+    }
 
     refine_plan_frontier(
         &mut leaves,
@@ -288,7 +293,7 @@ pub(super) fn build_plan_inner(
     }
 
     Some(build_publication_stages(
-        bootstrap,
+        None,
         &leaves,
         final_stage,
         input,

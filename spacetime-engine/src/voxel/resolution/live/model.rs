@@ -106,6 +106,9 @@ pub(super) struct CelestialClipmapPlan {
     pub(super) meshful: HashSet<CelestialClipmapBlockSpec>,
     pub(super) committed_specs: HashSet<CelestialClipmapBlockSpec>,
     pub(super) committed_generation: Option<u64>,
+    /// Cold-start bootstrap is intentionally incomplete. Expensive refinement
+    /// is admitted only after the coarse fallback has actually committed.
+    pub(super) refinement_pending: bool,
 }
 
 pub(super) fn seed_clipmap_stage_completion(

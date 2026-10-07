@@ -80,6 +80,9 @@ pub(super) fn poll_plan_tasks(
                 .map(|spec| spec.key.spacing_metres())
                 .min_by(f64::total_cmp)
         });
+        let refinement_pending = actual_finest_spacing_metres.is_none_or(|spacing| {
+            spacing > build.input.finest.sample_spacing_metres() * 1.001
+        });
 
         let current_target_lag_metres =
             (current_input.planning_anchor_local - build.input.planning_anchor_local).length();
@@ -122,6 +125,7 @@ pub(super) fn poll_plan_tasks(
                 meshful: HashSet::new(),
                 committed_specs,
                 committed_generation,
+                refinement_pending,
             },
         );
 
@@ -169,7 +173,15 @@ pub(super) fn schedule_plan_tasks(
 
     for (&authority, &(input, field)) in current_inputs {
         let existing = registry.plans.get(&authority);
-        let replace = existing.is_none_or(|plan| should_schedule_plan_refresh(plan, input, field));
+        let replace = existing.is_none_or(|plan| {
+            if plan.refinement_pending {
+                // Do not let fine planning replace the fallback before the
+                // fallback has ever become visible.
+                plan.committed_generation == Some(plan.generation)
+            } else {
+                should_schedule_plan_refresh(plan, input, field)
+            }
+        });
         if !replace || planning_authorities.contains(&authority) || planning_slots == 0 {
             continue;
         }
