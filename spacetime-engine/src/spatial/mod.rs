@@ -44,6 +44,7 @@ mod realization;
 mod refinement;
 mod residency;
 mod semantic_frame;
+mod semantic_bounds;
 mod slice;
 mod transition;
 mod view;
@@ -79,6 +80,7 @@ pub use residency::{
     UsfContextResidency, UsfResidencyRequests, UsfResidencySet, UsfResidentContext,
 };
 pub use semantic_frame::UsfSemanticFrame;
+pub use semantic_bounds::UsfSemanticBounds;
 pub use slice::{
     UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMask, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
     UsfScaleSlices,

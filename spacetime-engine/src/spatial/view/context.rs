@@ -182,6 +182,45 @@ impl UsfViewContext {
             .map_or(f32::INFINITY, |factor| factor as f32)
     }
 
+    /// Similarity ratio for one *distant* bounded semantic phenomenon.
+    ///
+    /// Its actual SI position, radius, and source Scale stay authoritative.
+    /// Only the observer's disposable presentation receives a uniform ratio
+    /// about the camera eye: every chunk of one phenomenon uses the SAME ratio
+    /// derived from the semantic center, so its projected angular geometry is
+    /// preserved and the seams between its realized chunks cannot drift.
+    ///
+    /// This is deliberately not chosen for near/inside-body geometry, which
+    /// must compose with the physical local presentation and depth/occlusion.
+    pub(crate) fn distant_presentation_compression(
+        &self,
+        phenomenon_center: &UsfPosition,
+        conservative_radius_metres: f64,
+    ) -> Option<f64> {
+        if !conservative_radius_metres.is_finite() || conservative_radius_metres <= 0.0 {
+            return None;
+        }
+        let delta_metres = phenomenon_center
+            .relative_at_scale_bounded_f64(&self.anchor, SpatialScale::ZERO, f64::MAX)
+            .ok()?
+            - self.projection_eye_offset_metres;
+        let distance_metres = delta_metres.length();
+        // A far-field adapter must not compete with near-field physical depth.
+        if !distance_metres.is_finite()
+            || distance_metres <= conservative_radius_metres * 4.0
+        {
+            return None;
+        }
+        let metres_to_view = 10.0_f64.powf(-f64::from(self.continuous_exponent()));
+        let uncompressed_distance = distance_metres * metres_to_view;
+        let target_distance = f64::from(PRESENTATION_RELATIVE_BOUND) * 0.5;
+        if !uncompressed_distance.is_finite() || uncompressed_distance <= target_distance {
+            return None;
+        }
+        let ratio = target_distance / uncompressed_distance;
+        (ratio.is_finite() && ratio > 0.0 && ratio < 1.0).then_some(ratio)
+    }
+
     /// Projects a semantic-observer-relative SI vector into the bounded view
     /// chart while preserving the physical camera ray.
     ///
@@ -225,5 +264,44 @@ impl UsfViewContext {
     pub fn direct_projection_factor(&self, scale: SpatialScale) -> Option<f32> {
         let factor = self.projection_factor_f64(scale)?;
         (factor <= DIRECT_PRESENTATION_SCALE_BOUND).then_some(factor as f32)
+    }
+}
+
+#[cfg(test)]
+mod distant_projection_tests {
+    use super::*;
+
+    #[test]
+    fn distant_semantic_projection_is_view_scale_independent() {
+        let observer = UsfPosition::zero(SpatialScale::ZERO);
+        let distant = observer
+            .translated_metres_f64(DVec3::X * 384_400_000.0)
+            .unwrap();
+        let mut view = UsfViewContext::default();
+        view.sync_observer(observer, Vec3::ZERO, Vec3::ZERO, DVec3::ZERO);
+
+        for exponent in [0.0, 1.0, 2.0] {
+            view.set_continuous_exponent(exponent);
+            let ratio = view.distant_presentation_compression(&distant, 1_737_400.0).unwrap();
+            let point = view
+                .project_relative_metres_from_eye(DVec3::X * 384_400_000.0)
+                .unwrap() * ratio;
+            let scale = view.projection_factor_f64(SpatialScale::new(5).unwrap()).unwrap() * ratio;
+            let rendered_radius = 17.374 * scale;
+            let rendered_angular_ratio = rendered_radius / point.length();
+            let canonical_angular_ratio = 1_737_400.0 / 384_400_000.0;
+            assert!((rendered_angular_ratio - canonical_angular_ratio).abs() < 1.0e-10);
+            assert!((point.length() - f64::from(PRESENTATION_RELATIVE_BOUND) * 0.5).abs() < 0.01);
+        }
+    }
+
+    #[test]
+    fn nearby_semantic_world_must_not_enter_distant_projection() {
+        let observer = UsfPosition::zero(SpatialScale::ZERO);
+        let near = observer.translated_metres_f64(DVec3::Y * 6_371_000.0).unwrap();
+        let mut view = UsfViewContext::default();
+        view.sync_observer(observer, Vec3::ZERO, Vec3::ZERO, DVec3::ZERO);
+        view.set_continuous_exponent(0.0);
+        assert!(view.distant_presentation_compression(&near, 6_371_000.0).is_none());
     }
 }

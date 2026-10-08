@@ -6,12 +6,13 @@
 use bevy::prelude::*;
 
 use crate::game::world::ScenarioMemberOf;
+use crate::worldgen::PhenomenonProvenance;
 use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity},
     physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralPresentationAssets,
     spatial::{
-        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfCanonicalMotion, UsfPosition,
+        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfSemanticBounds, UsfCanonicalMotion, UsfPosition,
         UsfScaleSliceMask, UsfSemanticFrame, UsfTravelBoundaryProvider, UsfTravelInfluence,
     },
     voxel::{
@@ -37,6 +38,7 @@ pub(super) fn construct_authored_celestial_body(
     commands: &mut Commands,
     parent: Entity,
     definition: &AuthoredCelestialBody,
+    provenance: PhenomenonProvenance,
     assets: &ProceduralPresentationAssets,
     landmarks: &mut UniverseLandmarkIndex,
     arrival_site: &mut FixtureArrivalSite,
@@ -71,27 +73,36 @@ pub(super) fn construct_authored_celestial_body(
     let nav_scale = celestial_coarsest_scale(radius_metres);
     let semantic = commands
         .spawn((
-            Name::new(name),
-            ScenarioMemberOf(parent),
-            CelestialBodyAuthority,
-            UsfEntity,
-            center,
-            frame,
-            UsfCanonicalMotion::canonical_kinematic_at_rest(),
-            field,
-            scale_domain,
-            CelestialVoxelRealizationPolicy::new(assets.debug_grid.clone()),
-            VoxelSemanticAuthority::default(),
-            UsfTravelInfluence::hard_body(nav_scale, nav_scale.metres_to_native_f64(radius_metres)),
-            UsfTravelBoundaryProvider::new(field),
-            RadialGravitySource::new(
-                radius_metres,
-                nav_scale,
-                definition.gravity_metres_per_second2,
+            (
+                Name::new(name),
+                ScenarioMemberOf(parent),
+                CelestialBodyAuthority,
+                UsfEntity,
+                provenance,
+                center,
+                frame,
+                UsfCanonicalMotion::canonical_kinematic_at_rest(),
+                field,
+                scale_domain,
+                CelestialVoxelRealizationPolicy::new(assets.debug_grid.clone()),
+                VoxelSemanticAuthority::default(),
+                UsfTravelInfluence::hard_body(nav_scale, nav_scale.metres_to_native_f64(radius_metres)),
+                UsfTravelBoundaryProvider::new(field),
+                RadialGravitySource::new(
+                    radius_metres,
+                    nav_scale,
+                    definition.gravity_metres_per_second2,
+                ),
             ),
-            UsfApproachRefinement::new(SpatialScale::MIN),
+            (
+                UsfApproachRefinement::new(SpatialScale::MIN)
+            )
         ))
         .id();
+
+    // Disposable broadphase evidence for any observer/capability; the
+    // authoritative body geometry remains in CelestialVoxelField.
+    commands.entity(semantic).insert(UsfSemanticBounds::sphere(radius_metres));
 
     // One ordinary unsplit authority partition owns every scale-local voxel
     // realization. Scale is realization identity, never semantic identity.

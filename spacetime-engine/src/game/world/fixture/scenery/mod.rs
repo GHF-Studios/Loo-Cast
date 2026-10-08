@@ -14,6 +14,7 @@ use bevy::prelude::*;
 use super::{FixtureArrivalSite, definition, landmarks::UniverseLandmarkIndex};
 use crate::game::orbit::KeplerianOrbitPropagation;
 use crate::procedural_assets::ProceduralPresentationAssets;
+use crate::worldgen::{PhenomenonGeneration, WorldSeed};
 
 mod celestial;
 
@@ -22,17 +23,24 @@ pub(super) fn construct_celestial_fixture(
     assets: Res<ProceduralPresentationAssets>,
     mut landmarks: ResMut<UniverseLandmarkIndex>,
     mut arrival: ResMut<FixtureArrivalSite>,
+    world_seed: Res<WorldSeed>,
 ) {
     let root = commands.spawn(Name::new("Earth-Moon Fixture")).id();
 
     landmarks.clear();
-    let definitions = definition::bodies();
+    let definitions = definition::bodies(*world_seed);
     let mut spawned = HashMap::<&'static str, Entity>::new();
     for body in &definitions {
+        let provenance = PhenomenonGeneration::new(
+            *world_seed,
+            definition::generation_key(body.id),
+            definition::GENERATOR_REVISION,
+        ).provenance(true);
         let entity = celestial::construct_authored_celestial_body(
             &mut commands,
             root,
             body,
+            provenance,
             &assets,
             &mut landmarks,
             &mut arrival,

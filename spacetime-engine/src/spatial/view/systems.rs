@@ -1,6 +1,7 @@
 //! ECS realization of observer-relative USF presentation state.
 
 use super::*;
+use crate::spatial::UsfSemanticBounds;
 use crate::{
     ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
     spatial::{
@@ -168,41 +169,71 @@ fn local_translation_from_global(desired_global: Vec3, parent_translation: Optio
     parent_translation.map_or(desired_global, |parent| desired_global - parent)
 }
 
-/// Contextual Scale presentation is view-owned; physical interaction Scale
-/// selection remains outside this projection calculation.
+/// Contextual representation remains view-owned, not interaction-owned.
+///
+/// Local/near geometry is projected into the bounded physical view chart.
+/// Distant bounded phenomena can instead use one conservative, uniform
+/// camera-eye similarity, shared by every realization of their semantic owner.
+/// This does not change semantic position, geometry, or simulation authority.
 fn contextual_scale_projection_pose(
     view: &UsfViewContext,
     presentation: &UsfScalePresentation,
     parent_translation: Option<Vec3>,
     require_context_scale: bool,
+    semantic_observation: Option<(&UsfPosition, &UsfSemanticBounds)>,
 ) -> Option<(Vec3, f32)> {
     if require_context_scale && !view.context_scale_eligible(presentation.scale()) {
         return None;
     }
-    let relative = presentation
-        .anchor()
-        .relative_at_scale_bounded(
+
+    // Preserve the existing direct bounded projection whenever it works.
+    let direct = (|| -> Option<(Vec3, f32)> {
+        let relative = presentation.anchor().relative_at_scale_bounded(
             view.anchor(),
             presentation.scale(),
             PRESENTATION_RELATIVE_BOUND,
-        )
+        ).ok()?;
+        let factor = view.direct_projection_factor(presentation.scale())?;
+        let projected = view.project_relative_native_from_eye(relative, presentation.scale())?;
+        if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) {
+            return None;
+        }
+        let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
+        if !projected.is_finite() {
+            return None;
+        }
+        let global = view.presentation_origin() + projected;
+        global.is_finite().then_some((
+            local_translation_from_global(global, parent_translation),
+            factor,
+        ))
+    })();
+    if let Some(pose) = direct {
+        return Some(pose);
+    }
+
+    // No implicit global fallback: only a *known semantic owner* with an
+    // explicitly published conservative bound may enter the far-field path.
+    let (semantic_center, bound) = semantic_observation?;
+    let ratio = view.distant_presentation_compression(semantic_center, bound.radius_metres())?;
+    let relative_metres = presentation.anchor()
+        .relative_at_scale_bounded_f64(view.anchor(), SpatialScale::ZERO, f64::MAX)
         .ok()?;
-    let factor = view.direct_projection_factor(presentation.scale())?;
-    let projected = view.project_relative_native_from_eye(relative, presentation.scale())?;
-    if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) {
+    let projected = view.project_relative_metres_from_eye(relative_metres)? * ratio;
+    if !projected.is_finite()
+        || projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND)
+    {
+        return None;
+    }
+    let factor = view.projection_factor_f64(presentation.scale())? * ratio;
+    if !factor.is_finite() || factor <= 0.0 || factor > f64::from(f32::MAX) {
         return None;
     }
     let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
-    if !projected.is_finite() {
-        return None;
-    }
     let global = view.presentation_origin() + projected;
-    if !global.is_finite() {
-        return None;
-    }
-    Some((
+    global.is_finite().then_some((
         local_translation_from_global(global, parent_translation),
-        factor,
+        factor as f32,
     ))
 }
 
@@ -220,6 +251,7 @@ pub(in crate::spatial) fn project_scale_presentations(
     interaction: Res<UsfPrimaryInteractionSlice>,
     probe: Res<UsfPresentationDomainProbe>,
     parents: Query<(&Transform, Option<&UsfCapabilityRealization>), Without<UsfScalePresentation>>,
+    semantic_observations: Query<(&UsfPosition, &UsfSemanticBounds)>,
     mut presentations: Query<(
         Entity,
         &UsfScalePresentation,
@@ -324,11 +356,14 @@ pub(in crate::spatial) fn project_scale_presentations(
         }
 
         let parent_translation = parent_state.map(|(transform, _)| transform.translation);
+        let semantic_observation = capability
+            .and_then(|realization| semantic_observations.get(realization.authority()).ok());
         let Some((translation, scale)) = contextual_scale_projection_pose(
             &view,
             presentation,
             parent_translation,
             capability.is_none(),
+            semantic_observation,
         ) else {
             *visibility = Visibility::Hidden;
             continue;

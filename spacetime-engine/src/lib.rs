@@ -58,6 +58,7 @@ pub mod ui;
 pub mod usf;
 pub mod view;
 pub mod voxel;
+pub mod worldgen;
 
 /// Concrete application type exposed by Spacetime Engine's current Rust host
 /// contract.
@@ -97,6 +98,7 @@ impl bevy::prelude::Plugin for SpacetimeEnginePlugin {
             devtools::DeveloperToolsPlugin,
             console::DeveloperConsolePlugin,
         ))
+        .init_resource::<worldgen::WorldSeed>()
         // `PbrPlugin::finish` installs GlobalClusterSettings after plugin build;
         // Startup is deliberately late enough to override that default.
         .add_systems(Startup, configure_sparse_scene_clustering);
