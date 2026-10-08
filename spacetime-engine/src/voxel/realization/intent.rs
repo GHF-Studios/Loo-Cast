@@ -17,19 +17,15 @@ fn roles_for_scale(
     target_scale: SpatialScale,
     physical_target_scale: SpatialScale,
 ) -> UsfScaleRoleMask {
-    // Decimal USF Scale is an interaction/numerical domain, not graphical LOD.
-    // Binary voxel resolution owns automatic visual refinement.
-    //
-    // Keep ancestor/future Scale worlds as reusable REALIZATION context only.
-    // The controlled source Scale is the one dense world allowed to own local
-    // presentation, collision and editing capability.
-    let mut roles = UsfScaleRoleMask::REALIZATION;
+    // Every demanded voxel Scale may present its own realized surface. Fine
+    // presentation clips only the covered part of its coarser parent; the
+    // selected interaction Scale alone owns physical collision and editing.
+    let mut roles = presentation_roles();
 
     if target_scale != physical_target_scale {
         return roles;
     }
 
-    roles = roles.union(UsfScaleRoleMask::PRESENTATION);
     if domain.collides(target_scale) {
         roles = roles.union(UsfScaleRoleMask::COLLISION);
     }
@@ -39,8 +35,8 @@ fn roles_for_scale(
     roles
 }
 
-/// Dense celestial scale realizations are created only for spatial/capability
-/// interest. Whole-body visual context belongs to binary presentation.
+/// Celestial scale realizations are created only for spatial/capability
+/// interest. Demanded ancestor realizations provide coarse visual context.
 fn collect_sources(
     spatial: &SpatialDemandSnapshot,
     voxel_sources: &Query<Option<&SpatialRefinementDemand>, With<VoxelMaterializationDemand>>,
@@ -77,6 +73,45 @@ struct CelestialAuthority<'a> {
     frame: &'a UsfSemanticFrame,
     field: &'a CelestialVoxelField,
     domain: VoxelScaleDomain,
+}
+
+/// Keep the semantic body visible through one coarse voxel realization even
+/// when no local contact window exists. Fine voxel demand then replaces only
+/// the realized portion of this same body through presentation apertures.
+fn append_celestial_root_intent(
+    output: &mut VoxelRealizationIntentSnapshot,
+    authority: CelestialAuthority<'_>,
+) {
+    let scale = authority.field.coarsest_detail_scale();
+    if !authority.domain.realizes(scale) {
+        return;
+    }
+
+    let radius_native =
+        scale.metres_to_native_f64(authority.field.conservative_outer_radius_metres());
+    let half_extent = (radius_native as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 0.5).max(0.0);
+    if !half_extent.is_finite() {
+        return;
+    }
+
+    let scope = SpatialDemandScope::at_scale(
+        authority.entity,
+        scale,
+        *authority.origin,
+        Vec3::splat(half_extent),
+        0,
+    );
+    output.push(
+        VoxelRealizationIntentTarget::Celestial(VoxelRealizationTarget::new(
+            authority.entity,
+            scale,
+        )),
+        scope,
+        presentation_roles(),
+        None,
+        materialization_residency_extent(scope.half_extent_native()),
+        None,
+    );
 }
 
 fn append_celestial_intents(
@@ -210,6 +245,7 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
             field,
             domain: *domain,
         };
+        append_celestial_root_intent(&mut next, authority);
         for source in sources.iter().copied() {
             append_celestial_intents(
                 &mut next,
@@ -246,4 +282,57 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
     }
 
     output.replace_if_changed(next);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn celestial_root_presentation_exists_without_local_contact_demand() {
+        let scale = SpatialScale::new(2).unwrap();
+        let field = CelestialVoxelField::sphere(150.0, scale);
+        let origin = UsfPosition::zero(scale);
+        let frame = UsfSemanticFrame::identity();
+        let mut output = VoxelRealizationIntentSnapshot::default();
+        let authority = CelestialAuthority {
+            entity: Entity::from_bits(1),
+            origin: &origin,
+            frame: &frame,
+            field: &field,
+            domain: VoxelScaleDomain::contiguous(scale, scale),
+        };
+
+        append_celestial_root_intent(&mut output, authority);
+
+        let intent = output
+            .iter()
+            .next()
+            .expect("coarse visual root is demanded");
+        assert_eq!(intent.scope.scale(), scale);
+        assert_eq!(intent.scope.center(), origin);
+        assert!(intent.scope.half_extent_native().min_element() > 1.5);
+        assert!(intent.roles.contains(UsfScaleRoleMask::PRESENTATION));
+        assert!(!intent.roles.contains(UsfScaleRoleMask::COLLISION));
+    }
+
+    #[test]
+    fn coarse_voxel_ancestor_presents_without_physical_authority() {
+        let coarse = SpatialScale::new(2).unwrap();
+        let physical = SpatialScale::new(1).unwrap();
+        let domain = VoxelScaleDomain::contiguous(physical, coarse)
+            .with_collision_slices(UsfScaleSliceMask::inclusive_range(physical, coarse))
+            .with_editing_slices(UsfScaleSliceMask::inclusive_range(physical, coarse));
+
+        let coarse_roles = roles_for_scale(domain, coarse, physical);
+        assert!(coarse_roles.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(coarse_roles.contains(UsfScaleRoleMask::PRESENTATION));
+        assert!(!coarse_roles.contains(UsfScaleRoleMask::COLLISION));
+        assert!(!coarse_roles.contains(UsfScaleRoleMask::EDITING));
+
+        let physical_roles = roles_for_scale(domain, physical, physical);
+        assert!(physical_roles.contains(UsfScaleRoleMask::PRESENTATION));
+        assert!(physical_roles.contains(UsfScaleRoleMask::COLLISION));
+        assert!(physical_roles.contains(UsfScaleRoleMask::EDITING));
+    }
 }

@@ -1,10 +1,9 @@
 //! Cross-resolution presentation frontier derived from realized voxel coverage.
 //!
 //! Same-resolution Surface Nets chunks already stitch through shared canonical
-//! samples. This resource owns a different fact: which *ready fine*
-//! materialization faces currently border still-coarse presentation context.
-//! Future transition geometry consumes this frontier; neither the fine nor the
-//! coarse base mesh owns the cross-resolution seam.
+//! samples. This resource identifies ready fine materialization faces that
+//! border coarse presentation context so the refinement material can retain a
+//! narrow support band at the aperture edge.
 
 use std::collections::{HashMap, HashSet};
 
@@ -61,51 +60,6 @@ impl VoxelRefinementFaceMask {
     }
 }
 
-/// One exact fine-cell *coverage* frontier fact.
-///
-/// This snapshot says where ready fine Scale-Slice presentation borders
-/// still-coarse context. It deliberately does **not** define mesh-resolution
-/// adjacency. USF Scale is a numerical chart; using S(n)->S(n+1) directly as a
-/// 10:1 LOD transition is the architecture this frontier exposed as invalid.
-///
-/// `voxel::resolution` owns the independent physical sampling ladder. A
-/// presentation adapter may project this coverage into that domain, balance it
-/// to 2:1 neighbors and only then ask a transition-cell mesher for geometry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct VoxelRefinementFrontierCell {
-    realization: Entity,
-    authority: Entity,
-    fine_scale: SpatialScale,
-    key: VoxelMaterializationKey,
-    exposed_faces: VoxelRefinementFaceMask,
-}
-
-impl VoxelRefinementFrontierCell {
-    pub(super) const fn realization(self) -> Entity {
-        self.realization
-    }
-
-    pub(super) const fn authority(self) -> Entity {
-        self.authority
-    }
-
-    pub(super) const fn fine_scale(self) -> SpatialScale {
-        self.fine_scale
-    }
-
-    pub(super) fn coarse_scale(self) -> Option<SpatialScale> {
-        SpatialScale::new(self.fine_scale.exponent().checked_add(1)?)
-    }
-
-    pub(super) const fn key(self) -> VoxelMaterializationKey {
-        self.key
-    }
-
-    pub(super) const fn exposed_faces(self) -> VoxelRefinementFaceMask {
-        self.exposed_faces
-    }
-}
-
 /// Sparse, semantically-invalidated refinement frontier.
 ///
 /// `source_coverage_revision` intentionally follows
@@ -121,18 +75,6 @@ pub(super) struct VoxelRefinementFrontierSnapshot {
 }
 
 impl VoxelRefinementFrontierSnapshot {
-    pub(super) fn iter(&self) -> impl Iterator<Item = VoxelRefinementFrontierCell> + '_ {
-        self.cells
-            .iter()
-            .map(|(key, &exposed_faces)| VoxelRefinementFrontierCell {
-                realization: key.realization,
-                authority: key.authority,
-                fine_scale: key.fine_scale,
-                key: key.key,
-                exposed_faces,
-            })
-    }
-
     pub(super) const fn source_coverage_revision(&self) -> u64 {
         self.source_coverage_revision
     }

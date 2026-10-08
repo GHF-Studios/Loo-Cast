@@ -95,7 +95,7 @@ impl CelestialFieldRealization {
             .ok()?;
 
         Some(PreparedCelestialVoxelSampler {
-            body: self.prepare_presentation_sampler(),
+            body: self.prepare_body_sampler(),
             chunk_origin_local_metres,
             world_to_local: self.frame_snapshot.orientation().conjugate(),
             metres_per_native: self.realization_scale.metres_per_native(),
@@ -103,8 +103,8 @@ impl CelestialFieldRealization {
         })
     }
 
-    pub(crate) fn prepare_presentation_sampler(self) -> PreparedCelestialPresentationBody {
-        PreparedCelestialPresentationBody::new(self)
+    pub(crate) fn prepare_body_sampler(self) -> PreparedCelestialBodySampler {
+        PreparedCelestialBodySampler::new(self)
     }
 
     pub(crate) fn sample_at(
@@ -131,11 +131,6 @@ impl CelestialFieldRealization {
         );
         self.origin_snapshot
             .translated_metres_f64(dvec(world_direction) * self.radius_metres)
-    }
-
-    /// Conservative inward support for non-radial volumetric surfaces.
-    pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
-        0.0
     }
 
     pub(crate) fn outer_signed_distance_local_metres(

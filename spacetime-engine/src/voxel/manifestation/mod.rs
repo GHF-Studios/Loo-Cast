@@ -44,7 +44,7 @@ pub(super) use collision::{
 pub(super) use coverage::publish_voxel_capability_realizations;
 pub(super) use lifecycle::retire_orphaned_presentation_manifestations;
 pub use material::VoxelPresentationMaterial;
-pub(super) use material::{VoxelRenderMaterial, create_voxel_render_material};
+pub(super) use material::VoxelRenderMaterial;
 pub(super) use membership::reconcile_presentation_manifestations;
 pub(super) use rebuild::{
     rebuild_dirty_presentation_manifestations, sync_presentation_manifestation_transforms,
@@ -124,15 +124,6 @@ impl VoxelPresentationManifestation {
 
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub(super) struct VoxelPresentationGeometry;
-
-/// Presentation-only retirement handshake for a dense manifestation whose
-/// store/capability demand already left.
-///
-/// Presence means the clipmap compositor has proven a visible replacement (or
-/// the old patch is no longer view-relevant). Membership may then park/recycle
-/// the runtime shell. This marker never grants semantic/collision authority.
-#[derive(Component, Debug, Default, Clone, Copy)]
-pub(super) struct VoxelPresentationFallbackRetireReady;
 
 /// Active mapping plus a bounded inactive shell pool.
 #[derive(Resource, Default)]

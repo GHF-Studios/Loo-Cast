@@ -122,7 +122,7 @@ pub(super) fn semantic_noise_cell_cache_stats_total() -> (u64, u64) {
 /// Lightweight per-sampler view into the durable worker-thread cache.
 ///
 /// The baselines keep existing per-sampler telemetry meaningful without
-/// allocating/zeroing 4096 entries for every clipmap block.
+/// allocating/zeroing a new cache for every bounded sampling task.
 #[derive(Debug)]
 pub(crate) struct SemanticNoiseCornerCache {
     baseline_hits: u64,

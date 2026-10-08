@@ -22,8 +22,8 @@ use super::super::{
     streaming::{VoxelMaterializationResidency, compare_work_ranks},
 };
 use super::{
-    ManifestationKey, VoxelPresentationFallbackRetireReady, VoxelPresentationGeometry,
-    VoxelPresentationManifestation, VoxelPresentationManifestationRegistry, VoxelRenderMaterial,
+    ManifestationKey, VoxelPresentationGeometry, VoxelPresentationManifestation,
+    VoxelPresentationManifestationRegistry, VoxelRenderMaterial,
 };
 
 fn park_manifestation(
@@ -39,8 +39,7 @@ fn park_manifestation(
 
     commands
         .entity(entity)
-        .insert(((*runtime).parked(), Visibility::Hidden))
-        .remove::<VoxelPresentationFallbackRetireReady>();
+        .insert(((*runtime).parked(), Visibility::Hidden));
     if !registry.recycle(entity) {
         commands.entity(entity).despawn();
     }
@@ -392,12 +391,6 @@ fn sync_manifestation_root_state(
         registry.record_visibility_write();
         commands.entity(entity).insert(Visibility::Inherited);
     }
-
-    // A rebound/reused manifestation is active truth again. Any retirement
-    // decision belonged to its previous disposable binding.
-    commands
-        .entity(entity)
-        .remove::<VoxelPresentationFallbackRetireReady>();
 }
 
 fn sync_fallback(

@@ -160,9 +160,8 @@ pub(super) fn celestial_contact_volume_demand(
     let metres_per_native = target_scale.metres_per_native();
 
     //
-    // The old 8192-native activation radius belonged to a world where dense
-    // terrain also carried far visual context. Binary presentation owns that
-    // now. Dense exterior terrain owns only near and predicted physical contact.
+    // Dense exterior work follows bounded contact interest. Coarse voxel
+    // ancestors supply visual context from the same spatial demand branch.
     let footprint_native = half_extent_native.length()
         + MATERIALIZATION_CHUNK_SIZE as f32 * EXTERIOR_CONTACT_GUARD_CHUNKS;
     let local_contact_horizon_metres = f64::from(footprint_native) * metres_per_native;

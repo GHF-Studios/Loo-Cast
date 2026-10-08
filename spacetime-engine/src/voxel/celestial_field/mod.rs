@@ -6,7 +6,6 @@
 //! ## Module map
 //!
 //! - `boundary`: Volumetric zero-crossing projection and travel-boundary queries.
-//! - `sampler`: Prepared presentation adapter over one canonical celestial field.
 //!
 //! Reexports here define the supported surface; child modules hold its implementation.
 //!
@@ -32,9 +31,6 @@ pub struct CelestialVoxelField {
 }
 
 mod boundary;
-mod sampler;
-
-pub(crate) use sampler::CelestialPresentationFieldSampler;
 
 impl CelestialVoxelField {
     /// Plain volumetric sphere. Detail and cave algorithms are not authored here.
@@ -87,50 +83,10 @@ impl CelestialVoxelField {
         CelestialFieldRealization::new(body_origin, body_frame, self.radius_metres, scale)
     }
 
-    pub(crate) fn presentation_sampler(
-        self,
-        sample_spacing_metres: f64,
-    ) -> Option<CelestialPresentationFieldSampler> {
-        // Spacing validates the representation request only. It MUST NOT select
-        // a different semantic terrain function.
-        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
-            return None;
-        }
-
-        Some(CelestialPresentationFieldSampler {
-            body: self
-                .realization(
-                    UsfPosition::zero(SpatialScale::MIN),
-                    UsfSemanticFrame::identity(),
-                    SpatialScale::ZERO,
-                )
-                .prepare_presentation_sampler(),
-        })
-    }
-
-    pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .volumetric_surface_inward_support_metres()
-    }
-
-    /// Global radial interval for this canonical field's outer surface.
-    pub(crate) fn conservative_surface_radius_bounds_metres(self) -> (f64, f64) {
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .conservative_surface_radius_bounds_metres()
-    }
-
     /// Sample the canonical body-local volumetric field in SI metres.
     ///
-    /// This is the common terrain truth for dense voxel caches, local clipmap
-    /// presentation and any future collision/query acceleration structure.
+    /// This is the common terrain truth for dense voxel caches and any future
+    /// collision/query acceleration structure.
     pub(crate) fn sample_local_metres(
         self,
         local_point_metres: DVec3,

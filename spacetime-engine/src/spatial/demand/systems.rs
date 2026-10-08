@@ -40,7 +40,7 @@ fn collect_spatial_demand(
         let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
         let half_extent_native = source.half_extent_native_at(source_scale);
 
-        if !source.enabled() || half_extent_native.max_element() <= 0.001 {
+        if !source.enabled() {
             continue;
         }
 
@@ -53,26 +53,30 @@ fn collect_spatial_demand(
             }
         }
 
-        let Ok(center) = frame
-            .origin()
-            .translated_at_scale(source_scale, transform.translation())
-        else {
-            error!(
-                ?entity,
-                scale = %source_scale,
-                local = ?transform.translation(),
-                "spatial interest source could not enter canonical USF space"
-            );
-            continue;
-        };
-
-        next.scopes.push(SpatialDemandScope::at_scale(
-            entity,
-            source_scale,
-            center,
-            half_extent_native,
-            source.priority(),
-        ));
+        // An SI-sized source can be too small to represent in its coarse
+        // current chart while its pending destination has a useful footprint.
+        // Suppress only the current scope; the destination is an independent
+        // request and must still prepare coverage for the handoff.
+        if half_extent_native.max_element() > 0.001 {
+            match frame
+                .origin()
+                .translated_at_scale(source_scale, transform.translation())
+            {
+                Ok(center) => next.scopes.push(SpatialDemandScope::at_scale(
+                    entity,
+                    source_scale,
+                    center,
+                    half_extent_native,
+                    source.priority(),
+                )),
+                Err(_) => error!(
+                    ?entity,
+                    scale = %source_scale,
+                    local = ?transform.translation(),
+                    "spatial interest source could not enter canonical USF space"
+                ),
+            }
+        }
 
         // Relocations are canonical commands keyed by semantic subject, while
         // SpatialDemandSource normally lives on a runtime realization. Resolve
@@ -85,15 +89,17 @@ fn collect_spatial_demand(
         if let Some(transition) = transitions.pending_relocation_for(transition_subject) {
             let target_scale = transition.target_scale().unwrap_or(source_scale);
             let target_half_extent_native = source.half_extent_native_at(target_scale);
-            next.scopes.push(SpatialDemandScope::at_scale(
-                entity,
-                target_scale,
-                transition.position(),
-                target_half_extent_native,
-                source
-                    .priority()
-                    .saturating_add(TRANSITION_DESTINATION_PRIORITY_BIAS),
-            ));
+            if target_half_extent_native.max_element() > 0.001 {
+                next.scopes.push(SpatialDemandScope::at_scale(
+                    entity,
+                    target_scale,
+                    transition.position(),
+                    target_half_extent_native,
+                    source
+                        .priority()
+                        .saturating_add(TRANSITION_DESTINATION_PRIORITY_BIAS),
+                ));
+            }
         }
     }
 
@@ -110,5 +116,64 @@ fn collect_spatial_demand(
     }
     if *motion_snapshot != next_motion {
         *motion_snapshot = next_motion;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf};
+    use crate::spatial::{UsfScaleRoleMask, UsfSpatialTransition, UsfTransitionVelocity};
+
+    #[test]
+    fn coarse_source_still_demands_covered_relocation_destination() {
+        let destination = SpatialScale::new(1).unwrap();
+        let mut app = App::new();
+        app.init_resource::<UsfRuntimeChartState>()
+            .init_resource::<UsfSpatialTransitions>()
+            .init_resource::<SpatialDemandSnapshot>()
+            .init_resource::<SpatialDemandMotionSnapshot>()
+            .add_systems(Update, collect_spatial_demand);
+
+        let semantic = app.world_mut().spawn_empty().id();
+        let partition = app
+            .world_mut()
+            .spawn(UsfAuthorityPartitionOf(semantic))
+            .id();
+        let source = app
+            .world_mut()
+            .spawn((
+                UsfLogicalRealizationOf(partition),
+                UsfScaleLayer::new(SpatialScale::MAX),
+                SpatialDemandSource::cuboid_metres(Vec3::new(96.0, 64.0, 96.0)),
+                GlobalTransform::IDENTITY,
+            ))
+            .id();
+        let position = UsfPosition::zero(destination);
+        app.world_mut()
+            .resource_mut::<UsfSpatialTransitions>()
+            .relocate(
+                UsfSpatialTransition::new(
+                    semantic,
+                    position,
+                    UsfTransitionVelocity::PreserveCanonical,
+                )
+                .with_scale(destination)
+                .requiring_coverage(UsfScaleRoleMask::COLLISION, 0.0),
+            );
+
+        app.update();
+
+        let scopes: Vec<_> = app
+            .world()
+            .resource::<SpatialDemandSnapshot>()
+            .iter()
+            .collect();
+        assert!(scopes.iter().any(|scope| {
+            scope.source() == source
+                && scope.scale() == destination
+                && scope.center() == position
+                && scope.half_extent_native().x > 0.0
+        }));
     }
 }

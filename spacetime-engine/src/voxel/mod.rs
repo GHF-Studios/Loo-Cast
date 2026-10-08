@@ -35,7 +35,6 @@
 //! - `presentation_palette`: Shared diagnostic colors for independent scale and binary LOD views.
 //! - `realization`: Multiscale voxel realization policy.
 //! - `region`: Sparse capability-local region addressing over voxel materialization leaves.
-//! - `resolution`: Voxel-local presentation-resolution contracts.
 //! - `store`: Compact residency and cache storage for voxel materializations.
 //! - `streaming`: Demand-driven residency policy for voxel materializations.
 //! - `worker`: Bounded execution facility for reconstructible voxel work.
@@ -64,7 +63,6 @@ mod physics;
 mod presentation_palette;
 mod realization;
 mod region;
-mod resolution;
 mod store;
 mod streaming;
 mod worker;
@@ -72,7 +70,6 @@ mod world;
 
 pub use authority::VoxelSemanticAuthority;
 pub use base::{CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase};
-pub(in crate::voxel) use celestial_field::CelestialPresentationFieldSampler;
 pub use celestial_field::CelestialVoxelField;
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
@@ -145,7 +142,6 @@ enum VoxelPostUpdateSet {
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         manifestation::configure(app);
-        resolution::configure(app);
 
         app.init_resource::<manifestation::VoxelPresentationManifestationRegistry>()
             .init_resource::<VoxelRealizationIntentSnapshot>()

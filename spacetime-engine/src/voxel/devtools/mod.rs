@@ -16,7 +16,6 @@ use super::{
     CelestialVoxelScaleRealization, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationResidency,
     VoxelMaterializationTelemetry, VoxelRealizationDemandSnapshot, VoxelScaleRealization,
     manifestation::{VoxelPresentationGeometry, VoxelPresentationManifestation},
-    resolution::CelestialClipmapTelemetry,
 };
 
 pub(super) fn configure(app: &mut App) {
@@ -54,7 +53,6 @@ fn terrain_pipeline_census(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     telemetry: Res<VoxelMaterializationTelemetry>,
-    clipmap: Res<CelestialClipmapTelemetry>,
     demands: Res<VoxelRealizationDemandSnapshot>,
     worlds: Query<
         (
@@ -173,7 +171,6 @@ fn terrain_pipeline_census(
         interaction_target_scale = %interaction.target_scale(),
         interaction_handoff_pending = interaction.handoff_pending(),
         worker_state = %telemetry.summary(),
-        clipmap_state = %clipmap.summary(),
         worlds = rows.len(),
         "terrain_pipeline_census"
     );

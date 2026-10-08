@@ -5610,7 +5610,6 @@ dependencies = [
  "serde_json",
  "spacetime-engine-macros",
  "tracy-client",
- "transvoxel-data",
  "vapor_telemetry",
 ]
 
@@ -6092,12 +6091,6 @@ dependencies = [
  "cc",
  "windows-targets 0.52.6",
 ]
-
-[[package]]
-name = "transvoxel-data"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31c8adc977f8b18a6894d2dea6c300b73cdd1f653b3adaf0c32749ed5a633a34"
 
 [[package]]
 name = "tree_magic_mini"

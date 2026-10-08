@@ -6,7 +6,7 @@
 //! ## Module map
 //!
 //! - `field`: Canonical celestial field and its bounded runtime sampling adapter.
-//! - `presentation`: Prepared celestial presentation sampling.
+//! - `sampling`: Prepared body-local field sampling.
 //!
 //! Reexports here define the supported surface; child modules hold its implementation.
 //!
@@ -22,9 +22,9 @@ use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 use super::EMPTY_DISTANCE;
 
 mod field;
-mod presentation;
+mod sampling;
 
-pub(crate) use presentation::PreparedCelestialPresentationBody;
+pub(crate) use sampling::PreparedCelestialBodySampler;
 
 /// One canonical body-local volumetric field sample.
 ///
@@ -67,7 +67,7 @@ pub struct CelestialFieldRealization {
 /// selects a different terrain algorithm.
 #[derive(Debug)]
 pub(crate) struct PreparedCelestialVoxelSampler {
-    body: PreparedCelestialPresentationBody,
+    body: PreparedCelestialBodySampler,
     chunk_origin_local_metres: DVec3,
     world_to_local: DQuat,
     metres_per_native: f64,

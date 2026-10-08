@@ -35,11 +35,9 @@ pub(super) fn volumetric_noise(
 }
 
 //
-// Most canonical surface evaluation is ordinary value-noise interpolation.
-// Within one 9^3 clipmap block, dozens of independent terrain domains repeatedly
-// sample the same integer noise cell. Cache the COMPLETE eight-corner cell per
-// durable worker thread: one lookup per value_noise_3d call instead of eight
-// repeated hash_noise_3d evaluations. Collisions only recompute.
+// Canonical value-noise sampling can repeatedly visit the same integer cell.
+// The worker-thread cache retains its complete eight-corner values so repeated
+// samples avoid recalculating every corner hash.
 
 mod local;
 mod semantic;

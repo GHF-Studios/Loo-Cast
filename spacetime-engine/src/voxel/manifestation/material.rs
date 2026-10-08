@@ -232,30 +232,6 @@ fn strip_raster_debug_grid(base: &mut StandardMaterial, enabled: bool) {
     }
 }
 
-/// Creates one ordinary voxel render material with no active refinement clips.
-///
-/// Binary presentation uses the same material/shader contract as dense voxel
-/// presentation rather than maintaining a second dev-texture implementation.
-pub(in crate::voxel) fn create_voxel_render_material(
-    mut base: StandardMaterial,
-    debug_grid_uv_metres_per_unit: Option<f32>,
-    buffers: &mut Assets<ShaderBuffer>,
-    materials: &mut Assets<VoxelRenderMaterial>,
-) -> Handle<VoxelRenderMaterial> {
-    let clip_boxes = buffers.add(ShaderBuffer::from(vec![[0.0_f32; 4], [0.0_f32; 4]]));
-    let grid_meta = debug_grid_meta(debug_grid_uv_metres_per_unit);
-    strip_raster_debug_grid(&mut base, grid_meta.x > 0.5);
-
-    materials.add(ExtendedMaterial {
-        base,
-        extension: VoxelRefinementClipExtension {
-            clip_boxes,
-            clip_meta: UVec4::ZERO,
-            debug_grid_meta: grid_meta,
-        },
-    })
-}
-
 /// Authored voxel material plus its realization-local GPU presentation state.
 ///
 /// The public constructor still accepts an ordinary [`StandardMaterial`] handle.
