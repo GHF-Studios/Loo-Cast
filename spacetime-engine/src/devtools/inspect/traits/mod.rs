@@ -6,8 +6,8 @@ use super::metadata::{InspectFieldMetadata, InspectTypeMetadata};
 
 /// UI-agnostic field traversal for inspectable values.
 ///
-/// The derive emits this traversal. Presentation hosts choose how to render the
-/// values and whether they possess a legal edit capability.
+/// Implementations provide this traversal. Presentation hosts choose how to
+/// render the values and whether they possess a legal edit capability.
 pub trait InspectFieldVisitor {
     fn field(&mut self, metadata: &'static InspectFieldMetadata, value: &dyn Any);
 }
@@ -22,10 +22,8 @@ pub trait InspectFieldVisitorMut {
 
 /// Type-level opt-in for reusable structured inspection.
 ///
-/// `#[derive(Inspect)]` implements this trait for ordinary named-field structs.
-/// Manual implementations remain a first-class path for computed properties,
-/// setters, polymorphism, collections, or any type whose semantics are richer
-/// than stored fields.
+/// Implementations may expose stored or computed properties while preserving
+/// the owning domain's edit authority.
 pub trait Inspect: Any {
     fn inspect_type_metadata() -> &'static InspectTypeMetadata
     where

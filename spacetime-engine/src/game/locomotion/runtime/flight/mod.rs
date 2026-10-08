@@ -41,6 +41,42 @@ use commit::{
 };
 use policy::{FlightVelocityStep, integrate_flight_attitude, step_flight_velocity};
 
+/// Physical attitude is resolved before translational velocity so propulsion
+/// uses the orientation committed for this fixed step.
+fn update_flight_attitude(
+    intent: &FlightControlIntent,
+    profile: &TravelProfile,
+    body: &mut Transform,
+    motion: &mut UsfCanonicalMotion,
+    delta_seconds: f64,
+    delta_seconds_f32: f32,
+) {
+    if !intent.active() {
+        motion.set_angular_velocity_radians_per_second(bevy::math::DVec3::ZERO);
+        return;
+    }
+
+    let previous_rotation = body.rotation;
+    body.rotation =
+        integrate_flight_attitude(body.rotation, intent.attitude(), profile, delta_seconds_f32);
+    let mut delta = (body.rotation * previous_rotation.conjugate()).normalize();
+    if delta.w < 0.0 {
+        delta = -delta;
+    }
+    let (axis, angle) = delta.to_axis_angle();
+    let angular_velocity = if angle.is_finite() && angle > 1.0e-6 {
+        let rate = f64::from(angle) / delta_seconds;
+        bevy::math::DVec3::new(
+            f64::from(axis.x) * rate,
+            f64::from(axis.y) * rate,
+            f64::from(axis.z) * rate,
+        )
+    } else {
+        bevy::math::DVec3::ZERO
+    };
+    motion.set_angular_velocity_radians_per_second(angular_velocity);
+}
+
 pub(in crate::game::locomotion) fn flight_movement(
     time: Res<Time<Fixed>>,
     frame: Res<UsfRuntimeChartState>,
@@ -113,29 +149,14 @@ pub(in crate::game::locomotion) fn flight_movement(
         return;
     }
 
-    if intent.active() {
-        let previous_rotation = body.rotation;
-        body.rotation =
-            integrate_flight_attitude(body.rotation, intent.attitude(), profile, time.delta_secs());
-        let mut delta = (body.rotation * previous_rotation.conjugate()).normalize();
-        if delta.w < 0.0 {
-            delta = -delta;
-        }
-        let (axis, angle) = delta.to_axis_angle();
-        let angular_velocity = if angle.is_finite() && angle > 1.0e-6 {
-            let rate = f64::from(angle) / dt;
-            bevy::math::DVec3::new(
-                f64::from(axis.x) * rate,
-                f64::from(axis.y) * rate,
-                f64::from(axis.z) * rate,
-            )
-        } else {
-            bevy::math::DVec3::ZERO
-        };
-        motion.set_angular_velocity_radians_per_second(angular_velocity);
-    } else {
-        motion.set_angular_velocity_radians_per_second(bevy::math::DVec3::ZERO);
-    }
+    update_flight_attitude(
+        intent,
+        profile,
+        &mut body,
+        &mut motion,
+        dt,
+        time.delta_secs(),
+    );
 
     let next_velocity = step_flight_velocity(FlightVelocityStep {
         kernel,

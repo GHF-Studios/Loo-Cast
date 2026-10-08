@@ -9,10 +9,9 @@
 //!
 //! - `anchor`: Semantic and render view anchors plus observer-only override.
 //! - `context`: View-owned observer state and bounded projection conversions.
-//! - `presentation`: Scale-local, scenery, and fallback presentation contracts.
+//! - `presentation`: Scale-local presentation contracts.
 //! - `probe`: Diagnostic presentation filter; never semantic authority.
 //! - `demand`: Observer-derived sparse presentation demand over the USF Scale Stack.
-//! - `lod`: Distance-driven mesh refinement for scale-authored scenery.
 //! - `systems`: ECS realization of observer-relative USF presentation state.
 //!
 //! The plugin or configure entrypoint here wires the child systems and resources.
@@ -24,7 +23,6 @@ use crate::spatial::{SpatialScale, UsfInteractionProjection, UsfPosition, UsfSca
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;
 const DIRECT_PRESENTATION_SCALE_BOUND: f64 = PRESENTATION_RELATIVE_BOUND as f64;
-const SCENERY_RELATIVE_BOUND: f32 = 1_000_000.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
 
 mod anchor;
@@ -34,26 +32,19 @@ mod probe;
 
 pub use anchor::{UsfViewAnchor, UsfViewObservationOverride, UsfViewRenderAnchor};
 pub use context::UsfViewContext;
-pub use presentation::{
-    UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,
-    UsfSceneryPresentation,
-};
+pub use presentation::{UsfLocalScalePresentation, UsfScalePresentation};
 pub use probe::UsfPresentationDomainProbe;
 
 mod demand;
-mod lod;
 mod systems;
 
 pub use demand::{UsfViewDemand, UsfViewDemandMode, UsfViewDemandPolicy, UsfViewDemandSnapshot};
-pub use lod::UsfDistanceMeshLod;
 
 pub(in crate::spatial) fn configure(app: &mut App) {
     app.init_resource::<UsfViewObservationOverride>();
     demand::configure(app);
 }
 
-pub(super) use lod::select_distance_mesh_lods;
 pub(super) use systems::{
-    project_local_scale_presentations, project_scale_presentations, project_scenery_presentations,
-    sync_view_context,
+    project_local_scale_presentations, project_scale_presentations, sync_view_context,
 };

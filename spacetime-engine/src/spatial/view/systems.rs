@@ -2,10 +2,9 @@
 
 use super::*;
 use crate::{
-    ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery, UsfPresentationProjectionOf},
+    ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
     spatial::{
-        UsfCanonicalMotion, UsfCapabilityRealization, UsfPrimaryInteractionSlice,
-        UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+        UsfCanonicalMotion, UsfCapabilityRealization, UsfPrimaryInteractionSlice, UsfScaleRoleMask,
     },
     view::USF_PRESENTATION_LAYER,
 };
@@ -159,26 +158,6 @@ pub(in crate::spatial) fn project_local_scale_presentations(
     }
 }
 
-fn fallback_should_render(
-    fallback: UsfScaleFallbackPresentation,
-    view_scale: SpatialScale,
-    interaction_scale: SpatialScale,
-    replacement_ready: bool,
-) -> bool {
-    if fallback.owns_view_scale(view_scale) {
-        return true;
-    }
-
-    // Presentation may move finer before physical interaction. Keep a
-    // fallback visible until interaction enters the voxel ladder and local
-    // presentation is published.
-    if interaction_scale > fallback.scale() {
-        return true;
-    }
-
-    !replacement_ready
-}
-
 /// Converts one desired runtime-global translation into a child-local
 /// translation while preserving the desired global pose.
 ///
@@ -187,160 +166,6 @@ fn fallback_should_render(
 /// time to a projection that was already computed from canonical/view state.
 fn local_translation_from_global(desired_global: Vec3, parent_translation: Option<Vec3>) -> Vec3 {
     parent_translation.map_or(desired_global, |parent| desired_global - parent)
-}
-
-fn scenery_is_inside_near_field_exclusion(
-    presentation: UsfSceneryPresentation,
-    observer_relative_native: Vec3,
-) -> bool {
-    presentation
-        .near_field_exclusion_radius_native()
-        .is_some_and(|radius| f64::from(observer_relative_native.length()) <= radius)
-}
-
-/// Projects persistent multiscale scenery into one bounded render scene.
-///
-/// For a raw observer-relative distance `d`, the rendered radius is
-/// `R * d / (R + d)`. The same compression is applied to object scale, preserving
-/// angular size while keeping arbitrarily distant representations inside `R`.
-pub(in crate::spatial) fn project_scenery_presentations(
-    mut commands: Commands,
-    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    interaction: Res<UsfPrimaryInteractionSlice>,
-    probe: Res<UsfPresentationDomainProbe>,
-    coverage: Res<UsfScaleCoverageSnapshot>,
-    ownership: UsfOwnershipQuery,
-    parents: Query<&Transform, Without<UsfSceneryPresentation>>,
-    mut presentations: Query<(
-        Entity,
-        &UsfSceneryPresentation,
-        Option<&ChildOf>,
-        &mut Transform,
-        &mut Visibility,
-        Option<&RenderLayers>,
-        Option<&NotShadowCaster>,
-        Option<&NotShadowReceiver>,
-        Option<&UsfScaleFallbackPresentation>,
-        Option<&UsfPresentationProjectionOf>,
-    )>,
-) {
-    for (
-        entity,
-        presentation,
-        parent,
-        mut transform,
-        mut visibility,
-        render_layers,
-        not_shadow_caster,
-        not_shadow_receiver,
-        fallback,
-        projection,
-    ) in &mut presentations
-    {
-        if !probe.context_enabled() {
-            *visibility = Visibility::Hidden;
-            continue;
-        }
-
-        if let Some(fallback) = fallback {
-            let replacement_ready = projection
-                .and_then(|projection| ownership.semantic_of(projection.0))
-                .is_some_and(|semantic| {
-                    coverage.has_near_for_authority(
-                        semantic,
-                        interaction.scale(),
-                        view.anchor(),
-                        UsfScaleRoleMask::PRESENTATION,
-                        0.0,
-                    )
-                });
-
-            if !fallback_should_render(
-                *fallback,
-                view.scale(),
-                interaction.scale(),
-                replacement_ready,
-            ) {
-                if !matches!(*visibility, Visibility::Hidden) {
-                    *visibility = Visibility::Hidden;
-                }
-                continue;
-            }
-        }
-        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
-        if render_layers.is_none_or(|current| *current != desired_layers) {
-            commands.entity(entity).insert(desired_layers);
-        }
-        if not_shadow_caster.is_none() {
-            commands.entity(entity).insert(NotShadowCaster);
-        }
-        if not_shadow_receiver.is_none() {
-            commands.entity(entity).insert(NotShadowReceiver);
-        }
-
-        let parent_translation = if let Some(parent) = parent {
-            let Ok(parent_transform) = parents.get(parent.0) else {
-                *visibility = Visibility::Hidden;
-                continue;
-            };
-            Some(parent_transform.translation)
-        } else {
-            None
-        };
-        let Some((translation, scale)) =
-            scenery_projection_pose(&view, presentation, parent_translation)
-        else {
-            *visibility = Visibility::Hidden;
-            continue;
-        };
-        if transform.translation != translation {
-            transform.translation = translation;
-        }
-        transform.scale = Vec3::splat(scale);
-        *visibility = Visibility::Inherited;
-    }
-}
-
-/// Numerical far-field projection has no authority over scenery identity or
-/// coverage; failure only suppresses this disposable presentation.
-fn scenery_projection_pose(
-    view: &UsfViewContext,
-    presentation: &UsfSceneryPresentation,
-    parent_translation: Option<Vec3>,
-) -> Option<(Vec3, f32)> {
-    let relative = presentation
-        .anchor()
-        .relative_at_scale_bounded(view.anchor(), presentation.scale(), SCENERY_RELATIVE_BOUND)
-        .ok()?;
-    if scenery_is_inside_near_field_exclusion(*presentation, relative) {
-        return None;
-    }
-    let native_to_view = view.projection_factor_f64(presentation.scale())?;
-    let raw_relative = view.project_relative_native_from_eye(relative, presentation.scale())?;
-    let raw_distance = raw_relative.length();
-    if !raw_distance.is_finite() {
-        return None;
-    }
-    let shell = presentation.render_shell_radius();
-    let compression = if raw_distance > f64::EPSILON {
-        shell / (shell + raw_distance)
-    } else {
-        1.0
-    };
-    let scale = (native_to_view * compression) as f32;
-    if !scale.is_finite() || scale <= f32::EPSILON {
-        return None;
-    }
-    let projected = raw_relative * compression;
-    let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
-    if !projected.is_finite() {
-        return None;
-    }
-    let global = view.presentation_origin() + projected;
-    Some((
-        local_translation_from_global(global, parent_translation),
-        scale,
-    ))
 }
 
 /// Contextual Scale presentation is view-owned; physical interaction Scale

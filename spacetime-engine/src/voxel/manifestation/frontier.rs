@@ -51,10 +51,6 @@ struct FrontierKey {
 pub(super) struct VoxelRefinementFaceMask(u8);
 
 impl VoxelRefinementFaceMask {
-    pub(super) const fn is_empty(self) -> bool {
-        self.0 == 0
-    }
-
     pub(super) const fn bits(self) -> u8 {
         self.0
     }

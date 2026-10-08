@@ -183,31 +183,7 @@ fn collect_thermal_coupling_field(
         ..default()
     };
 
-    let minimum = -Vec2::splat(FIELD_SIZE_METERS) * 0.5;
-    let denominator = (resolution - UVec2::ONE).as_vec2();
-    let mut values = Vec::with_capacity((resolution.x * resolution.y) as usize);
-    let mut maximum = 0.0_f32;
-
-    for y in 0..resolution.y {
-        for x in 0..resolution.x {
-            let uv = Vec2::new(x as f32, y as f32) / denominator;
-            let local_xy = minimum + Vec2::splat(FIELD_SIZE_METERS) * uv;
-            let local = Vec3::new(local_xy.x, local_xy.y, 0.0);
-            let point = transform.transform_point(local);
-            let mut influence = 0.0_f32;
-
-            for (positions, power, radius) in &influence_sources {
-                let distance = positions
-                    .iter()
-                    .map(|position| position.distance(point))
-                    .fold(f32::INFINITY, f32::min);
-                influence += *power * radial_heat_weight(distance, *radius);
-            }
-
-            maximum = maximum.max(influence);
-            values.push(influence);
-        }
-    }
+    let (values, maximum) = sample_coupling_field(transform, resolution, &influence_sources);
 
     batch.scalar_field(WorldScalarField {
         id: COUPLING_FIELD_DRAW,
@@ -222,4 +198,39 @@ fn collect_thermal_coupling_field(
         height_scale: 0.0,
     });
     frame.submit(batch);
+}
+
+/// Sample the observed field without giving the visualization any thermal
+/// simulation authority. The caller owns source selection and publication.
+fn sample_coupling_field(
+    transform: Transform,
+    resolution: UVec2,
+    sources: &[(&[Vec3], f32, f32)],
+) -> (Vec<f32>, f32) {
+    let minimum = -Vec2::splat(FIELD_SIZE_METERS) * 0.5;
+    let denominator = (resolution - UVec2::ONE).as_vec2();
+    let mut values = Vec::with_capacity((resolution.x * resolution.y) as usize);
+    let mut maximum = 0.0_f32;
+
+    for y in 0..resolution.y {
+        for x in 0..resolution.x {
+            let uv = Vec2::new(x as f32, y as f32) / denominator;
+            let local_xy = minimum + Vec2::splat(FIELD_SIZE_METERS) * uv;
+            let point = transform.transform_point(Vec3::new(local_xy.x, local_xy.y, 0.0));
+            let mut influence = 0.0_f32;
+
+            for (positions, power, radius) in sources {
+                let distance = positions
+                    .iter()
+                    .map(|position| position.distance(point))
+                    .fold(f32::INFINITY, f32::min);
+                influence += *power * radial_heat_weight(distance, *radius);
+            }
+
+            maximum = maximum.max(influence);
+            values.push(influence);
+        }
+    }
+
+    (values, maximum)
 }

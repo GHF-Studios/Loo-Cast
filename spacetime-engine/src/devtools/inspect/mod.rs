@@ -3,7 +3,7 @@
 //! ## Module map
 //!
 //! - `frame`: Per-frame inspection snapshot and edit/action request protocol.
-//! - `metadata`: UI-agnostic semantic metadata used by inspection derives and hosts.
+//! - `metadata`: UI-agnostic semantic metadata used by inspection implementations and hosts.
 //! - `model`: Semantic inspection values, fields, actions and sections.
 //! - `registry`: Explicit type-erased registration of inspectable Rust types.
 //! - `traits`: Structured inspection traversal contracts.

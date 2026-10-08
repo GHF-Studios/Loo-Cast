@@ -220,27 +220,8 @@ fn append_standalone_intents(
     output: &mut VoxelRealizationIntentSnapshot,
     realization_entity: Entity,
     scale: SpatialScale,
-    pinned: Option<&VoxelPinnedMaterializationDemand>,
     sources: &[VoxelDemandSource],
 ) {
-    if let Some(pinned) = pinned {
-        let scope = SpatialDemandScope::at_scale(
-            realization_entity,
-            scale,
-            pinned.center(),
-            pinned.half_extent_native(),
-            pinned.priority(),
-        );
-        output.push(
-            VoxelRealizationIntentTarget::ExistingRealization(realization_entity),
-            scope,
-            presentation_roles(),
-            None,
-            materialization_residency_extent(scope.half_extent_native()),
-            None,
-        );
-    }
-
     for source in sources.iter().copied() {
         if source.scope.scale() == scale {
             output.push(
@@ -262,12 +243,7 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
     interaction: Res<UsfPrimaryInteractionSlice>,
     voxel_sources: Query<Option<&SpatialRefinementDemand>, With<VoxelMaterializationDemand>>,
     standalone_realizations: Query<
-        (
-            Entity,
-            &UsfScaleLayer,
-            Option<&UsfLogicalRealizationOf>,
-            Option<&VoxelPinnedMaterializationDemand>,
-        ),
+        (Entity, &UsfScaleLayer, Option<&UsfLogicalRealizationOf>),
         With<VoxelScaleRealization>,
     >,
     celestial_authorities: Query<(
@@ -311,15 +287,9 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
         }
     }
 
-    for (realization_entity, layer, logical_realization, pinned) in &standalone_realizations {
+    for (realization_entity, layer, logical_realization) in &standalone_realizations {
         if logical_realization.is_none() {
-            append_standalone_intents(
-                &mut next,
-                realization_entity,
-                layer.scale(),
-                pinned,
-                &sources,
-            );
+            append_standalone_intents(&mut next, realization_entity, layer.scale(), &sources);
         }
     }
 

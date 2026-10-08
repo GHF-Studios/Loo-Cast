@@ -51,10 +51,6 @@ impl CelestialVoxelScaleRealization {
     pub(in crate::voxel) const fn target(self) -> VoxelRealizationTarget {
         self.target
     }
-
-    pub(in crate::voxel) const fn authority(self) -> Entity {
-        self.target.authority()
-    }
 }
 
 /// Pose binding between a disposable scale realization and semantic celestial frame.

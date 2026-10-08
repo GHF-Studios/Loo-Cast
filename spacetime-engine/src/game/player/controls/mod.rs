@@ -26,13 +26,13 @@ use crate::{
             FlightControlIntent, LocomotionRegime, MotionExecution, MotionKernel,
         },
         navigation::{
-            AdaptiveCruise, NavigationCapabilities, NavigationPresentationState, TravelAssistance,
-            TravelAssistanceRequest, TravelAssistanceState, TravelPace, TravelState,
+            NavigationPresentationState, TravelAssistance, TravelAssistanceRequest,
+            TravelAssistanceState, TravelPace,
         },
     },
     physics::character::{
-        CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
-        CharacterMovementConfig, CharacterMovementIntent,
+        CharacterControlFrame, CharacterLocomotionFrame, CharacterMovementConfig,
+        CharacterMovementIntent,
     },
     spatial::{SpatialDemandSource, UsfViewRenderAnchor},
     view::PrimaryViewPresentation,

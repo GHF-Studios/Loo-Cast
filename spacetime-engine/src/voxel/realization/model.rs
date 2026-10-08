@@ -18,28 +18,6 @@ pub(in crate::voxel) struct VoxelRealizationScope {
 }
 
 impl VoxelRealizationScope {
-    pub(in crate::voxel) fn new(scope: SpatialDemandScope, roles: UsfScaleRoleMask) -> Self {
-        Self {
-            scope,
-            roles,
-            view_source: None,
-            residency_half_extent_native: materialization_residency_extent(
-                scope.half_extent_native(),
-            ),
-            priority_focus: None,
-        }
-    }
-
-    pub(in crate::voxel) const fn with_view_source(mut self, source: Entity) -> Self {
-        self.view_source = Some(source);
-        self
-    }
-
-    pub(in crate::voxel) const fn with_priority_focus(mut self, focus: UsfPosition) -> Self {
-        self.priority_focus = Some(focus);
-        self
-    }
-
     pub(in crate::voxel) const fn scope(self) -> SpatialDemandScope {
         self.scope
     }

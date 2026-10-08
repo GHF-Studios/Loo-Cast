@@ -22,10 +22,6 @@ enum EditorTab {
     Resources,
     Assets,
     Visualizations,
-    ChunkManager,
-    IntentBuffer,
-    IntentCommit,
-    ChunkInspector,
 }
 
 #[derive(Resource)]
@@ -60,10 +56,6 @@ impl Default for EditorShell {
                 EditorTab::Resources,
                 EditorTab::Assets,
                 EditorTab::Visualizations,
-                EditorTab::ChunkManager,
-                EditorTab::IntentBuffer,
-                EditorTab::IntentCommit,
-                EditorTab::ChunkInspector,
             ],
         );
 

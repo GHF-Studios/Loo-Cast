@@ -186,7 +186,6 @@ fn spawn_ship_manifestation(
                 FlightTelemetry::default(),
                 PilotAttitudeLaw::FollowView,
                 AttitudeAutopilot::default(),
-                TraversalPolicy::Physical,
                 TravelAssistanceState::default(),
                 MotionExecution::default(),
                 actuation,

@@ -26,12 +26,12 @@ use crate::{
     },
 };
 
-use super::{VoxelMaterializationResidency, VoxelPinnedMaterializationDemand};
+use super::VoxelMaterializationResidency;
 
 use super::super::{
-    CelestialVoxelScaleRealization, MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled,
-    VoxelEditingDisabled, VoxelMaterializationKey, VoxelQueryPosition,
-    VoxelRealizationDemandSnapshot, VoxelRealizationScope, VoxelRegionSpan, VoxelScaleRealization,
+    MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelEditingDisabled,
+    VoxelMaterializationKey, VoxelQueryPosition, VoxelRealizationDemandSnapshot,
+    VoxelRealizationScope, VoxelRegionSpan, VoxelScaleRealization,
     manifestation::VoxelPresentationManifestation,
     worker::{VoxelWorkExecutor, VoxelWorkLane},
 };

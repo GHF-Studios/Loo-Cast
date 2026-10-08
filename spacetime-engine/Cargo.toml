@@ -21,7 +21,6 @@ profiling-chrome = ["bevy/trace_chrome"]
 profiling-detailed = ["bevy/detailed_trace"]
 
 [dependencies]
-spacetime-engine-macros = { path = "../spacetime-engine-macros" }
 glam.workspace = true
 bevy = {
     version = "0.19.1",
@@ -49,7 +48,6 @@ rhai = { version = "1.26.1", features = ["sync"] }
 ron = "0.12"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-inventory = { workspace = true }
 # Bevy 0.19 resolves tracy-client 0.18.x; this additive feature edge turns
 # Tracy's existing instrumentation into TRACY_ON_DEMAND without replacing
 # Bevy's tracing subscriber/integration.

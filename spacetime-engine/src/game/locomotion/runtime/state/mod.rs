@@ -19,7 +19,7 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
-        navigation::{TravelAssistance, TravelAssistanceState, TravelState},
+        navigation::{TravelAssistance, TravelAssistanceState},
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,

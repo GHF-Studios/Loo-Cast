@@ -89,8 +89,7 @@ pub use transition::{
     UsfTransitionVelocity,
 };
 pub use view::{
-    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationDomainProbe,
-    UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation, UsfViewAnchor,
+    UsfLocalScalePresentation, UsfPresentationDomainProbe, UsfScalePresentation, UsfViewAnchor,
     UsfViewContext, UsfViewDemand, UsfViewDemandMode, UsfViewDemandPolicy, UsfViewDemandSnapshot,
     UsfViewObservationOverride, UsfViewRenderAnchor,
 };
@@ -189,8 +188,6 @@ impl Plugin for UsfSpatialPlugin {
                 (
                     view::project_local_scale_presentations,
                     view::project_scale_presentations,
-                    view::project_scenery_presentations,
-                    view::select_distance_mesh_lods,
                 )
                     .chain()
                     .in_set(UsfSpatialSet::ViewProjection),

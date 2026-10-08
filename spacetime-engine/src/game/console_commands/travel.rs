@@ -11,8 +11,8 @@ use super::super::{
         LocomotionCapabilities, MotionExecution,
     },
     navigation::{
-        AdaptiveCruise, NavigationCapabilities, PrimaryBodyContext, TravelAssistance,
-        TravelAssistanceRequest, TravelAssistanceState, TravelPace, TravelState,
+        NavigationCapabilities, PrimaryBodyContext, TravelAssistance, TravelAssistanceRequest,
+        TravelAssistanceState, TravelPace, TravelState,
     },
 };
 use super::primary_view_context;

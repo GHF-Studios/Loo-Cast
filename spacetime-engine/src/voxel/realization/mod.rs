@@ -41,7 +41,7 @@ use crate::{
 
 use super::{
     CelestialVoxelField, CelestialVoxelRealizations, MATERIALIZATION_CHUNK_SIZE,
-    VoxelMaterializationDemand, VoxelPinnedMaterializationDemand, VoxelScaleRealization,
+    VoxelMaterializationDemand, VoxelScaleRealization,
 };
 
 mod contact;

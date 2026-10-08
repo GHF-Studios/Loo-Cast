@@ -5,10 +5,7 @@ use super::*;
 use crate::{
     game::{
         control::{LocalControlSubject, LocalController, LocalViewTarget},
-        flight::{
-            AttitudeAutopilot, FlightCapabilities, FlightTelemetry, PilotAttitudeLaw,
-            TraversalPolicy,
-        },
+        flight::{AttitudeAutopilot, FlightCapabilities, FlightTelemetry, PilotAttitudeLaw},
         locomotion::{
             CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation,
             FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
@@ -155,11 +152,7 @@ fn spawn_player_manifestation(
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
             ),
-            (
-                LocomotionInhibition::default(),
-                TraversalPolicy::Physical,
-                FlightTelemetry::default(),
-            ),
+            (LocomotionInhibition::default(), FlightTelemetry::default()),
             (
                 // Controlled-manifestation motion state persists across Scale
                 // Slices. CharacterMotor is only one detailed-body solver and

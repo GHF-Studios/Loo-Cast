@@ -67,7 +67,7 @@ fn visit_erased_mut<T: Inspect>(
 
 /// Runtime catalog for externally registered inspectable Rust types.
 ///
-/// Registration is explicit: deriving [`Inspect`] describes a type, while an app
+/// Registration is explicit: implementing [`Inspect`] describes a type, while an app
 /// registers only the types it wants discoverable through type erasure.
 #[derive(Resource, Default)]
 pub struct InspectTypeRegistry {

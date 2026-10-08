@@ -108,79 +108,28 @@ pub(super) fn sync_world_health_bars(
         let fill_visible = fraction > 0.0;
 
         if let Some(cached) = cache.bars.get(&entity).copied() {
-            let frame_alive = if let Ok((mut transform, mut global, mut visibility)) =
-                visuals.get_mut(cached.frame)
-            {
-                *transform = frame_transform;
-                *global = GlobalTransform::from(frame_transform);
-                *visibility = Visibility::Visible;
-                true
-            } else {
-                false
-            };
-
-            let fill_alive = if let Ok((mut transform, mut global, mut visibility)) =
-                visuals.get_mut(cached.fill)
-            {
-                *transform = fill_transform;
-                *global = GlobalTransform::from(fill_transform);
-                *visibility = if fill_visible {
-                    Visibility::Visible
-                } else {
-                    Visibility::Hidden
-                };
-                true
-            } else {
-                false
-            };
-
-            if frame_alive && fill_alive {
+            if refresh_cached_bar(
+                cached,
+                frame_transform,
+                fill_transform,
+                fill_visible,
+                &mut visuals,
+                &mut commands,
+            ) {
                 continue;
-            }
-
-            if frame_alive {
-                commands.entity(cached.frame).despawn();
-            }
-            if fill_alive {
-                commands.entity(cached.fill).despawn();
             }
             cache.bars.remove(&entity);
         }
 
-        let frame = commands
-            .spawn((
-                Name::new(format!("World Health Bar Frame {entity:?}")),
-                WorldHealthBarVisual,
-                NotShadowCaster,
-                NotShadowReceiver,
-                Mesh3d(assets.mesh.clone()),
-                MeshMaterial3d(assets.frame_material.clone()),
-                frame_transform,
-                GlobalTransform::from(frame_transform),
-                Visibility::Visible,
-            ))
-            .id();
-        let fill = commands
-            .spawn((
-                Name::new(format!("World Health Bar Fill {entity:?}")),
-                WorldHealthBarVisual,
-                NotShadowCaster,
-                NotShadowReceiver,
-                Mesh3d(assets.mesh.clone()),
-                MeshMaterial3d(assets.fill_material.clone()),
-                fill_transform,
-                GlobalTransform::from(fill_transform),
-                if fill_visible {
-                    Visibility::Visible
-                } else {
-                    Visibility::Hidden
-                },
-            ))
-            .id();
-
-        cache
-            .bars
-            .insert(entity, CachedWorldHealthBar { frame, fill });
+        let bar = spawn_world_bar(
+            &mut commands,
+            &assets,
+            entity,
+            frame_transform,
+            fill_transform,
+            fill_visible,
+        );
+        cache.bars.insert(entity, bar);
     }
 
     cache.bars.retain(|source, cached| {
@@ -192,6 +141,96 @@ pub(super) fn sync_world_health_bars(
             false
         }
     });
+}
+
+/// Refresh one cached manifestation. A half-missing pair is retired before
+/// replacement so the cache never claims only one side of a bar.
+fn refresh_cached_bar(
+    cached: CachedWorldHealthBar,
+    frame_transform: Transform,
+    fill_transform: Transform,
+    fill_visible: bool,
+    visuals: &mut Query<
+        (&mut Transform, &mut GlobalTransform, &mut Visibility),
+        With<WorldHealthBarVisual>,
+    >,
+    commands: &mut Commands,
+) -> bool {
+    let frame_alive = update_bar_visual(visuals, cached.frame, frame_transform, true);
+    let fill_alive = update_bar_visual(visuals, cached.fill, fill_transform, fill_visible);
+    if frame_alive && fill_alive {
+        return true;
+    }
+    if frame_alive {
+        commands.entity(cached.frame).despawn();
+    }
+    if fill_alive {
+        commands.entity(cached.fill).despawn();
+    }
+    false
+}
+
+fn update_bar_visual(
+    visuals: &mut Query<
+        (&mut Transform, &mut GlobalTransform, &mut Visibility),
+        With<WorldHealthBarVisual>,
+    >,
+    entity: Entity,
+    next: Transform,
+    visible: bool,
+) -> bool {
+    let Ok((mut transform, mut global, mut visibility)) = visuals.get_mut(entity) else {
+        return false;
+    };
+    *transform = next;
+    *global = GlobalTransform::from(next);
+    *visibility = if visible {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
+    true
+}
+
+fn spawn_world_bar(
+    commands: &mut Commands,
+    assets: &WorldHealthBarAssets,
+    source: Entity,
+    frame_transform: Transform,
+    fill_transform: Transform,
+    fill_visible: bool,
+) -> CachedWorldHealthBar {
+    let frame = commands
+        .spawn((
+            Name::new(format!("World Health Bar Frame {source:?}")),
+            WorldHealthBarVisual,
+            NotShadowCaster,
+            NotShadowReceiver,
+            Mesh3d(assets.mesh.clone()),
+            MeshMaterial3d(assets.frame_material.clone()),
+            frame_transform,
+            GlobalTransform::from(frame_transform),
+            Visibility::Visible,
+        ))
+        .id();
+    let fill = commands
+        .spawn((
+            Name::new(format!("World Health Bar Fill {source:?}")),
+            WorldHealthBarVisual,
+            NotShadowCaster,
+            NotShadowReceiver,
+            Mesh3d(assets.mesh.clone()),
+            MeshMaterial3d(assets.fill_material.clone()),
+            fill_transform,
+            GlobalTransform::from(fill_transform),
+            if fill_visible {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        ))
+        .id();
+    CachedWorldHealthBar { frame, fill }
 }
 
 fn world_bar_transforms(

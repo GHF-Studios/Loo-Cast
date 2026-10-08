@@ -26,10 +26,6 @@ impl TabViewer for EditorTabViewer<'_> {
             EditorTab::Resources => "Resources",
             EditorTab::Assets => "Assets",
             EditorTab::Visualizations => "Visualizations",
-            EditorTab::ChunkManager => "Chunk Manager",
-            EditorTab::IntentBuffer => "Intent Buffer",
-            EditorTab::IntentCommit => "Intent Commit",
-            EditorTab::ChunkInspector => "Chunk Inspector",
         }
         .into()
     }
@@ -55,10 +51,6 @@ impl TabViewer for EditorTabViewer<'_> {
             EditorTab::Resources => bevy_inspector::ui_for_resources(self.world, ui),
             EditorTab::Assets => bevy_inspector::ui_for_all_assets(self.world, ui),
             EditorTab::Visualizations => draw_visualizations(ui, self.world),
-            EditorTab::ChunkManager => draw_legacy_slot(ui, "Chunk Manager"),
-            EditorTab::IntentBuffer => draw_legacy_slot(ui, "Intent Buffer"),
-            EditorTab::IntentCommit => draw_legacy_slot(ui, "Intent Commit"),
-            EditorTab::ChunkInspector => draw_legacy_slot(ui, "Chunk Inspector"),
         }
     }
 

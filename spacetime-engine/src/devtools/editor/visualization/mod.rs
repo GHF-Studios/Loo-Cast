@@ -1,4 +1,4 @@
-//! Developer visualization controls and pending legacy editor slots.
+//! Developer visualization controls.
 
 use super::*;
 
@@ -26,9 +26,4 @@ pub(super) fn draw_visualizations(ui: &mut egui::Ui, world: &mut World) {
             tools.set_visualization_enabled(spec.id, selected);
         }
     }
-}
-
-pub(super) fn draw_legacy_slot(ui: &mut egui::Ui, title: &str) {
-    ui.heading(title);
-    ui.weak("Legacy editor slot restored; current subsystem integration is intentionally still pending.");
 }

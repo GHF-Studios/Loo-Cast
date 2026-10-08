@@ -69,11 +69,11 @@ mod worker;
 mod world;
 
 pub use authority::VoxelSemanticAuthority;
-pub use base::{CelestialFieldRealization, ProceduralTerrain, ProceduralVolume, VoxelBase};
+pub use base::{CelestialFieldRealization, VoxelBase};
 pub use celestial_field::CelestialVoxelField;
 pub use celestial_realization::CelestialVoxelRealizationPolicy;
 pub(in crate::voxel) use celestial_realization::{
-    CelestialVoxelRealizationFrame, CelestialVoxelRealizations, CelestialVoxelScaleRealization,
+    CelestialVoxelRealizationFrame, CelestialVoxelRealizations,
 };
 pub use chunk::{
     DenseVoxelMaterialization, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationEditResult,
@@ -94,7 +94,6 @@ pub(in crate::voxel) use realization::{
 pub(in crate::voxel) use region::VoxelRegionSpan;
 pub use streaming::{
     VoxelMaterializationDemand, VoxelMaterializationResidency, VoxelMaterializationTelemetry,
-    VoxelPinnedMaterializationDemand,
 };
 pub(in crate::voxel) use world::VoxelMaterializationKey;
 pub use world::{VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelScaleRealization};
@@ -142,151 +141,10 @@ enum VoxelPostUpdateSet {
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         manifestation::configure(app);
-
-        app.init_resource::<manifestation::VoxelPresentationManifestationRegistry>()
-            .init_resource::<VoxelRealizationIntentSnapshot>()
-            .init_resource::<VoxelRealizationDemandSnapshot>()
-            .init_resource::<CelestialVoxelRealizations>()
-            .init_resource::<worker::VoxelWorkExecutor>()
-            .init_resource::<VoxelMaterializationTelemetry>()
-            .configure_sets(
-                Update,
-                (
-                    VoxelUpdateSet::RealizationIntent.after(SpatialDemandSet::Collect),
-                    VoxelUpdateSet::RealizationLifecycle.after(VoxelUpdateSet::RealizationIntent),
-                    VoxelUpdateSet::RealizationDemand.after(VoxelUpdateSet::RealizationLifecycle),
-                    VoxelUpdateSet::Residency
-                        .after(VoxelUpdateSet::RealizationDemand)
-                        .after(UsfResidencySet::Reconcile),
-                    VoxelUpdateSet::RetireStaleWork.after(VoxelUpdateSet::Residency),
-                    VoxelUpdateSet::Generation.after(VoxelUpdateSet::RetireStaleWork),
-                ),
-            )
-            .add_systems(
-                Update,
-                (
-                    realization::collect_voxel_realization_intents
-                        .in_set(VoxelUpdateSet::RealizationIntent)
-                        .in_set(UsfResidencySet::Collect),
-                    celestial_realization::reconcile_celestial_voxel_realizations
-                        .in_set(VoxelUpdateSet::RealizationLifecycle)
-                        .in_set(UsfResidencySet::Collect),
-                    realization::resolve_voxel_realization_demands
-                        .in_set(VoxelUpdateSet::RealizationDemand)
-                        .in_set(UsfResidencySet::Collect),
-                )
-                    .chain(),
-            )
-            .add_systems(
-                Update,
-                //
-                // Celestial presentation is a Cartesian volumetric hierarchy
-                // owned by voxel::resolution.
-                streaming::reconcile_voxel_materialization_residency
-                    .in_set(VoxelUpdateSet::Residency),
-            )
-            .add_systems(
-                Update,
-                (
-                    streaming::retire_stale_materialization_generation,
-                    async_pipeline::retire_stale_surface_derivations,
-                )
-                    .in_set(VoxelUpdateSet::RetireStaleWork),
-            )
-            .add_systems(
-                Update,
-                streaming::schedule_dense_materialization_generation
-                    .in_set(VoxelUpdateSet::Generation),
-            )
-            .add_systems(
-                FixedUpdate,
-                medium::apply_voxel_medium_drag.after(CharacterMovementSet::Simulate),
-            )
-            .configure_sets(
-                PostUpdate,
-                (
-                    VoxelPostUpdateSet::SurfaceScheduling
-                        .after(VoxelPostUpdateSet::DensePublication)
-                        .after(VoxelPostUpdateSet::SurfacePublication),
-                    VoxelPostUpdateSet::Membership
-                        .after(VoxelPostUpdateSet::SurfacePublication)
-                        .after(VoxelPostUpdateSet::ManifestationCleanup),
-                    // Collision is a direct consumer of store-owned derived
-                    // surfaces. Publish physics before renderer manifestation so
-                    // physical terrain can never win the readiness race.
-                    VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::SurfacePublication),
-                    VoxelPostUpdateSet::Rebuild
-                        .after(VoxelPostUpdateSet::Membership)
-                        .after(VoxelPostUpdateSet::Collision),
-                    VoxelPostUpdateSet::Capability
-                        .after(VoxelPostUpdateSet::Rebuild)
-                        .before(UsfSpatialSet::SyncSemantic),
-                ),
-            )
-            .configure_sets(
-                PostUpdate,
-                (
-                    VoxelPostUpdateSet::Collision,
-                    VoxelPostUpdateSet::Rebuild,
-                    VoxelPostUpdateSet::Capability,
-                )
-                    .chain(),
-            )
-            .add_systems(
-                PostUpdate,
-                streaming::publish_generated_materializations
-                    .in_set(VoxelPostUpdateSet::DensePublication),
-            )
-            .add_systems(
-                PostUpdate,
-                async_pipeline::publish_completed_surface_derivations
-                    .in_set(VoxelPostUpdateSet::SurfacePublication),
-            )
-            .add_systems(
-                PostUpdate,
-                async_pipeline::schedule_surface_derivations
-                    .in_set(VoxelPostUpdateSet::SurfaceScheduling),
-            )
-            .add_systems(
-                PostUpdate,
-                manifestation::retire_orphaned_presentation_manifestations
-                    .in_set(VoxelPostUpdateSet::ManifestationCleanup),
-            )
-            .add_systems(
-                PostUpdate,
-                manifestation::reconcile_presentation_manifestations
-                    .in_set(VoxelPostUpdateSet::Membership),
-            )
-            .add_systems(
-                PostUpdate,
-                manifestation::rebuild_dirty_presentation_manifestations
-                    .in_set(VoxelPostUpdateSet::Rebuild),
-            )
-            .add_systems(
-                PostUpdate,
-                (
-                    manifestation::sync_presentation_manifestation_transforms
-                        .after(VoxelPostUpdateSet::Rebuild),
-                    manifestation::sync_collision_aggregate_runtime_transforms,
-                )
-                    .in_set(UsfSpatialSet::RuntimeProjection),
-            )
-            .add_systems(
-                PostUpdate,
-                manifestation::sync_manifestation_collision_residency
-                    .in_set(VoxelPostUpdateSet::Collision),
-            )
-            .add_systems(
-                PostUpdate,
-                manifestation::publish_voxel_capability_realizations
-                    .in_set(VoxelPostUpdateSet::Capability)
-                    .in_set(UsfCapabilitySet::Publish),
-            )
-            .add_systems(
-                PostUpdate,
-                collision_query::publish_collision_query_candidates
-                    .in_set(UsfCollisionQuerySet::Providers),
-            );
+        init_voxel_resources(app);
+        configure_voxel_update(app);
+        configure_voxel_post_update_order(app);
+        install_voxel_post_update_systems(app);
 
         #[cfg(feature = "profiling-tracy")]
         app.add_systems(
@@ -296,4 +154,147 @@ impl Plugin for VoxelPlugin {
 
         devtools::configure(app);
     }
+}
+
+fn init_voxel_resources(app: &mut App) {
+    app.init_resource::<manifestation::VoxelPresentationManifestationRegistry>()
+        .init_resource::<VoxelRealizationIntentSnapshot>()
+        .init_resource::<VoxelRealizationDemandSnapshot>()
+        .init_resource::<CelestialVoxelRealizations>()
+        .init_resource::<worker::VoxelWorkExecutor>()
+        .init_resource::<VoxelMaterializationTelemetry>();
+}
+
+/// Demand, realization, and worker scheduling form the Update-side pipeline.
+fn configure_voxel_update(app: &mut App) {
+    app.configure_sets(
+        Update,
+        (
+            VoxelUpdateSet::RealizationIntent.after(SpatialDemandSet::Collect),
+            VoxelUpdateSet::RealizationLifecycle.after(VoxelUpdateSet::RealizationIntent),
+            VoxelUpdateSet::RealizationDemand.after(VoxelUpdateSet::RealizationLifecycle),
+            VoxelUpdateSet::Residency
+                .after(VoxelUpdateSet::RealizationDemand)
+                .after(UsfResidencySet::Reconcile),
+            VoxelUpdateSet::RetireStaleWork.after(VoxelUpdateSet::Residency),
+            VoxelUpdateSet::Generation.after(VoxelUpdateSet::RetireStaleWork),
+        ),
+    )
+    .add_systems(
+        Update,
+        (
+            realization::collect_voxel_realization_intents
+                .in_set(VoxelUpdateSet::RealizationIntent)
+                .in_set(UsfResidencySet::Collect),
+            celestial_realization::reconcile_celestial_voxel_realizations
+                .in_set(VoxelUpdateSet::RealizationLifecycle)
+                .in_set(UsfResidencySet::Collect),
+            realization::resolve_voxel_realization_demands
+                .in_set(VoxelUpdateSet::RealizationDemand)
+                .in_set(UsfResidencySet::Collect),
+        )
+            .chain(),
+    )
+    .add_systems(
+        Update,
+        //
+        // Celestial presentation is a Cartesian volumetric hierarchy
+        // owned by voxel::resolution.
+        streaming::reconcile_voxel_materialization_residency.in_set(VoxelUpdateSet::Residency),
+    )
+    .add_systems(
+        Update,
+        (
+            streaming::retire_stale_materialization_generation,
+            async_pipeline::retire_stale_surface_derivations,
+        )
+            .in_set(VoxelUpdateSet::RetireStaleWork),
+    )
+    .add_systems(
+        Update,
+        streaming::schedule_dense_materialization_generation.in_set(VoxelUpdateSet::Generation),
+    )
+    .add_systems(
+        FixedUpdate,
+        medium::apply_voxel_medium_drag.after(CharacterMovementSet::Simulate),
+    );
+}
+
+/// Derived surfaces and collision publish before presentation and capability
+/// readiness. These constraints are the cross-facility contract.
+fn configure_voxel_post_update_order(app: &mut App) {
+    app.configure_sets(
+        PostUpdate,
+        (
+            VoxelPostUpdateSet::SurfaceScheduling
+                .after(VoxelPostUpdateSet::DensePublication)
+                .after(VoxelPostUpdateSet::SurfacePublication),
+            VoxelPostUpdateSet::Membership
+                .after(VoxelPostUpdateSet::SurfacePublication)
+                .after(VoxelPostUpdateSet::ManifestationCleanup),
+            // Collision is a direct consumer of store-owned derived
+            // surfaces. Publish physics before renderer manifestation so
+            // physical terrain can never win the readiness race.
+            VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::SurfacePublication),
+            VoxelPostUpdateSet::Rebuild
+                .after(VoxelPostUpdateSet::Membership)
+                .after(VoxelPostUpdateSet::Collision),
+            VoxelPostUpdateSet::Capability
+                .after(VoxelPostUpdateSet::Rebuild)
+                .before(UsfSpatialSet::SyncSemantic),
+        ),
+    );
+}
+
+fn install_voxel_post_update_systems(app: &mut App) {
+    app.add_systems(
+        PostUpdate,
+        streaming::publish_generated_materializations.in_set(VoxelPostUpdateSet::DensePublication),
+    )
+    .add_systems(
+        PostUpdate,
+        async_pipeline::publish_completed_surface_derivations
+            .in_set(VoxelPostUpdateSet::SurfacePublication),
+    )
+    .add_systems(
+        PostUpdate,
+        async_pipeline::schedule_surface_derivations.in_set(VoxelPostUpdateSet::SurfaceScheduling),
+    )
+    .add_systems(
+        PostUpdate,
+        manifestation::retire_orphaned_presentation_manifestations
+            .in_set(VoxelPostUpdateSet::ManifestationCleanup),
+    )
+    .add_systems(
+        PostUpdate,
+        manifestation::reconcile_presentation_manifestations.in_set(VoxelPostUpdateSet::Membership),
+    )
+    .add_systems(
+        PostUpdate,
+        manifestation::rebuild_dirty_presentation_manifestations
+            .in_set(VoxelPostUpdateSet::Rebuild),
+    )
+    .add_systems(
+        PostUpdate,
+        (
+            manifestation::sync_presentation_manifestation_transforms
+                .after(VoxelPostUpdateSet::Rebuild),
+            manifestation::sync_collision_aggregate_runtime_transforms,
+        )
+            .in_set(UsfSpatialSet::RuntimeProjection),
+    )
+    .add_systems(
+        PostUpdate,
+        manifestation::sync_manifestation_collision_residency.in_set(VoxelPostUpdateSet::Collision),
+    )
+    .add_systems(
+        PostUpdate,
+        manifestation::publish_voxel_capability_realizations
+            .in_set(VoxelPostUpdateSet::Capability)
+            .in_set(UsfCapabilitySet::Publish),
+    )
+    .add_systems(
+        PostUpdate,
+        collision_query::publish_collision_query_candidates.in_set(UsfCollisionQuerySet::Providers),
+    );
 }

@@ -46,7 +46,6 @@ fn outer_surface_is_volumetric_boundary(
 struct SpawnCandidate {
     direction_local: Vec3,
     surface_local_metres: DVec3,
-    normal_local: Vec3,
     distance_from_hint_metres: f64,
     slope_degrees: f64,
     roughness_metres: f64,
@@ -147,7 +146,6 @@ fn sample_candidate(
     Some(SpawnCandidate {
         direction_local,
         surface_local_metres: center,
-        normal_local,
         distance_from_hint_metres,
         slope_degrees,
         roughness_metres,

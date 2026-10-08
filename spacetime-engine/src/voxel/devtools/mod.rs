@@ -1,216 +1,22 @@
 //! Voxel realization developer visualization.
 
-use std::collections::HashMap;
-
 use bevy::prelude::*;
 
 use crate::{
     devtools::{DeveloperSet, DeveloperTools, DrawDepth, WorldDrawBatch, WorldDrawFrame},
     spatial::{
-        SPATIAL_DEMAND_VISUALIZATION, UsfCapabilityRealization, UsfPrimaryInteractionSlice,
-        UsfRuntimeChartState, UsfScaleLayer, UsfScaleRoleMask, UsfViewContext, UsfViewRenderAnchor,
+        SPATIAL_DEMAND_VISUALIZATION, UsfPrimaryInteractionSlice, UsfRuntimeChartState,
+        UsfScaleLayer,
     },
 };
 
-use super::{
-    CelestialVoxelScaleRealization, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationResidency,
-    VoxelMaterializationTelemetry, VoxelRealizationDemandSnapshot, VoxelScaleRealization,
-    manifestation::{VoxelPresentationGeometry, VoxelPresentationManifestation},
-};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelScaleRealization};
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(
         PostUpdate,
-        (
-            collect_voxel_materialization_world_draw.in_set(DeveloperSet::CollectWorldDraw),
-            terrain_pipeline_census.after(crate::spatial::UsfSpatialSet::ViewProjection),
-        ),
+        collect_voxel_materialization_world_draw.in_set(DeveloperSet::CollectWorldDraw),
     );
-}
-
-#[derive(Default)]
-struct TerrainPipelineCensusState {
-    seconds_until_report: f32,
-}
-
-#[derive(Default, Clone, Copy)]
-struct RuntimeCensus {
-    active: usize,
-    presentation_ready: usize,
-    collision_ready: usize,
-    visible_presentations: usize,
-}
-
-/// Temporary forensic census for the celestial terrain regression.
-///
-/// This intentionally changes no demand, residency, generation, capability or
-/// presentation policy. It reports where the coarse->fine pipeline stops:
-///
-/// demand -> residency -> dense generation -> sign transition -> derived
-/// surface -> manifestation -> PRESENTATION/COLLISION readiness -> visibility.
-fn terrain_pipeline_census(
-    time: Res<Time>,
-    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    interaction: Res<UsfPrimaryInteractionSlice>,
-    telemetry: Res<VoxelMaterializationTelemetry>,
-    demands: Res<VoxelRealizationDemandSnapshot>,
-    worlds: Query<
-        (
-            Entity,
-            &VoxelScaleRealization,
-            &UsfScaleLayer,
-            Option<&VoxelMaterializationResidency>,
-        ),
-        With<CelestialVoxelScaleRealization>,
-    >,
-    runtimes: Query<(
-        &VoxelPresentationManifestation,
-        Option<&UsfCapabilityRealization>,
-    )>,
-    presentations: Query<(&ChildOf, &Visibility), With<VoxelPresentationGeometry>>,
-    mut state: Local<TerrainPipelineCensusState>,
-) {
-    state.seconds_until_report -= time.delta_secs().max(0.0);
-    if state.seconds_until_report > 0.0 {
-        return;
-    }
-    state.seconds_until_report = 3.0;
-
-    let mut runtime_by_world = HashMap::<Entity, RuntimeCensus>::new();
-
-    for (runtime, capability) in &runtimes {
-        if !runtime.active() {
-            continue;
-        }
-        let entry = runtime_by_world.entry(runtime.realization()).or_default();
-        entry.active += 1;
-
-        if let Some(capability) = capability {
-            if capability.roles().contains(UsfScaleRoleMask::PRESENTATION) {
-                entry.presentation_ready += 1;
-            }
-            if capability.roles().contains(UsfScaleRoleMask::COLLISION) {
-                entry.collision_ready += 1;
-            }
-        }
-    }
-
-    for (parent, visibility) in &presentations {
-        if matches!(*visibility, Visibility::Hidden) {
-            continue;
-        }
-        let Ok((runtime, _)) = runtimes.get(parent.0) else {
-            continue;
-        };
-        if !runtime.active() {
-            continue;
-        }
-        runtime_by_world
-            .entry(runtime.realization())
-            .or_default()
-            .visible_presentations += 1;
-    }
-
-    let mut rows = Vec::new();
-
-    for (entity, world, layer, streaming) in &worlds {
-        let store = world.materializations();
-
-        let active_keys = store.active_keys().collect::<Vec<_>>();
-        let active = active_keys.len();
-        let desired = streaming.map_or(active, VoxelMaterializationResidency::desired_count);
-        let pending_desired =
-            streaming.map_or(0, VoxelMaterializationResidency::pending_desired_len);
-        let warm_inactive = store.inactive_count();
-        let total_materializations = store.total_count();
-
-        let mut dense = 0usize;
-        let mut sign_transition = 0usize;
-        for (_, chunk) in store.active_dense_entries() {
-            dense += 1;
-            if chunk.has_surface_transition() {
-                sign_transition += 1;
-            }
-        }
-
-        let derived = active_keys
-            .iter()
-            .filter(|&&key| store.active_derived_revision(key).is_some())
-            .count();
-        let surfaces = active_keys
-            .iter()
-            .filter(|&&key| store.active_surface(key).is_some())
-            .count();
-
-        let runtime = runtime_by_world.get(&entity).copied().unwrap_or_default();
-        let demand_scopes = demands.requests_for(entity).count();
-
-        rows.push((
-            layer.scale().exponent(),
-            demand_scopes,
-            desired,
-            pending_desired,
-            active,
-            warm_inactive,
-            total_materializations,
-            active.saturating_sub(dense),
-            dense,
-            sign_transition,
-            derived,
-            surfaces,
-            runtime,
-        ));
-    }
-
-    rows.sort_by_key(|row| row.0);
-
-    info!(
-        view_scale = %view.scale(),
-        view_exponent = view.continuous_exponent(),
-        interaction_scale = %interaction.scale(),
-        interaction_target_scale = %interaction.target_scale(),
-        interaction_handoff_pending = interaction.handoff_pending(),
-        worker_state = %telemetry.summary(),
-        worlds = rows.len(),
-        "terrain_pipeline_census"
-    );
-
-    for (
-        exponent,
-        demand_scopes,
-        desired,
-        pending_desired,
-        active,
-        warm_inactive,
-        total_materializations,
-        pending_generation,
-        dense,
-        sign_transition,
-        derived,
-        surfaces,
-        runtime,
-    ) in rows
-    {
-        info!(
-            scale = exponent,
-            demand_scopes,
-            desired,
-            pending_desired,
-            active,
-            warm_inactive,
-            total_materializations,
-            pending_generation,
-            dense,
-            sign_transition,
-            derived,
-            surfaces,
-            runtime_active = runtime.active,
-            presentation_ready = runtime.presentation_ready,
-            collision_ready = runtime.collision_ready,
-            visible_presentations = runtime.visible_presentations,
-            "terrain_pipeline_scale"
-        );
-    }
 }
 
 fn collect_voxel_materialization_world_draw(

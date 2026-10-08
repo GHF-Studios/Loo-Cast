@@ -77,7 +77,6 @@ pub(in crate::game::console_commands) fn presentation_command(
         interaction_affinity,
     ));
     lines.extend(terrain_presentation_lines(world, interaction.scale()));
-    lines.extend(scenery_presentation_lines(world));
 
     ConsoleCommandResult::lines(lines)
 }
@@ -182,33 +181,6 @@ fn terrain_presentation_lines(
                 count.context_visible,
                 count.context_total,
             )
-        })
-        .collect()
-}
-
-fn scenery_presentation_lines(world: &mut World) -> Vec<String> {
-    let scenery = {
-        let mut query = world.query::<(&UsfSceneryPresentation, &Visibility)>();
-        query
-            .iter(world)
-            .map(|(presentation, visibility)| {
-                (
-                    presentation.scale(),
-                    !matches!(*visibility, Visibility::Hidden),
-                )
-            })
-            .collect::<Vec<_>>()
-    };
-    let mut counts = BTreeMap::<i8, (usize, usize)>::new();
-    for (scale, visible) in scenery {
-        let count = counts.entry(scale.exponent()).or_default();
-        count.0 += 1;
-        count.1 += usize::from(visible);
-    }
-    counts
-        .into_iter()
-        .map(|(exponent, (total, visible))| {
-            format!("scenery S{:+}: {}/{} visible", exponent, visible, total)
         })
         .collect()
 }

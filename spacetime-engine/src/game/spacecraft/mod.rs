@@ -32,7 +32,7 @@ use crate::{
         flight::{
             AttitudeAutopilot, FlightCapabilities, FlightContactState, FlightControlCommand,
             FlightControlRequest, FlightLandingOpportunity, FlightSafetyProfile, FlightSafetyState,
-            FlightTelemetry, PilotAttitudeLaw, TraversalPolicy,
+            FlightTelemetry, PilotAttitudeLaw,
         },
         locomotion::{
             ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation, FlightControlIntent,

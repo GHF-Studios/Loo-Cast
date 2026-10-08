@@ -5603,24 +5603,12 @@ dependencies = [
  "egui_dock",
  "fast-surface-nets",
  "glam 0.32.1",
- "inventory",
  "rhai",
  "ron",
  "serde",
  "serde_json",
- "spacetime-engine-macros",
  "tracy-client",
  "vapor_telemetry",
-]
-
-[[package]]
-name = "spacetime-engine-macros"
-version = "0.5.0"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn 3.0.5",
 ]
 
 [[package]]

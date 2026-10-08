@@ -14,7 +14,6 @@
 //! - `ecs`: Shared ECS identity, manifestation, constituency, and component-conflict facilities.
 //! - `game`: Loo Cast game composition built on Spacetime Engine domains.
 //! - `geometry`: Hot-reloadable authored geometry asset/compiler/runtime facility.
-//! - `gpu`: Reusable GPU-offload coordination and asynchronous completion facilities.
 //! - `input_focus`: Generic arbitration for UI/tools that temporarily own pointer or gameplay
 //!   input.
 //! - `physics`: Physics integration owned by Spacetime Engine.
@@ -28,7 +27,6 @@
 //! - `view`: Viewport and coordinate-space contracts shared by gameplay and tooling.
 //! - `voxel`: Semantic voxel authority, scale realizations, and disposable materialization
 //!   backends.
-//! - `worldgen`: Sparse typed phenomenon evaluation across canonical USF spatial scopes.
 //!
 //! The plugin or configure entrypoint here wires the child systems and resources.
 //!
@@ -49,7 +47,6 @@ pub mod diagnostics;
 pub mod ecs;
 pub mod game;
 pub mod geometry;
-pub mod gpu;
 pub mod input_focus;
 pub mod physics;
 pub mod portal;
@@ -61,9 +58,6 @@ pub mod ui;
 pub mod usf;
 pub mod view;
 pub mod voxel;
-pub mod worldgen;
-
-pub use spacetime_engine_macros::{Inspect, conflict};
 
 /// Concrete application type exposed by Spacetime Engine's current Rust host
 /// contract.
@@ -94,7 +88,6 @@ impl bevy::prelude::Plugin for SpacetimeEnginePlugin {
 
         app.add_plugins((
             config::EngineConfigPlugin,
-            ecs::component_conflict::ComponentConflictPlugin,
             geometry::AuthoredGeometryPlugin,
             physics::SpacetimePhysicsPlugin,
             reconstructible::ReconstructibleWorkPlugin,
@@ -118,23 +111,22 @@ pub fn engine_app() -> EngineApp {
     use bevy::prelude::*;
 
     let mut app = App::new();
-    app
-        .add_plugins(
-            DefaultPlugins
-                .set(bevy::log::LogPlugin {
-                    custom_layer: console::console_log_layer,
-                    ..default()
-                })
-                .set(bevy::window::WindowPlugin {
-                    primary_window: Some(bevy::window::Window {
-                        present_mode: bevy::window::PresentMode::AutoNoVsync,
-                        desired_maximum_frame_latency: std::num::NonZeroU32::new(3),
-                        ..default()
-                    }),
+    app.add_plugins(
+        DefaultPlugins
+            .set(bevy::log::LogPlugin {
+                custom_layer: console::console_log_layer,
+                ..default()
+            })
+            .set(bevy::window::WindowPlugin {
+                primary_window: Some(bevy::window::Window {
+                    present_mode: bevy::window::PresentMode::AutoNoVsync,
+                    desired_maximum_frame_latency: std::num::NonZeroU32::new(3),
                     ..default()
                 }),
-        )
-        .add_plugins(SpacetimeEnginePlugin);
+                ..default()
+            }),
+    )
+    .add_plugins(SpacetimeEnginePlugin);
     app
 }
 

@@ -45,7 +45,6 @@ impl Plugin for FlightPlugin {
             .register_type::<AttitudeAutopilot>()
             .register_type::<FlightContactState>()
             .register_type::<FlightLandingOpportunity>()
-            .register_type::<TraversalPolicy>()
             .register_type::<FlightSafetyProfile>()
             .register_type::<FlightSafetyLevel>()
             .register_type::<FlightSafetyState>()

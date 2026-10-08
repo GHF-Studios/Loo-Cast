@@ -1,4 +1,4 @@
-//! UI-agnostic semantic metadata used by inspection derives and hosts.
+//! UI-agnostic semantic metadata used by inspection implementations and hosts.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InspectSectionId(pub &'static str);

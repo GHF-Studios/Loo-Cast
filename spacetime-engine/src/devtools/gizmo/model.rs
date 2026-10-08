@@ -1,6 +1,9 @@
 //! Transform-gizmo edit authority and transient interaction model.
 
 use super::*;
+use crate::devtools::{
+    Inspect, InspectFieldMetadata, InspectFieldVisitor, InspectFieldVisitorMut, InspectTypeMetadata,
+};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum EditorTransformSpace {
@@ -9,16 +12,47 @@ pub enum EditorTransformSpace {
     Local,
 }
 
-#[derive(Resource, Debug, Default, Clone, Copy, spacetime_engine_macros::Inspect)]
-#[inspect(label = "Transform gizmo")]
+#[derive(Resource, Debug, Default, Clone, Copy)]
 pub struct EditorTransformGizmoSettings {
-    #[inspect(
-        label = "Space",
-        direct,
-        role = "transform_space",
-        widget = "editor.transform_space"
-    )]
     transform_space: EditorTransformSpace,
+}
+
+impl Inspect for EditorTransformGizmoSettings {
+    fn inspect_type_metadata() -> &'static InspectTypeMetadata {
+        static FIELDS: [InspectFieldMetadata; 1] = [InspectFieldMetadata {
+            id: InspectFieldId("transform_space"),
+            rust_name: "transform_space",
+            rust_type_name: "EditorTransformSpace",
+            label: "Space",
+            symbol: None,
+            access: InspectAccess::Direct,
+            unit: None,
+            hint: None,
+            role: Some("transform_space"),
+            widget: Some(InspectWidgetId("editor.transform_space")),
+            number_input: None,
+        }];
+        static METADATA: InspectTypeMetadata = InspectTypeMetadata {
+            rust_name: concat!(module_path!(), "::EditorTransformGizmoSettings"),
+            label: "Transform gizmo",
+            fields: &FIELDS,
+        };
+        &METADATA
+    }
+
+    fn visit_inspect_fields(&self, visitor: &mut dyn InspectFieldVisitor) {
+        visitor.field(
+            &Self::inspect_type_metadata().fields[0],
+            &self.transform_space,
+        );
+    }
+
+    fn visit_inspect_fields_mut(&mut self, visitor: &mut dyn InspectFieldVisitorMut) {
+        visitor.direct(
+            &Self::inspect_type_metadata().fields[0],
+            &mut self.transform_space,
+        );
+    }
 }
 
 impl EditorTransformGizmoSettings {

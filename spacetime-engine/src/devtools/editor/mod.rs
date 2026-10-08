@@ -10,7 +10,7 @@
 //! - `hierarchy`: ECS hierarchy focus, semantic Structure navigation and USF relationships.
 //! - `inspector`: Semantic inspector and contextual-gizmo editor panels.
 //! - `shell`: Runtime editor shell, docking, toolbar and game viewport embedding.
-//! - `visualization`: Developer visualization controls and pending legacy editor slots.
+//! - `visualization`: Developer visualization controls.
 //!
 //! The plugin or configure entrypoint here wires the child systems and resources.
 //!
@@ -57,7 +57,7 @@ mod visualization;
 use hierarchy::{apply_hierarchy_selection, draw_structure, focus_name, sync_hierarchy_selection};
 use inspector::{draw_gizmos, draw_semantic_inspector};
 use shell::draw_transform_space_control;
-use visualization::{draw_legacy_slot, draw_visualizations};
+use visualization::draw_visualizations;
 
 pub(super) fn configure(app: &mut App) {
     shell::configure(app);

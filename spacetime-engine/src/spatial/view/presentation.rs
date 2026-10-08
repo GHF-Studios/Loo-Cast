@@ -1,4 +1,4 @@
-//! Scale-local, scenery, and fallback presentation contracts.
+//! Scale-local presentation contracts.
 
 use super::*;
 
@@ -10,93 +10,6 @@ use super::*;
 pub struct UsfScalePresentation {
     anchor: UsfPosition,
     scale: SpatialScale,
-}
-
-/// Persistent scenery authored in one scale-local chart.
-///
-/// Unlike adjacent-scale transition representations, scenery may remain visible
-/// across arbitrarily distant observer scales. `absolute` is representation
-/// metadata in `scale`-native units, not semantic world identity.
-///
-/// Rendering preserves direction and angular size while monotonically
-/// compressing extreme radial distance into a bounded render shell. This is the
-/// core illusion that lets local terrain, planets, stars and galaxies coexist in
-/// one ordinary floating-point render scene.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct UsfSceneryPresentation {
-    anchor: UsfPosition,
-    scale: SpatialScale,
-    render_shell_radius: f64,
-    /// Observer distance, in `scale`-native units, below which this compressed
-    /// distant-object realizer is invalid and must not masquerade as local geometry.
-    near_field_exclusion_radius_native: Option<f64>,
-}
-
-impl UsfSceneryPresentation {
-    pub const DEFAULT_RENDER_SHELL_RADIUS: f64 = 750.0;
-
-    pub const fn from_anchor(anchor: UsfPosition, scale: SpatialScale) -> Self {
-        Self {
-            anchor,
-            scale,
-            render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
-            near_field_exclusion_radius_native: None,
-        }
-    }
-
-    pub fn new(absolute: DVec3, scale: SpatialScale) -> Self {
-        let local = Vec3::new(absolute.x as f32, absolute.y as f32, absolute.z as f32);
-        let anchor = UsfPosition::zero(scale)
-            .translated_native(local)
-            .expect("finite authored scenery coordinate must be canonically representable");
-        Self {
-            anchor,
-            scale,
-            render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
-            near_field_exclusion_radius_native: None,
-        }
-    }
-
-    pub const fn anchor(self) -> UsfPosition {
-        self.anchor
-    }
-
-    /// Updates disposable presentation placement from semantic authority.
-    ///
-    /// This is derived projection state only; callers must never treat the
-    /// scenery component as canonical position authority.
-    pub(crate) fn set_anchor(&mut self, anchor: UsfPosition) {
-        self.anchor = anchor;
-    }
-
-    pub const fn scale(self) -> SpatialScale {
-        self.scale
-    }
-
-    pub const fn render_shell_radius(self) -> f64 {
-        self.render_shell_radius
-    }
-
-    pub fn with_render_shell_radius(mut self, radius: f64) -> Self {
-        if radius.is_finite() && radius > 1.0 {
-            self.render_shell_radius = radius;
-        }
-        self
-    }
-
-    /// Declares where this compressed far-field representation ceases to be a
-    /// valid depiction of local space. This is realizer policy, not semantic
-    /// object identity and not a substitute terrain fallback.
-    pub fn with_near_field_exclusion_radius_native(mut self, radius: f64) -> Self {
-        if radius.is_finite() && radius > 0.0 {
-            self.near_field_exclusion_radius_native = Some(radius);
-        }
-        self
-    }
-
-    pub const fn near_field_exclusion_radius_native(self) -> Option<f64> {
-        self.near_field_exclusion_radius_native
-    }
 }
 
 /// Units in which one local presentation's mesh vertices were authored.
@@ -150,36 +63,6 @@ impl UsfLocalScalePresentation {
 
     pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
         self.scale = scale;
-    }
-}
-
-/// Marks a genuinely mutually-exclusive presentation fallback.
-///
-/// This is presentation policy only. It must never imply persistent
-/// materialization, collision, editing, or simulation residency.
-///
-/// IMPORTANT: this is *not* the rule for hierarchical spatial refinement.
-/// Coarse celestial/macroscopic context remains inherited while finer bounded
-/// apertures refine it; a local terrain patch must never globally hide its
-/// demanded ancestor presentation.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UsfScaleFallbackPresentation {
-    scale: SpatialScale,
-}
-
-impl UsfScaleFallbackPresentation {
-    pub const fn new(scale: SpatialScale) -> Self {
-        Self { scale }
-    }
-
-    pub const fn scale(self) -> SpatialScale {
-        self.scale
-    }
-
-    /// The fallback owns presentation only after the observer has moved beyond
-    /// the available voxel-realization ladder on the coarse side.
-    pub fn owns_view_scale(self, view_scale: SpatialScale) -> bool {
-        view_scale > self.scale
     }
 }
 

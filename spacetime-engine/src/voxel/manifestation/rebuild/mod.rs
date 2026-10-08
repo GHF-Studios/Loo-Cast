@@ -10,9 +10,7 @@ use crate::{
     config::EngineConfig,
     ecs::UsfPresentationProjectionOf,
     reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
-    spatial::{
-        UsfRuntimeChartState, UsfScaleFallbackPresentation, UsfScaleLayer, UsfScalePresentation,
-    },
+    spatial::{UsfRuntimeChartState, UsfScaleLayer, UsfScalePresentation},
 };
 
 use super::super::{
@@ -90,7 +88,6 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
         &VoxelScaleRealization,
         &VoxelPresentationMaterial,
         &UsfScaleLayer,
-        Option<&UsfScaleFallbackPresentation>,
         Option<&VoxelMaterializationResidency>,
     )>,
     manifestations: Query<(&VoxelPresentationManifestation, &Transform, &Visibility)>,
@@ -113,7 +110,7 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
             worlds
                 .get(key.realization)
                 .ok()
-                .and_then(|(_, _, _, _, _, streaming)| streaming)
+                .and_then(|(_, _, _, _, streaming)| streaming)
                 .and_then(|streaming| streaming.work_rank_for_key(key.key))
         };
         let Some(key) =
@@ -139,8 +136,7 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
             continue;
         };
 
-        let Ok((_, world, material, layer, fallback, _streaming)) = worlds.get(key.realization)
-        else {
+        let Ok((_, world, material, layer, _streaming)) = worlds.get(key.realization) else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
                 park_manifestation(&mut commands, &mut registry, &manifestations, entity);
@@ -213,7 +209,6 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
                 current_visibility,
                 local_translation,
             );
-            sync_fallback(&mut commands, entity, fallback);
 
             commands.entity(runtime.presentation).insert((
                 UsfPresentationProjectionOf(key.realization),
@@ -274,7 +269,6 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
                 current_visibility,
                 local_translation,
             );
-            sync_fallback(&mut commands, entity, fallback);
 
             commands.entity(runtime.presentation).insert((
                 UsfPresentationProjectionOf(key.realization),
@@ -320,7 +314,6 @@ pub(in crate::voxel) fn rebuild_dirty_presentation_manifestations(
                 Visibility::Inherited,
             ))
             .id();
-        sync_fallback(&mut commands, root, fallback);
 
         let opaque_visible = opaque_mesh.is_some();
         let initial_mesh = opaque_mesh.take().unwrap_or_else(empty_presentation_mesh);
@@ -390,20 +383,6 @@ fn sync_manifestation_root_state(
     if *current_visibility != Visibility::Inherited {
         registry.record_visibility_write();
         commands.entity(entity).insert(Visibility::Inherited);
-    }
-}
-
-fn sync_fallback(
-    commands: &mut Commands,
-    entity: Entity,
-    fallback: Option<&UsfScaleFallbackPresentation>,
-) {
-    if let Some(fallback) = fallback {
-        commands.entity(entity).insert(*fallback);
-    } else {
-        commands
-            .entity(entity)
-            .remove::<UsfScaleFallbackPresentation>();
     }
 }
 

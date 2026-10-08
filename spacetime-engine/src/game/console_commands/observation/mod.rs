@@ -23,7 +23,7 @@ use crate::{
         UsfCapabilityRealization, UsfInteractionScaleAffinity, UsfPosition,
         UsfPresentationDomainProbe, UsfPrimaryInteractionSlice, UsfRuntimeChartState,
         UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
-        UsfSceneryPresentation, UsfViewRenderAnchor,
+        UsfViewRenderAnchor,
     },
     view::PrimaryGameView,
     voxel::VoxelMaterializationTelemetry,

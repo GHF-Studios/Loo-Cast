@@ -21,7 +21,7 @@
 mod query;
 mod source;
 
-pub use query::{GravityEvaluation, GravityFieldQuery, GravitySample};
+pub use query::{GravityFieldQuery, GravitySample};
 pub use source::RadialGravitySource;
 
 use bevy::{app::RunFixedMainLoop, prelude::*};

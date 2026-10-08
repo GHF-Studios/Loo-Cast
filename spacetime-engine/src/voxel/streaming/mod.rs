@@ -94,10 +94,6 @@ impl VoxelMaterializationResidency {
         self.pending_desired.len()
     }
 
-    pub(in crate::voxel) fn desired_count(&self) -> usize {
-        self.cached_desired_roles.len()
-    }
-
     fn retire_all_desired(&mut self) -> bool {
         let changed = !self.cached_desired_roles.is_empty()
             || !self.effective_desired.is_empty()
@@ -472,35 +468,3 @@ impl VoxelMaterializationTelemetry {
 /// materialization.
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct VoxelMaterializationDemand;
-
-/// Adds one persistent scale-local materialization scope to a voxel world.
-///
-/// Standalone voxel worlds may pin a bounded materialization scope.
-#[derive(Component, Debug, Clone, Copy, PartialEq)]
-pub struct VoxelPinnedMaterializationDemand {
-    center: crate::spatial::UsfPosition,
-    half_extent_native: Vec3,
-    priority: i32,
-}
-
-impl VoxelPinnedMaterializationDemand {
-    pub fn cuboid(center: crate::spatial::UsfPosition, half_extent_native: Vec3) -> Self {
-        Self {
-            center,
-            half_extent_native: half_extent_native.abs(),
-            priority: 1_000,
-        }
-    }
-
-    pub const fn center(self) -> crate::spatial::UsfPosition {
-        self.center
-    }
-
-    pub const fn half_extent_native(self) -> Vec3 {
-        self.half_extent_native
-    }
-
-    pub const fn priority(self) -> i32 {
-        self.priority
-    }
-}
