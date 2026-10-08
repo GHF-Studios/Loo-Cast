@@ -102,5 +102,11 @@ pub(super) fn configure(app: &mut App) {
     .add_systems(
         Update,
         scenery::audit_fixture_semantic_authority.run_if(in_state(GameScenario::CelestialFixture)),
-    );
+    )
+    .add_systems(OnExit(GameScenario::CelestialFixture), clear_fixture_known_phenomena);
+}
+
+/// Remove scenario-owned construction facts when leaving the fixture.
+fn clear_fixture_known_phenomena(mut commands: Commands) {
+    commands.remove_resource::<definition::FixtureKnownPhenomena>();
 }

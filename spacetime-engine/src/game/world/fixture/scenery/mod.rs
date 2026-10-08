@@ -15,6 +15,7 @@ use super::{FixtureArrivalSite, definition, landmarks::UniverseLandmarkIndex};
 use crate::game::orbit::KeplerianOrbitPropagation;
 use crate::procedural_assets::ProceduralPresentationAssets;
 use crate::worldgen::{PhenomenonGeneration, WorldSeed};
+use crate::usf::{SpatialScale, UsfChunkAddress, UsfPosition};
 
 mod celestial;
 
@@ -28,12 +29,26 @@ pub(super) fn construct_celestial_fixture(
     let root = commands.spawn(Name::new("Earth-Moon Fixture")).id();
 
     landmarks.clear();
-    let definitions = definition::bodies(*world_seed);
+    // A selected system context discovers anchored construction inputs in
+    // canonical space. A query does NOT require any descendant Scale Slice,
+    // voxel world, renderer, or physics world to be resident.
+    let catalog = definition::catalog(*world_seed);
+    let system_context = UsfChunkAddress::containing(
+        UsfPosition::zero(SpatialScale::MIN),
+        SpatialScale::new(8).expect("authored solar-system context scale"),
+    ).expect("solar-system context is canonically representable");
+    info!(
+        known = catalog.len(),
+        selected = catalog.intersecting(system_context).count(),
+        scale = %system_context.scale(),
+        "USF sparse construction catalog selected canonical region without descendant residency"
+    );
     let mut spawned = HashMap::<&'static str, Entity>::new();
-    for body in &definitions {
+    for record in catalog.intersecting(system_context) {
+        let body = record.recipe();
         let provenance = PhenomenonGeneration::new(
             *world_seed,
-            definition::generation_key(body.id),
+            record.key(),
             definition::GENERATOR_REVISION,
         ).provenance(true);
         let entity = celestial::construct_authored_celestial_body(
@@ -47,7 +62,8 @@ pub(super) fn construct_celestial_fixture(
         );
         spawned.insert(body.id, entity);
     }
-    for body in &definitions {
+    for record in catalog.intersecting(system_context) {
+        let body = record.recipe();
         let Some(orbit) = body.orbit else {
             continue;
         };
@@ -66,6 +82,9 @@ pub(super) fn construct_celestial_fixture(
             .entity(entity)
             .insert(KeplerianOrbitPropagation::new(primary, orbit.elements));
     }
+    // Retain source constraints after runtime realization. Evolving canonical
+    // position remains authoritative on the live semantic body, not here.
+    commands.insert_resource(definition::FixtureKnownPhenomena(catalog));
 }
 
 pub(super) use celestial::audit_fixture_semantic_authority;

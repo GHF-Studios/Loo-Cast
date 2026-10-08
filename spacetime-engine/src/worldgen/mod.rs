@@ -14,6 +14,9 @@
 
 use bevy::prelude::{Component, Resource};
 
+mod atlas;
+pub use atlas::{AnchoredConstruction, ConstructionCatalogError, SparseConstructionAtlas};
+
 /// Persistent world creation input. Serialize/configure it when world saves
 /// are introduced; never pick a new random value during each startup.
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -175,8 +178,8 @@ mod tests {
     #[test]
     fn derivation_is_order_independent_and_domain_separated() {
         let seed = WorldSeed::default();
-        let earth = PhenomenonGeneration::new(seed, generation_key("earth"), GENERATOR_REVISION);
-        let moon = PhenomenonGeneration::new(seed, generation_key("moon"), GENERATOR_REVISION);
+        let earth = PhenomenonGeneration::new(seed, "solar-system/earth", 1);
+        let moon = PhenomenonGeneration::new(seed, "solar-system/moon", 1);
         let a = earth.sample_seed("terrain");
         let b = earth.sample_seed("materials");
         assert_eq!(a, earth.sample_seed("terrain"));

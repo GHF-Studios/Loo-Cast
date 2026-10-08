@@ -3,7 +3,8 @@
 use bevy::{math::DVec3, prelude::*};
 
 use crate::game::orbit::KeplerianElements;
-use crate::worldgen::{ConstructionConstraint, PhenomenonGeneration, WorldSeed, unit_sample};
+use crate::worldgen::{ConstructionConstraint, PhenomenonGeneration, SparseConstructionAtlas, WorldSeed, unit_sample};
+use crate::usf::{SpatialScale, UsfPosition};
 
 pub(super) const GENERATOR_REVISION: u64 = 1;
 
@@ -88,6 +89,25 @@ pub(super) fn bodies(seed: WorldSeed) -> [AuthoredCelestialBody; 2] {
     ]
 }
 
+
+
+/// Construction-time source facts; not a cache of the evolving live orbital pose.
+#[derive(bevy::prelude::Resource)]
+pub(super) struct FixtureKnownPhenomena(pub(super) SparseConstructionAtlas<AuthoredCelestialBody>);
+
+/// Register authored bodies through the same sparse canonical construction
+/// interface used by future procedural phenomena. No chunks are constructed.
+pub(super) fn catalog(seed: WorldSeed) -> SparseConstructionAtlas<AuthoredCelestialBody> {
+    let mut known = SparseConstructionAtlas::default();
+    for body in bodies(seed) {
+        let position = UsfPosition::from_scale_native_f64(
+            body.center_metres, SpatialScale::ZERO, SpatialScale::MIN,
+        ).expect("fixture body has a canonical initial position");
+        known.declare(generation_key(body.id), position, body.radius_metres, body)
+            .expect("fixture has unique valid authored construction facts");
+    }
+    known
+}
 
 #[cfg(test)]
 mod seeded_fixture_tests {
