@@ -1,6 +1,96 @@
 //! Translate generic spatial intent into voxel-specific capability scopes.
 
 use super::*;
+use bevy::math::DVec3;
+
+// Bound the view-owned surface footprint before sparse chunk traversal. This
+// selects representation detail; it does not change semantic terrain or physics.
+const VIEW_SURFACE_CHUNK_BUDGET: f64 = 512.0;
+
+fn append_celestial_view_intents(
+    output: &mut VoxelRealizationIntentSnapshot,
+    authority: CelestialAuthority<'_>,
+    view: &UsfViewDemand,
+) {
+    let radius = authority.field.conservative_outer_radius_metres();
+    let Ok(observer) =
+        view.anchor()
+            .relative_at_scale_bounded_f64(authority.origin, SpatialScale::ZERO, f64::MAX)
+    else {
+        return;
+    };
+    let observer = observer + view.projection_eye_offset_metres();
+    let distance = observer.length();
+    if !distance.is_finite() || distance <= radius {
+        return;
+    }
+    let outward = observer / distance;
+    let cap_radius = radius * (1.0 - (radius / distance).powi(2)).max(0.0).sqrt();
+    let cap_depth = radius * (1.0 - radius / distance);
+
+    let selected = (SpatialScale::MIN.exponent()
+        ..=authority.field.coarsest_detail_scale().exponent())
+        .filter_map(SpatialScale::new)
+        .filter(|scale| authority.domain.realizes(*scale))
+        .find(|scale| {
+            let edge = MATERIALIZATION_CHUNK_SIZE as f64 * scale.metres_per_native();
+            (2.0 * cap_radius / edge).powi(2) <= VIEW_SURFACE_CHUNK_BUDGET
+        })
+        .or_else(|| {
+            (SpatialScale::MIN.exponent()..=authority.field.coarsest_detail_scale().exponent())
+                .rev()
+                .filter_map(SpatialScale::new)
+                .find(|scale| authority.domain.realizes(*scale))
+        });
+    let Some(selected) = selected else { return };
+
+    // A tangent disk plus the sphere-cap depth, enclosed in a world-aligned
+    // box. The view frustum and baseline surface shell prune it to sparse cells.
+    let tangent_u = outward.any_orthonormal_vector();
+    let tangent_v = outward.cross(tangent_u);
+    let center_metres = outward * (radius - cap_depth * 0.5);
+    let half_metres =
+        cap_radius * (tangent_u.abs() + tangent_v.abs()) + outward.abs() * (cap_depth * 0.5);
+    let focus = authority
+        .origin
+        .translated_metres_f64(outward * radius)
+        .ok();
+    let parent = selected
+        .exponent()
+        .checked_add(1)
+        .and_then(SpatialScale::new)
+        .filter(|scale| *scale != selected);
+    for scale in Some(selected).into_iter().chain(parent) {
+        if !authority.domain.realizes(scale) {
+            continue;
+        }
+        let edge = MATERIALIZATION_CHUNK_SIZE as f64 * scale.metres_per_native();
+        let Ok(center) = authority.origin.translated_metres_f64(center_metres) else {
+            continue;
+        };
+        let half = half_metres + DVec3::splat(edge * 2.0);
+        let half = Vec3::new(
+            scale.metres_to_native_f64(half.x) as f32,
+            scale.metres_to_native_f64(half.y) as f32,
+            scale.metres_to_native_f64(half.z) as f32,
+        );
+        if !view.intersects_presentation_native_aabb(scale, &center, half) {
+            continue;
+        }
+        let scope = SpatialDemandScope::at_scale(view.source(), scale, center, half, 0);
+        output.push_intent(VoxelRealizationIntent {
+            target: VoxelRealizationIntentTarget::Celestial(VoxelRealizationTarget::new(
+                authority.entity,
+                scale,
+            )),
+            scope,
+            roles: presentation_roles(),
+            view_source: Some(view.source()),
+            residency_half_extent_native: materialization_residency_extent(half),
+            priority_focus: focus,
+        });
+    }
+}
 
 fn presentation_roles() -> UsfScaleRoleMask {
     UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION)
@@ -167,6 +257,7 @@ fn append_standalone_intents(
 
 pub(in crate::voxel) fn collect_voxel_realization_intents(
     spatial: Res<SpatialDemandSnapshot>,
+    views: Res<UsfViewDemandSnapshot>,
     motions: Res<SpatialDemandMotionSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     voxel_sources: Query<Option<&SpatialRefinementDemand>, With<VoxelMaterializationDemand>>,
@@ -214,6 +305,9 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
                 &motions,
                 physical_target_scale,
             );
+        }
+        for view in views.iter() {
+            append_celestial_view_intents(&mut next, authority, view);
         }
     }
 

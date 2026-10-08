@@ -349,8 +349,9 @@ fn contextual_scale_projection_pose(
     view: &UsfViewContext,
     presentation: &UsfScalePresentation,
     parent_translation: Option<Vec3>,
+    require_context_scale: bool,
 ) -> Option<(Vec3, f32)> {
-    if !view.context_scale_eligible(presentation.scale()) {
+    if require_context_scale && !view.context_scale_eligible(presentation.scale()) {
         return None;
     }
     let relative = presentation
@@ -498,9 +499,12 @@ pub(in crate::spatial) fn project_scale_presentations(
         }
 
         let parent_translation = parent_state.map(|(transform, _)| transform.translation);
-        let Some((translation, scale)) =
-            contextual_scale_projection_pose(&view, presentation, parent_translation)
-        else {
+        let Some((translation, scale)) = contextual_scale_projection_pose(
+            &view,
+            presentation,
+            parent_translation,
+            capability.is_none(),
+        ) else {
             *visibility = Visibility::Hidden;
             continue;
         };

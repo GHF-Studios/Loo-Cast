@@ -254,6 +254,21 @@ where
             }
             None => None,
         };
+        let surface_shell = if view.is_some() {
+            match world.base() {
+                crate::voxel::VoxelBase::CelestialBody(field) => {
+                    let body_center = world.origin().relative_at_scale_bounded(
+                        center_address.origin(),
+                        demand.scale(),
+                        f32::MAX,
+                    )?;
+                    Some((body_center, field.radius_native_f64() as f32))
+                }
+                _ => None,
+            }
+        } else {
+            None
+        };
         if view.is_none() && motion.direction_native != Vec3::ZERO {
             collect_predictive_tube(
                 center_key,
@@ -274,6 +289,7 @@ where
                     demand,
                     request,
                     view,
+                    surface_shell,
                     local_center,
                     size,
                     motion,

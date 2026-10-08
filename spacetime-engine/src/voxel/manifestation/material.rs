@@ -407,7 +407,6 @@ fn refinement_source_is_presented(
     view_scale: SpatialScale,
     physical_enabled: bool,
     context_enabled: bool,
-    context_eligible: bool,
 ) -> bool {
     let physical = fine_scale == interaction_scale && view_scale == interaction_scale;
 
@@ -417,7 +416,7 @@ fn refinement_source_is_presented(
 
     // Presentation refinement is observer-owned. A fine realization may be
     // visible contextually before physics interaction reaches that Scale.
-    context_enabled && context_eligible
+    context_enabled
 }
 
 fn sync_refinement_clip_materials(
@@ -497,7 +496,6 @@ fn sync_refinement_clip_materials(
             view.scale(),
             probe.physical_enabled(),
             probe.context_enabled(),
-            view.context_scale_eligible(fine_scale),
         );
         if !fine_is_visible {
             continue;
