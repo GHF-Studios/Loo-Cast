@@ -1,4 +1,4 @@
-//! Bounded region traversal with conservative surface-shell culling.
+//! Bounded region traversal with view culling.
 
 use super::*;
 
@@ -31,19 +31,6 @@ pub(super) fn collect_all_region_leaves(
     Ok(())
 }
 
-fn region_may_intersect_surface_shell(
-    block_center_from_demand: Vec3,
-    block_half_extent: Vec3,
-    radius_native: f32,
-    leaf_size: f32,
-) -> bool {
-    let c = block_center_from_demand.abs();
-    let nearest = (c - block_half_extent).max(Vec3::ZERO).length();
-    let farthest = (c + block_half_extent).length();
-    let margin = Vec3::splat(leaf_size * 0.5).length() + 1.5;
-    nearest <= radius_native + margin && farthest >= (radius_native - margin).max(0.0)
-}
-
 pub(super) fn collect_culled_region(
     center_key: VoxelMaterializationKey,
     center_origin: &UsfPosition,
@@ -51,7 +38,6 @@ pub(super) fn collect_culled_region(
     demand: SpatialDemandScope,
     request: VoxelRealizationScope,
     view: Option<&crate::spatial::UsfViewDemand>,
-    pinned_shell: Option<(Entity, f32)>,
     local_center: Vec3,
     size: f32,
     motion: VoxelDemandMotion,
@@ -70,30 +56,10 @@ pub(super) fn collect_culled_region(
         return Ok(());
     }
 
-    if let Some((source, radius)) = pinned_shell
-        && demand.source() == source
-        && !region_may_intersect_surface_shell(
-            block_center_local - local_center,
-            block_half_extent,
-            radius,
-            size,
-        )
-    {
-        return Ok(());
-    }
-
     if region.is_leaf() {
         let key = region.origin();
         let chunk_center = relative_origin.as_vec3() * size + Vec3::splat(size * 0.5);
         let distance_squared = (chunk_center - local_center).length_squared();
-        if let Some((source, radius)) = pinned_shell
-            && demand.source() == source
-        {
-            let margin = Vec3::splat(size * 0.5).length() + 1.5;
-            if (distance_squared.sqrt() - radius).abs() > margin {
-                return Ok(());
-            }
-        }
         merge_demanded_chunk(
             merged,
             make_demanded_chunk(demand, request, key, chunk_center - local_center, motion),
@@ -111,7 +77,6 @@ pub(super) fn collect_culled_region(
         demand,
         request,
         view,
-        pinned_shell,
         local_center,
         size,
         motion,
@@ -124,7 +89,6 @@ pub(super) fn collect_culled_region(
         demand,
         request,
         view,
-        pinned_shell,
         local_center,
         size,
         motion,

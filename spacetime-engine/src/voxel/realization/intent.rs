@@ -75,45 +75,6 @@ struct CelestialAuthority<'a> {
     domain: VoxelScaleDomain,
 }
 
-/// Keep the semantic body visible through one coarse voxel realization even
-/// when no local contact window exists. Fine voxel demand then replaces only
-/// the realized portion of this same body through presentation apertures.
-fn append_celestial_root_intent(
-    output: &mut VoxelRealizationIntentSnapshot,
-    authority: CelestialAuthority<'_>,
-) {
-    let scale = authority.field.coarsest_detail_scale();
-    if !authority.domain.realizes(scale) {
-        return;
-    }
-
-    let radius_native =
-        scale.metres_to_native_f64(authority.field.conservative_outer_radius_metres());
-    let half_extent = (radius_native as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 0.5).max(0.0);
-    if !half_extent.is_finite() {
-        return;
-    }
-
-    let scope = SpatialDemandScope::at_scale(
-        authority.entity,
-        scale,
-        *authority.origin,
-        Vec3::splat(half_extent),
-        0,
-    );
-    output.push(
-        VoxelRealizationIntentTarget::Celestial(VoxelRealizationTarget::new(
-            authority.entity,
-            scale,
-        )),
-        scope,
-        presentation_roles(),
-        None,
-        materialization_residency_extent(scope.half_extent_native()),
-        None,
-    );
-}
-
 fn append_celestial_intents(
     output: &mut VoxelRealizationIntentSnapshot,
     authority: CelestialAuthority<'_>,
@@ -245,7 +206,6 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
             field,
             domain: *domain,
         };
-        append_celestial_root_intent(&mut next, authority);
         for source in sources.iter().copied() {
             append_celestial_intents(
                 &mut next,
@@ -287,34 +247,6 @@ pub(in crate::voxel) fn collect_voxel_realization_intents(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn celestial_root_presentation_exists_without_local_contact_demand() {
-        let scale = SpatialScale::new(2).unwrap();
-        let field = CelestialVoxelField::sphere(150.0, scale);
-        let origin = UsfPosition::zero(scale);
-        let frame = UsfSemanticFrame::identity();
-        let mut output = VoxelRealizationIntentSnapshot::default();
-        let authority = CelestialAuthority {
-            entity: Entity::from_bits(1),
-            origin: &origin,
-            frame: &frame,
-            field: &field,
-            domain: VoxelScaleDomain::contiguous(scale, scale),
-        };
-
-        append_celestial_root_intent(&mut output, authority);
-
-        let intent = output
-            .iter()
-            .next()
-            .expect("coarse visual root is demanded");
-        assert_eq!(intent.scope.scale(), scale);
-        assert_eq!(intent.scope.center(), origin);
-        assert!(intent.scope.half_extent_native().min_element() > 1.5);
-        assert!(intent.roles.contains(UsfScaleRoleMask::PRESENTATION));
-        assert!(!intent.roles.contains(UsfScaleRoleMask::COLLISION));
-    }
 
     #[test]
     fn coarse_voxel_ancestor_presents_without_physical_authority() {

@@ -475,15 +475,12 @@ pub struct VoxelMaterializationDemand;
 
 /// Adds one persistent scale-local materialization scope to a voxel world.
 ///
-/// This is used by the coarsest realization of a celestial body: even when the
-/// observer is far away, a small whole-body shell remains materialized using the
-/// same voxel/Surface-Nets pipeline as every finer local terrain patch.
+/// Standalone voxel worlds may pin a bounded materialization scope.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct VoxelPinnedMaterializationDemand {
     center: crate::spatial::UsfPosition,
     half_extent_native: Vec3,
     priority: i32,
-    surface_radius_native: Option<f32>,
 }
 
 impl VoxelPinnedMaterializationDemand {
@@ -492,24 +489,6 @@ impl VoxelPinnedMaterializationDemand {
             center,
             half_extent_native: half_extent_native.abs(),
             priority: 1_000,
-            surface_radius_native: None,
-        }
-    }
-
-    /// Persistent whole-body demand whose generation order starts at the
-    /// visible surface instead of wasting the first frames on solid interior.
-    pub fn shell(
-        center: crate::spatial::UsfPosition,
-        radius_native: f32,
-        margin_native: f32,
-    ) -> Self {
-        let radius_native = radius_native.max(0.0);
-        let margin_native = margin_native.max(0.0);
-        Self {
-            center,
-            half_extent_native: Vec3::splat(radius_native + margin_native),
-            priority: 1_000,
-            surface_radius_native: Some(radius_native),
         }
     }
 
@@ -523,9 +502,5 @@ impl VoxelPinnedMaterializationDemand {
 
     pub const fn priority(self) -> i32 {
         self.priority
-    }
-
-    pub const fn surface_radius_native(self) -> Option<f32> {
-        self.surface_radius_native
     }
 }

@@ -21,8 +21,6 @@ pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
         &mut VoxelScaleRealization,
         &mut VoxelMaterializationResidency,
         &UsfScaleLayer,
-        Option<&CelestialVoxelScaleRealization>,
-        Option<&VoxelPinnedMaterializationDemand>,
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
     )>,
@@ -41,24 +39,12 @@ pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
         mut world,
         mut streaming,
         layer,
-        celestial_realization,
-        pinned,
         collision_disabled,
         editing_disabled,
     ) in &mut worlds
     {
         voxel_demands.clear();
         voxel_demands.extend(realization_demand.requests_for(world_entity));
-        let pinned_shell = pinned
-            .and_then(|pinned| pinned.surface_radius_native())
-            .map(|radius| {
-                (
-                    celestial_realization
-                        .map_or(world_entity, |realization| realization.authority()),
-                    radius,
-                )
-            });
-
         let Some(work_token) = frame_budget.begin(ReconstructibleWorkClass::Planning) else {
             break;
         };
@@ -66,7 +52,6 @@ pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
             &world,
             &voxel_demands,
             &mut streaming,
-            pinned_shell,
             &residency,
             &view_demands,
             &motions,
@@ -123,10 +108,7 @@ pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
             //
             // Incremental entering chunks must be allowed to jump ahead of old
             // background backlog according to current role/focus/trajectory.
-            prioritize_pending_work(
-                &mut streaming,
-                pinned.and_then(|pinned| pinned.surface_radius_native()),
-            );
+            prioritize_pending_work(&mut streaming);
             let warm_limit =
                 adaptive_warm_inactive_limit(configured_warm_limit, &world, &streaming);
             reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
@@ -184,21 +166,10 @@ fn candidate_plan_ready(
         })
 }
 
-fn prioritize_pending_work(
-    streaming: &mut VoxelMaterializationResidency,
-    surface_radius_native: Option<f32>,
-) {
+fn prioritize_pending_work(streaming: &mut VoxelMaterializationResidency) {
     let _span = bevy::log::info_span!("voxel_residency.priority_sort").entered();
     let mut pending = streaming.pending_desired.drain(..).collect::<Vec<_>>();
-    pending.sort_by(|a, b| {
-        let shell_order = surface_radius_native.map_or(std::cmp::Ordering::Equal, |radius| {
-            let a_error = (a.distance_squared.sqrt() - radius).abs();
-            let b_error = (b.distance_squared.sqrt() - radius).abs();
-            a_error.total_cmp(&b_error)
-        });
-
-        compare_work_ranks(a.work_rank(), b.work_rank()).then(shell_order)
-    });
+    pending.sort_by(|a, b| compare_work_ranks(a.work_rank(), b.work_rank()));
     streaming.pending_desired = pending.into();
 }
 

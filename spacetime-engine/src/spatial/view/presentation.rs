@@ -161,7 +161,7 @@ impl UsfLocalScalePresentation {
 /// IMPORTANT: this is *not* the rule for hierarchical spatial refinement.
 /// Coarse celestial/macroscopic context remains inherited while finer bounded
 /// apertures refine it; a local terrain patch must never globally hide its
-/// ancestral whole-body presentation.
+/// demanded ancestor presentation.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsfScaleFallbackPresentation {
     scale: SpatialScale,

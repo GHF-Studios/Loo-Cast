@@ -19,9 +19,8 @@ engine software rather than as a collection of prototypes.
 
 
 The Celestial Fixture is explicit Sun/Earth/Moon content. A body's canonical
-field supplies voxel baselines, the arrival surface, and a finite whole-body
-mesh approximation. The latter does not yet aggregate voxel edits or guarantee
-seamless local refinement. No generated galaxy, ecology, or atmosphere is
+field supplies voxel baselines and the arrival surface. Voxel presentation is
+realized from spatial demand. No generated galaxy, ecology, or atmosphere is
 claimed. World membership owns lifetime without inheriting runtime transforms.
 
 ## Runtime configuration

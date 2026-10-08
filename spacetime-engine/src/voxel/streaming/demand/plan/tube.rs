@@ -218,7 +218,6 @@ pub(super) fn collect_predictive_tube(
 pub(super) fn demanded_chunk_addresses_with_motion<T>(
     world: &VoxelScaleRealization,
     demands: &[T],
-    pinned_shell: Option<(Entity, f32)>,
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
     expected_build_seconds: f64,
@@ -255,9 +254,7 @@ where
             }
             None => None,
         };
-        let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
-
-        if view.is_none() && shell.is_none() && motion.direction_native != Vec3::ZERO {
+        if view.is_none() && motion.direction_native != Vec3::ZERO {
             collect_predictive_tube(
                 center_key,
                 demand,
@@ -269,7 +266,7 @@ where
             )?;
         } else {
             let region = VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
-            if view.is_some() || shell.is_some() {
+            if view.is_some() {
                 collect_culled_region(
                     center_key,
                     center_address.origin(),
@@ -277,7 +274,6 @@ where
                     demand,
                     request,
                     view,
-                    shell,
                     local_center,
                     size,
                     motion,

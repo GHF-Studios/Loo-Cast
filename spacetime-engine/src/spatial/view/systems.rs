@@ -169,9 +169,9 @@ fn fallback_should_render(
         return true;
     }
 
-    // Presentation may move finer before physical interaction. Keep a visible
-    // whole-body representation until interaction itself enters the voxel
-    // ladder and its local presentation is actually published.
+    // Presentation may move finer before physical interaction. Keep a
+    // fallback visible until interaction enters the voxel ladder and local
+    // presentation is published.
     if interaction_scale > fallback.scale() {
         return true;
     }

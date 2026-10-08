@@ -2,7 +2,7 @@
 //!
 //! ## Module map
 //!
-//! - `regions`: Bounded region traversal with conservative surface-shell culling.
+//! - `regions`: Bounded region traversal with view culling.
 //! - `tube`: Sparse predictive centerline and prioritized chunk selection.
 //!
 //! This module groups the children; follow each child for its concrete implementation.
@@ -210,7 +210,6 @@ pub(super) fn refresh_demand_plan(
     world: &VoxelScaleRealization,
     demands: &[VoxelRealizationScope],
     streaming: &mut VoxelMaterializationResidency,
-    pinned_shell: Option<(Entity, f32)>,
     residency: &UsfContextResidency,
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
@@ -253,7 +252,6 @@ pub(super) fn refresh_demand_plan(
     }
 
     let incremental = demands.len() == 1
-        && pinned_shell.is_none()
         && demands[0].view_source().is_none()
         && streaming.demand_key.len() == 1
         && key.len() == 1
@@ -311,7 +309,6 @@ pub(super) fn refresh_demand_plan(
         demanded_chunk_addresses_with_motion(
             world,
             demands,
-            pinned_shell,
             view_demands,
             motions,
             expected_build_seconds,

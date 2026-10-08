@@ -109,8 +109,8 @@ pub(super) fn construct_authored_celestial_body(
         "Earth bootstrap surface direction must be non-zero"
     );
 
-    // Whole-body presentation is derived generically by voxel::planetary_surface.
-    // The fixture owns semantic body input only; no presentation entity is authored here.
+    // The fixture owns semantic body input only; voxel presentation follows
+    // spatial demand and is not authored here.
     landmarks.register_body(definition, semantic, system_scale);
     if definition.arrival_direction.is_some() {
         let site = body_surface_site(
