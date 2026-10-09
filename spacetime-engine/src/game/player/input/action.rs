@@ -16,7 +16,14 @@ pub(crate) enum PlayerAction {
     ToggleAttitudeLaw,
     ToggleThrusters,
     ToggleRcs,
+    ToggleFlightAssist,
     ToggleCruise,
+    RollLeft,
+    RollRight,
+    PitchUp,
+    PitchDown,
+    YawLeft,
+    YawRight,
     ToggleLanding,
     ToggleSpatialDemand,
     ToggleCameraMode,
@@ -41,7 +48,7 @@ pub(crate) enum PlayerAction {
 }
 
 impl PlayerAction {
-    pub(super) const ALL: [Self; 35] = [
+    pub(super) const ALL: [Self; 42] = [
         Self::MoveForward,
         Self::MoveBackward,
         Self::MoveLeft,
@@ -55,7 +62,14 @@ impl PlayerAction {
         Self::ToggleAttitudeLaw,
         Self::ToggleThrusters,
         Self::ToggleRcs,
+        Self::ToggleFlightAssist,
         Self::ToggleCruise,
+        Self::RollLeft,
+        Self::RollRight,
+        Self::PitchUp,
+        Self::PitchDown,
+        Self::YawLeft,
+        Self::YawRight,
         Self::ToggleLanding,
         Self::ToggleSpatialDemand,
         Self::ToggleCameraMode,

@@ -6,6 +6,48 @@
 use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError};
 use bevy::{math::DVec3, prelude::*};
 
+/// Conservative result of resolving one proposed canonical motion segment.
+/// `safe_fraction` is the last fraction of the segment known to be free of
+/// contact. Unknown is deliberately different from clear.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum UsfSweepResolution {
+    Clear,
+    Contact {
+        safe_fraction: f64,
+        authority: Entity,
+        /// Unit normal pointing out of solid matter at contact.
+        normal: DVec3,
+    },
+    Unknown {
+        safe_fraction: f64,
+    },
+}
+
+impl UsfSweepResolution {
+    pub fn safe_fraction(self) -> f64 {
+        match self {
+            Self::Clear => 1.0,
+            Self::Contact { safe_fraction, .. } | Self::Unknown { safe_fraction } => {
+                if safe_fraction.is_finite() {
+                    safe_fraction.clamp(0.0, 1.0)
+                } else {
+                    0.0
+                }
+            }
+        }
+    }
+
+    /// Conservative severity for combining independent provider results.
+    /// Unknown wins ties because it carries less evidence than contact or clear.
+    pub const fn tie_priority(self) -> u8 {
+        match self {
+            Self::Unknown { .. } => 0,
+            Self::Contact { .. } => 1,
+            Self::Clear => 2,
+        }
+    }
+}
+
 /// Policy demand for conservative swept-collision query support.
 ///
 /// This component does not itself select voxel chunks or a Scale Slice. Query

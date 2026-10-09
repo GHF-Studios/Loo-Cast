@@ -17,8 +17,8 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::control::LocalControlSubject,
     spatial::{
-        SpatialRefinementDemand, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfPosition, UsfRuntimeChartState, UsfScaleLayer, UsfSemanticFrame,
+        SpatialRefinementDemand, SpatialScale, UsfApproachRefinement, UsfCanonicalMotion,
+        UsfNavigationContext, UsfPosition, UsfScaleLayer, UsfSemanticFrame,
         UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfTravelBoundaryProvider,
         UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,

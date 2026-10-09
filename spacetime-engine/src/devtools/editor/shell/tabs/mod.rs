@@ -38,11 +38,12 @@ impl TabViewer for EditorTabViewer<'_> {
                 ui.allocate_rect(rect, egui::Sense::hover());
             }
             EditorTab::Hierarchy => {
-                hierarchy_ui_filtered::<Without<DeveloperArtifact>>(
-                    self.world,
-                    ui,
-                    self.selected_entities,
-                );
+                hierarchy::draw_editor_groups(ui, self.world, self.selected_entities);
+                hierarchy_ui_filtered::<(
+                    Without<DeveloperArtifact>,
+                    Without<hierarchy::EditorGroupOf>,
+                    Without<hierarchy::EditorGroup>,
+                )>(self.world, ui, self.selected_entities);
             }
             EditorTab::Structure => draw_structure(ui, self.world),
             EditorTab::SemanticInspector => draw_semantic_inspector(ui, self.world),

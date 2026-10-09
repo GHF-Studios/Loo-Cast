@@ -2,26 +2,35 @@
 
 use super::*;
 
-/// Vehicle-owned logarithmic pace dial.
-///
-/// Ordinary wheel input while the human controls a non-player subject changes
-/// pace by exact powers of two. Alt+wheel remains semantic view-scale input.
-/// The controller's TravelPace is reset on vehicle exit so ship test speeds
-/// never leak into ordinary character walking.
-pub(in crate::game::player) fn adjust_manual_travel_pace(
+/// Ship wheel routing: Alt changes view scale, Ctrl changes camera distance,
+/// Shift changes characteristic pace by octaves, plain wheel trims throttle.
+/// In debug traversal plain wheel controls pace directly.
+pub(in crate::game::player) fn adjust_ship_scroll_controls(
     input: Res<PlayerInputFrame>,
-    controlled_vehicle: Query<(), (With<LocalControlSubject>, Without<Player>)>,
     mut pace: Single<&mut TravelPace, With<Player>>,
+    mut controlled_vehicle: Query<
+        (
+            &mut crate::game::locomotion::FlightThrottle,
+            Option<&DeveloperMotionOverride>,
+        ),
+        (With<LocalControlSubject>, Without<Player>),
+    >,
 ) {
-    if controlled_vehicle.is_empty()
-        || !input.gameplay_active()
-        || input.pressed(PlayerAction::ViewScaleModifier)
-        || input.scroll_y() == 0.0
-    {
+    if !input.gameplay_active() || input.scroll_y() == 0.0 {
         return;
     }
-
-    pace.add_log2_steps(input.scroll_y().signum());
+    if let Some((mut throttle, debug)) = controlled_vehicle.iter_mut().next() {
+        if input.pressed(PlayerAction::ViewScaleModifier) || input.pressed(PlayerAction::Descend) {
+            return;
+        }
+        if input.pressed(PlayerAction::FastModifier)
+            || debug.is_some_and(|state| state.characteristic_traversal())
+        {
+            pace.add_log2_steps(input.scroll_y().signum());
+        } else {
+            throttle.nudge(input.scroll_y().signum() * 0.05);
+        }
+    }
 }
 
 /// Samples human flight controls into device-agnostic subject intent.
@@ -29,20 +38,23 @@ pub(in crate::game::player) fn adjust_manual_travel_pace(
 /// AI/autopilot/network/replay controllers can write the same component without
 /// impersonating keyboard or mouse input.
 pub(in crate::game::player) fn sample_flight_control_intent(
+    time: Res<Time>,
     input: Res<PlayerInputFrame>,
-    controller: Single<(&TravelPace, &PlayerAim, Option<&PlayerDead>), With<Player>>,
+    camera: Single<&PlayerCamera>,
+    controller: Single<(&TravelPace, &PlayerController, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (
             &MotionExecution,
-            &CharacterControlFrame,
+            &crate::game::navigation::TravelProfile,
             &PilotAttitudeLaw,
+            &FlightActuation,
             &mut FlightControlIntent,
         ),
         With<LocalControlSubject>,
     >,
 ) {
-    let (pace, aim, dead) = controller.into_inner();
-    let (execution, control, law, mut intent) = subject.into_inner();
+    let (pace, controller, dead) = controller.into_inner();
+    let (execution, profile, law, _actuation, mut intent) = subject.into_inner();
 
     if dead.is_some()
         || !input.gameplay_active()
@@ -54,29 +66,52 @@ pub(in crate::game::player) fn sample_flight_control_intent(
 
     let horizontal = input.digital_axis(PlayerAction::MoveLeft, PlayerAction::MoveRight);
     let forward = input.digital_axis(PlayerAction::MoveBackward, PlayerAction::MoveForward);
-    let vertical = input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend);
-    let boost = input.pressed(PlayerAction::Boost);
+    let vertical = if input.scroll_y() != 0.0 && input.pressed(PlayerAction::Descend) {
+        0.0
+    } else {
+        input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend)
+    };
+    let boost = input.pressed(PlayerAction::Boost) && input.scroll_y() == 0.0;
 
-    //
-    // Raw mouse delta remains render-frame view intent (#45): never replay it
-    // through fixed simulation ticks. The accumulated PlayerAim is stable
-    // controller state, however, so a vehicle can use the *resolved view
-    // orientation* as an ordinary target attitude. This yields a useful
-    // provisional "ship follows where I look" model while preserving the
-    // generic FlightAttitudeCommand boundary for later 6-DOF/autopilot UX.
+    // Pilot angular rate is distinct from observer orientation. Orbit mode
+    // routes the mouse to the camera; keyboard axes remain available to steer.
     let attitude = match law {
         PilotAttitudeLaw::Hold => FlightAttitudeCommand::Hold,
-        PilotAttitudeLaw::FollowView => FlightAttitudeCommand::TargetOrientation(
-            (control.rotation() * aim.local_rotation()).normalize(),
-        ),
+        PilotAttitudeLaw::ManualRate => {
+            let dt = time.delta_secs().max(1.0 / 240.0);
+            let mouse = if camera.mode == CameraMode::Orbit {
+                Vec2::ZERO
+            } else {
+                input.look_delta() * controller.look_sensitivity.max(0.0) / dt
+            };
+            let limits = Vec3::new(
+                profile.flight.pitch_rate_radians_per_second,
+                profile.flight.yaw_rate_radians_per_second,
+                profile.flight.roll_rate_radians_per_second,
+            );
+            let rate = Vec3::new(
+                input.digital_axis(PlayerAction::PitchDown, PlayerAction::PitchUp) * limits.x
+                    - mouse.y,
+                input.digital_axis(PlayerAction::YawRight, PlayerAction::YawLeft) * limits.y
+                    - mouse.x,
+                input.digital_axis(PlayerAction::RollRight, PlayerAction::RollLeft) * limits.z,
+            )
+            .clamp(-limits, limits);
+            if rate.length_squared() <= 1.0e-8 {
+                FlightAttitudeCommand::Hold
+            } else {
+                FlightAttitudeCommand::AngularVelocityLocal(rate)
+            }
+        }
     };
 
     intent.set(
-        Vec3::new(horizontal as f32, vertical as f32, forward as f32),
+        Vec3::new(horizontal, vertical, 0.0),
         attitude,
         pace.multiplier.max(0.0),
         boost,
     );
+    intent.set_throttle_axis(forward);
 }
 
 /// Samples local human controls once per render frame immediately before the

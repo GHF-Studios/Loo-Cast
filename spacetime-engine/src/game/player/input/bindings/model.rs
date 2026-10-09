@@ -181,12 +181,4 @@ impl PlayerInputBindings {
         .map(|action| self.label(action))
         .collect::<String>()
     }
-
-    pub(crate) fn hotbar_range_label(&self) -> String {
-        format!(
-            "{}–{}",
-            self.label(PlayerAction::Hotbar1),
-            self.label(PlayerAction::Hotbar9)
-        )
-    }
 }

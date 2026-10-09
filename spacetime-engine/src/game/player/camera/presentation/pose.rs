@@ -60,7 +60,7 @@ pub(in crate::game::player) fn sync_player_camera(
     let (camera, mut camera_transform) = camera.into_inner();
 
     let rig_rotation = profile.rig_rotation(body, control);
-    let view_rotation = profile.view_rotation(body, control, aim);
+    let view_rotation = profile.view_rotation(body, control, aim, camera);
     let eye = body.translation + rig_rotation * profile.eye_offset_native(stance, layer.scale());
 
     *camera_transform = match camera.mode {
@@ -69,7 +69,7 @@ pub(in crate::game::player) fn sync_player_camera(
             rotation: view_rotation,
             ..default()
         },
-        CameraMode::ThirdPerson => {
+        CameraMode::ThirdPerson | CameraMode::Orbit => {
             let pivot = eye
                 + rig_rotation
                     * Vec3::Y

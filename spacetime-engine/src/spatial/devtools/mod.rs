@@ -17,12 +17,13 @@ use crate::{
         VisualizationId, VisualizationSpec, WorldDrawBatch, WorldDrawFrame,
     },
     ecs::UsfOwnershipQuery,
+    physics::collision_query::UsfCollisionQueryFrame,
     ui::{UiTextRole, UiTheme},
 };
 
 use super::{
-    SpatialDemandSnapshot, UsfPosition, UsfRuntimeChartState, UsfScaleLayer, UsfSpatialAnchor,
-    UsfSpatialSet,
+    SpatialDemandSnapshot, UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState, UsfScaleLayer,
+    UsfSpatialAnchor, UsfSpatialSet,
 };
 
 const USF_SPATIAL_VISUALIZATION: VisualizationId = VisualizationId("usf_spatial");

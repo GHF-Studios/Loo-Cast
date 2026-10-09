@@ -53,9 +53,16 @@ pub(super) fn spawn_debug_panel(mut commands: Commands, theme: Res<UiTheme>) {
 pub(super) fn update_debug_panel(
     tools: Res<DeveloperTools>,
     frame: Res<UsfRuntimeChartState>,
+    collision_queries: Res<UsfCollisionQueryFrame>,
     ownership: UsfOwnershipQuery,
     anchors: Query<
-        (Entity, &Transform, Option<&LinearVelocity>, &UsfScaleLayer),
+        (
+            Entity,
+            &Transform,
+            Option<&LinearVelocity>,
+            Option<&UsfCanonicalMotion>,
+            &UsfScaleLayer,
+        ),
         With<UsfSpatialAnchor>,
     >,
     semantic_positions: Query<&UsfPosition>,
@@ -74,16 +81,15 @@ pub(super) fn update_debug_panel(
         return;
     }
 
-    let Some((realization, transform, velocity, layer)) = anchors.iter().next() else {
+    let Some((realization, transform, velocity, motion, layer)) = anchors.iter().next() else {
         for mut text in &mut texts {
             text.0 = "No USF spatial anchor is active.".to_string();
         }
         return;
     };
 
-    let semantic = ownership
-        .semantic_of(realization)
-        .and_then(|semantic| semantic_positions.get(semantic).ok());
+    let semantic_entity = ownership.semantic_of(realization);
+    let semantic = semantic_entity.and_then(|semantic| semantic_positions.get(semantic).ok());
     let velocity = velocity.map_or(Vec3::ZERO, |velocity| velocity.0);
     let semantic_text = semantic
         .map(UsfPosition::format_stack)
@@ -91,13 +97,38 @@ pub(super) fn update_debug_panel(
 
     let scale = layer.scale();
     let metres_per_native = scale.metres_per_native();
-    let velocity_metres = velocity * metres_per_native as f32;
+    let canonical_velocity = motion.map_or_else(
+        || "<unavailable>".to_string(),
+        |motion| {
+            let value = motion.velocity_metres_per_second();
+            format!(
+                "({:.3}, {:.3}, {:.3}) m/s  |v|={:.3}  authority={:?}",
+                value.x,
+                value.y,
+                value.z,
+                value.length(),
+                motion.authority(),
+            )
+        },
+    );
+    let sweep_status = semantic_entity
+        .and_then(|subject| collision_queries.request_for_subject(subject))
+        .map_or_else(
+            || "<no canonical sweep this fixed step>".to_string(),
+            |request| {
+                collision_queries.resolution_for(request.id()).map_or_else(
+                    || "<awaiting provider>".to_string(),
+                    |resolution| format!("{resolution:?}"),
+                )
+            },
+        );
 
     let output = format!(
         "Runtime scale: S{} (1 native = {:.3e} m)\n\
 Local position: ({:.6}, {:.6}, {:.6}) native\n\
 Local velocity: ({:.6}, {:.6}, {:.6}) native/s  |v|={:.6}\n\
-Physical velocity: ({:.3}, {:.3}, {:.3}) m/s  |v|={:.3}\n\
+Canonical velocity: {}\n\
+Last canonical sweep: {}\n\
 Semantic position: {}\n\
 Frame origin: {}\n\
 Rebases: {}  last shift=({:.6}, {:.6}, {:.6}) native@S{}",
@@ -110,10 +141,8 @@ Rebases: {}  last shift=({:.6}, {:.6}, {:.6}) native@S{}",
         velocity.y,
         velocity.z,
         velocity.length(),
-        velocity_metres.x,
-        velocity_metres.y,
-        velocity_metres.z,
-        velocity_metres.length(),
+        canonical_velocity,
+        sweep_status,
         semantic_text,
         frame.origin().format_stack(),
         frame.rebase_count(),

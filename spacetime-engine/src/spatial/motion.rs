@@ -15,6 +15,50 @@ pub enum UsfMotionAuthority {
     CanonicalKinematics,
 }
 
+/// Whether one canonical velocity step survives projection into this f32
+/// chart within the shared relative translation-error budget.
+pub(crate) fn runtime_step_is_representable(
+    runtime_position: Vec3,
+    velocity_metres_per_second: DVec3,
+    scale: SpatialScale,
+    dt_seconds: f64,
+) -> bool {
+    const MAX_RELATIVE_STEP_ERROR: f64 = 1.0e-3;
+    if !runtime_position.is_finite()
+        || !velocity_metres_per_second.is_finite()
+        || !dt_seconds.is_finite()
+        || dt_seconds <= 0.0
+    {
+        return false;
+    }
+
+    let native_displacement =
+        velocity_metres_per_second * scale.metres_to_native_f64(1.0) * dt_seconds;
+    if !native_displacement.is_finite() {
+        return false;
+    }
+    if native_displacement == DVec3::ZERO {
+        return true;
+    }
+
+    let projected = Vec3::new(
+        native_displacement.x as f32,
+        native_displacement.y as f32,
+        native_displacement.z as f32,
+    );
+    if !projected.is_finite() || projected == Vec3::ZERO {
+        return false;
+    }
+
+    let moved = (runtime_position + projected) - runtime_position;
+    if !moved.is_finite() || moved == Vec3::ZERO {
+        return false;
+    }
+    let actual = DVec3::new(f64::from(moved.x), f64::from(moved.y), f64::from(moved.z));
+    (actual - native_displacement).length()
+        <= native_displacement.length() * MAX_RELATIVE_STEP_ERROR
+}
+
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfCanonicalMotion {
     velocity_metres_per_second: DVec3,

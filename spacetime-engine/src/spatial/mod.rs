@@ -43,8 +43,8 @@ mod navigation;
 mod realization;
 mod refinement;
 mod residency;
-mod semantic_frame;
 mod semantic_bounds;
+mod semantic_frame;
 mod slice;
 mod transition;
 mod view;
@@ -68,6 +68,7 @@ pub use interaction::{
     UsfInteractionProjection, UsfInteractionScaleAffinity, UsfPrimaryInteractionSlice,
 };
 pub use kinematic_frame::UsfKinematicFrameState;
+pub(crate) use motion::runtime_step_is_representable;
 pub use motion::{UsfCanonicalMotion, UsfMotionAuthority};
 pub use navigation::{
     UsfApproachRefinement, UsfNavigationContext, UsfNavigationContextKind, UsfTravelBoundary,
@@ -79,8 +80,8 @@ pub use refinement::{SpatialRefinementDemand, UsfRefinementPlan, UsfRefinementSt
 pub use residency::{
     UsfContextResidency, UsfResidencyRequests, UsfResidencySet, UsfResidentContext,
 };
-pub use semantic_frame::UsfSemanticFrame;
 pub use semantic_bounds::UsfSemanticBounds;
+pub use semantic_frame::UsfSemanticFrame;
 pub use slice::{
     UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMask, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
     UsfScaleSlices,

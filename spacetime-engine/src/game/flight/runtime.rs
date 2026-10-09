@@ -2,6 +2,7 @@
 
 use super::model::*;
 use crate::{
+    ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
         locomotion::{
@@ -9,15 +10,132 @@ use crate::{
             FlightControlIntent, MotionExecution, MotionKernel,
         },
         navigation::{
-            AdaptiveCruise, PrimaryBodyContext, TravelAssistance, TravelAssistanceState,
-            TravelState,
+            PrimaryBodyContext, TravelAssistance, TravelAssistanceState, TravelProfile, TravelState,
         },
         surface::SurfaceContext,
     },
     physics::gravity::GravitySample,
-    spatial::{UsfCanonicalMotion, UsfScaleLayer},
+    spatial::{UsfCanonicalMotion, UsfPosition, UsfScaleLayer},
 };
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
+
+/// Publish approach risk before navigation resolves Lattice Cruise requests.
+/// The semantic position is used for the far-field radial calculation so a
+/// coarse f32 chart cannot collapse a nearby planetary direction to zero.
+pub(super) fn evaluate_flight_safety(
+    ownership: UsfOwnershipQuery,
+    positions: Query<&UsfPosition>,
+    mut subjects: Query<
+        (
+            Entity,
+            &UsfCanonicalMotion,
+            &PrimaryBodyContext,
+            &SurfaceContext,
+            &FlightSafetyProfile,
+            &TravelProfile,
+            &TravelAssistanceState,
+            &FlightActuation,
+            &mut FlightSafetyState,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    for (
+        entity,
+        motion,
+        primary,
+        surface,
+        profile,
+        travel_profile,
+        assistance,
+        actuation,
+        mut safety,
+    ) in &mut subjects
+    {
+        let observed_surface = surface
+            .clearance_metres()
+            .filter(|clearance| clearance.is_finite())
+            .map(|clearance| {
+                let radial = surface.radial_outward();
+                (
+                    clearance,
+                    DVec3::new(
+                        f64::from(radial.x),
+                        f64::from(radial.y),
+                        f64::from(radial.z),
+                    ),
+                    surface.collision_ready(),
+                    profile.preferred_contact_speed_metres_per_second(),
+                )
+            });
+        let observed_body = ownership
+            .semantic_of(entity)
+            .and_then(|semantic| positions.get(semantic).ok())
+            .filter(|_| primary.is_resolved())
+            .and_then(|position| {
+                let relative = position
+                    .relative_at_scale_bounded_f64(
+                        &primary.center(),
+                        primary.reference_scale(),
+                        f64::MAX,
+                    )
+                    .ok()?;
+                let radial = relative.normalize_or_zero();
+                let cruising = assistance.mode() == TravelAssistance::Cruise;
+                let clearance = if cruising {
+                    primary.clearance_metres()
+                        - travel_profile.planetary_handoff_clearance(primary.radius_metres())
+                } else {
+                    primary.clearance_metres()
+                };
+                let target_speed = if cruising {
+                    travel_profile.planetary_capture_speed(primary.radius_metres())
+                } else {
+                    profile.preferred_contact_speed_metres_per_second()
+                };
+                (radial != DVec3::ZERO).then_some((clearance, radial, false, target_speed))
+            });
+        let approach = match (observed_surface, observed_body) {
+            (Some(surface), Some(body)) if body.0 < surface.0 => Some(body),
+            (Some(surface), _) => Some(surface),
+            (None, body) => body,
+        };
+        *safety = if let Some((clearance, radial, ready, target_speed)) = approach {
+            let available_braking = if assistance.mode() == TravelAssistance::Cruise {
+                travel_profile
+                    .cruise
+                    .braking_acceleration_metres_per_second2
+            } else {
+                let main = if actuation.thrusters_enabled() {
+                    f64::from(travel_profile.flight.local_acceleration_metres_per_second2)
+                } else {
+                    0.0
+                };
+                let rcs = if actuation.rcs_enabled() {
+                    f64::from(
+                        travel_profile
+                            .flight
+                            .rcs_braking_acceleration_metres_per_second2,
+                    )
+                } else {
+                    0.0
+                };
+                main.max(rcs)
+            };
+            FlightSafetyState::evaluate(
+                clearance,
+                radial,
+                motion.velocity_metres_per_second(),
+                ready,
+                available_braking,
+                target_speed,
+                *profile,
+            )
+        } else {
+            FlightSafetyState::default()
+        };
+    }
+}
 
 pub(super) fn resolve_flight_control_requests(
     mut requests: MessageReader<FlightControlRequest>,
@@ -47,6 +165,11 @@ pub(super) fn resolve_flight_control_requests(
             FlightControlCommand::SetReactionControl(enabled) => {
                 if capabilities.reaction_control() {
                     actuation.set_rcs_enabled(enabled);
+                }
+            }
+            FlightControlCommand::SetAngularAssist(enabled) => {
+                if capabilities.reaction_control() {
+                    actuation.set_angular_assist_enabled(enabled);
                 }
             }
             FlightControlCommand::SetAutopilot(command) => match command {
@@ -101,6 +224,7 @@ pub(super) fn apply_attitude_autopilot(
 }
 
 pub(super) fn sync_flight_telemetry(
+    body: Single<&Transform, With<LocalControlSubject>>,
     mut subjects: Query<
         (
             &ControlledSubjectLocomotion,
@@ -108,7 +232,7 @@ pub(super) fn sync_flight_telemetry(
             &DetailedBodyScale,
             &UsfScaleLayer,
             &UsfCanonicalMotion,
-            &AdaptiveCruise,
+            &crate::game::locomotion::FlightThrottle,
             &TravelAssistanceState,
             &TravelState,
             &GravitySample,
@@ -128,7 +252,7 @@ pub(super) fn sync_flight_telemetry(
         detailed,
         layer,
         motion,
-        cruise,
+        throttle,
         assistance,
         travel,
         gravity,
@@ -157,13 +281,22 @@ pub(super) fn sync_flight_telemetry(
         telemetry.landing_available = landing.available();
         telemetry.safety = safety.level();
         telemetry.speed_metres_per_second = motion.speed_metres_per_second();
-        telemetry.throttle = if assistance.mode() == TravelAssistance::Cruise {
-            cruise.throttle
-        } else {
-            0.0
-        };
+        let forward = body.rotation * Vec3::NEG_Z;
+        let forward = DVec3::new(
+            f64::from(forward.x),
+            f64::from(forward.y),
+            f64::from(forward.z),
+        );
+        let velocity = motion.velocity_metres_per_second();
+        telemetry.forward_speed_metres_per_second = velocity.dot(forward);
+        telemetry.lateral_speed_metres_per_second =
+            (velocity - forward * telemetry.forward_speed_metres_per_second).length();
+        telemetry.throttle = throttle.value();
+        telemetry.lattice_cooldown_seconds = assistance.cooldown_remaining_seconds();
+        telemetry.lattice_charge_seconds = assistance.spool_remaining_seconds();
         telemetry.thrusters_enabled = actuation.thrusters_enabled();
         telemetry.rcs_enabled = actuation.rcs_enabled();
+        telemetry.angular_assist_enabled = actuation.angular_assist_enabled();
         telemetry.interaction_scale = layer.scale();
         telemetry.detailed_interaction = layer.scale() == detailed.0;
         telemetry.primary_body = surface.body().or(primary.entity());

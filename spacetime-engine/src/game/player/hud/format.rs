@@ -4,32 +4,51 @@ use super::*;
 
 /// The two metric wings refresh at a lower rate than alerts. Keep the
 /// telemetry-to-text projection outside the Bevy query mutation path.
-pub(super) fn format_left_metrics(telemetry: &FlightTelemetry, pace: &TravelPace) -> String {
+pub(super) fn format_left_metrics(
+    telemetry: &FlightTelemetry,
+    pace: &TravelPace,
+    camera: &PlayerCamera,
+    debug_characteristic_speed: Option<f64>,
+) -> String {
     let speed = format_speed(telemetry.speed_metres_per_second());
-    let pace_text = format!("2^{:+.0}  x{:.3}", pace.log2_multiplier(), pace.multiplier);
-    let actuator_status = if telemetry.assistance() == TravelAssistance::Cruise {
-        format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0)
-    } else {
-        match telemetry.mode() {
-            Some(FlightMode::Space | FlightMode::Planetary) => format!(
-                "THR {} • RCS {}",
-                if telemetry.thrusters_enabled() {
-                    "ON"
-                } else {
-                    "OFF"
-                },
-                if telemetry.rcs_enabled() { "ON" } else { "OFF" },
-            ),
-            _ => "THR -- • RCS --".to_string(),
-        }
-    };
-    format!(
-        "{}\nSPD  {}\nPACE {}\n{}",
+    let actuator_status = format!(
+        "THR {:+4.0}% • FA {}\nPROP {} • RCS {}",
+        telemetry.throttle() * 100.0,
+        if telemetry.angular_assist_enabled() {
+            "ON"
+        } else {
+            "OFF"
+        },
+        if telemetry.thrusters_enabled() {
+            "ON"
+        } else {
+            "OFF"
+        },
+        if telemetry.rcs_enabled() { "ON" } else { "OFF" },
+    );
+    let mut text = format!(
+        "{} • {}\nSPD  {}\nFWD  {}  SLIP {}\n{}",
         telemetry.display_mode_label(),
+        match camera.mode {
+            CameraMode::FirstPerson => "COCKPIT",
+            CameraMode::ThirdPerson => "CHASE",
+            CameraMode::Orbit => "ORBIT",
+        },
         speed,
-        pace_text,
+        format_speed(telemetry.forward_speed_metres_per_second()),
+        format_speed(telemetry.lateral_speed_metres_per_second()),
         actuator_status,
-    )
+    );
+    if let Some(characteristic_speed) = debug_characteristic_speed {
+        text.push_str(&format!(
+            "\nDEBUG FLY  {}",
+            format_speed(characteristic_speed)
+        ));
+        text.push_str(&format!("\nPACE x{:.3}", pace.multiplier));
+    } else if (pace.multiplier - 1.0).abs() > 0.001 {
+        text.push_str(&format!("\nPACE x{:.3}", pace.multiplier));
+    }
+    text
 }
 
 pub(super) fn format_right_metrics(
@@ -50,18 +69,19 @@ pub(super) fn format_right_metrics(
     } else {
         "--".to_string()
     };
-    let surface_state = if telemetry.detailed_interaction() {
-        if telemetry.surface_collision_ready() {
-            "READY"
-        } else {
-            "LOADING"
-        }
-    } else {
-        "REMOTE"
+    let surface_state = match telemetry.surface_clearance_metres() {
+        Some(_) if telemetry.surface_collision_ready() => "READY",
+        Some(_) => "PENDING",
+        None if telemetry.primary_body().is_some() => "REMOTE",
+        None => "NO DATA",
     };
+    let contact = telemetry
+        .time_to_contact_seconds()
+        .map(|seconds| format!("{seconds:.1} s"))
+        .unwrap_or_else(|| "--".to_string());
     format!(
-        "{}\nAGL  {}\nGRV  {}\nSURF {}",
-        body_name, agl, gravity, surface_state
+        "{}\nAGL  {}\nGRV  {}\nSURF {}\nTTC  {}",
+        body_name, agl, gravity, surface_state, contact
     )
 }
 
@@ -76,21 +96,43 @@ pub(super) fn format_alert(
             bindings.label(PlayerAction::TakeOff),
             bindings.label(PlayerAction::Interact),
         ))
+    } else if telemetry.lattice_cooldown_seconds() > 0.0 {
+        let surface = if telemetry.mode() == Some(FlightMode::Planetary)
+            && telemetry.surface_clearance_metres().is_some()
+            && !telemetry.surface_collision_ready()
+        {
+            " • SURFACE COLLISION LOADING"
+        } else {
+            ""
+        };
+        Some(format!(
+            "LATTICE DRIVE COOLING  {:.1} s{}",
+            telemetry.lattice_cooldown_seconds(),
+            surface,
+        ))
+    } else if telemetry.lattice_charge_seconds() > 0.0 {
+        Some(format!(
+            "LATTICE DRIVE CHARGING  {:.1} s  [{}] CANCEL",
+            telemetry.lattice_charge_seconds(),
+            bindings.label(PlayerAction::ToggleCruise),
+        ))
     } else if telemetry.landing_available() {
         Some(format!(
             "[{}] LAND",
             bindings.label(PlayerAction::ToggleLanding),
         ))
     } else if telemetry.mode() == Some(FlightMode::Planetary)
-        && telemetry.detailed_interaction()
+        && telemetry.surface_clearance_metres().is_some()
         && !telemetry.surface_collision_ready()
     {
         Some("SURFACE COLLISION LOADING".to_string())
+    } else if telemetry.dropout_required() && cruising {
+        Some("EMERGENCY LATTICE DROPOUT".to_string())
     } else if telemetry.dropout_required() {
-        Some("CRITICAL DROPOUT".to_string())
+        Some("APPROACH SAFETY WARNING".to_string())
     } else if cruising {
         Some(format!(
-            "[{}] DISENGAGE CRUISE",
+            "[{}] DISENGAGE LATTICE CRUISE",
             bindings.label(PlayerAction::ToggleCruise)
         ))
     } else {
@@ -99,11 +141,11 @@ pub(super) fn format_alert(
 }
 
 fn format_speed(value: f64) -> String {
-    if value >= 1.0e9 {
+    if value.abs() >= 1.0e9 {
         format!("{:.2} Gm/s", value / 1.0e9)
-    } else if value >= 1.0e6 {
+    } else if value.abs() >= 1.0e6 {
         format!("{:.2} Mm/s", value / 1.0e6)
-    } else if value >= 1.0e3 {
+    } else if value.abs() >= 1.0e3 {
         format!("{:.2} km/s", value / 1.0e3)
     } else {
         format!("{:.1} m/s", value)

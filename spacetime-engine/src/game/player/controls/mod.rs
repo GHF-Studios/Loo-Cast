@@ -17,13 +17,14 @@ use bevy::prelude::*;
 
 use crate::{
     game::{
-        control::{LocalControlSubject, LocalViewTarget},
+        control::LocalControlSubject,
         flight::{
             FlightCapabilities, FlightControlCommand, FlightControlRequest, PilotAttitudeLaw,
         },
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, FlightActuation, FlightAttitudeCommand,
-            FlightControlIntent, LocomotionRegime, MotionExecution, MotionKernel,
+            CharacterStance, ControlledSubjectLocomotion, DeveloperMotionOverride, FlightActuation,
+            FlightAttitudeCommand, FlightControlIntent, LocomotionRegime, MotionExecution,
+            MotionKernel,
         },
         navigation::{
             NavigationPresentationState, TravelAssistance, TravelAssistanceRequest,
@@ -39,7 +40,7 @@ use crate::{
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerDead, ViewCameraProfile,
+    CameraMode, Player, PlayerAim, PlayerCamera, PlayerController, PlayerDead,
     input::{PlayerAction, PlayerInputFrame},
 };
 
@@ -48,10 +49,10 @@ mod movement;
 mod view;
 
 pub(super) use modes::{
-    toggle_adaptive_cruise, toggle_attitude_law, toggle_rcs, toggle_spatial_demand,
+    toggle_adaptive_cruise, toggle_attitude_law, toggle_flight_stabilizers, toggle_spatial_demand,
     toggle_thrusters,
 };
 pub(super) use movement::{
-    adjust_manual_travel_pace, sample_flight_control_intent, write_character_movement_intent,
+    adjust_ship_scroll_controls, sample_flight_control_intent, write_character_movement_intent,
 };
 pub(super) use view::{adjust_view_scale_bias, write_player_view_intent};

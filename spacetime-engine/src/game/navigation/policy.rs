@@ -8,9 +8,10 @@
 use bevy::prelude::*;
 
 use crate::{
+    ecs::UsfOwnershipQuery,
     game::control::LocalControlSubject,
     spatial::{
-        UsfNavigationContext, UsfNavigationContextKind, UsfRuntimeChartState, UsfScaleLayer,
+        UsfNavigationContext, UsfNavigationContextKind, UsfPosition, UsfScaleLayer,
         UsfTravelInfluenceKind, UsfTravelNeighborhood,
     },
 };
@@ -18,10 +19,11 @@ use crate::{
 use super::{AdaptiveCruise, TravelEnvelope, TravelProfile};
 
 pub(super) fn sync_travel_envelope(
-    frame: Res<UsfRuntimeChartState>,
+    ownership: UsfOwnershipQuery,
+    semantic_positions: Query<&UsfPosition>,
     subject: Single<
         (
-            &Transform,
+            Entity,
             &UsfScaleLayer,
             &UsfNavigationContext,
             &UsfTravelNeighborhood,
@@ -32,12 +34,12 @@ pub(super) fn sync_travel_envelope(
         With<LocalControlSubject>,
     >,
 ) {
-    let (body, layer, navigation, neighborhood, profile, cruise, mut envelope) =
+    let (entity, layer, navigation, neighborhood, profile, cruise, mut envelope) =
         subject.into_inner();
-    let Ok(position) = frame
-        .origin()
-        .translated_at_scale(layer.scale(), body.translation)
-    else {
+    let Some(semantic) = ownership.semantic_of(entity) else {
+        return;
+    };
+    let Ok(position) = semantic_positions.get(semantic) else {
         return;
     };
 
@@ -59,7 +61,7 @@ pub(super) fn sync_travel_envelope(
     let mut medium_cap = None::<f64>;
     let mut nearest_hard_clearance = None::<f64>;
 
-    for (_, _, influence, measurement) in neighborhood.measurements_from(&position, layer.scale()) {
+    for (_, _, influence, measurement) in neighborhood.measurements_from(position, layer.scale()) {
         match influence.kind() {
             UsfTravelInfluenceKind::HardBody => {
                 let clearance = measurement.boundary_clearance_metres();

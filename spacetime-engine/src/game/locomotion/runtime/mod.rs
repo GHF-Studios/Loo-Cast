@@ -14,5 +14,5 @@
 mod flight;
 mod state;
 
-pub(super) use flight::flight_movement;
+pub(super) use flight::{PreparedFlightMotion, flight_movement, prepare_flight_movement};
 pub(super) use state::{resolve_locomotion_state, sync_locomotion_runtime};

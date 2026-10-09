@@ -4,10 +4,11 @@ use super::policy::*;
 use super::*;
 
 pub(in crate::game::locomotion) fn resolve_locomotion_state(
+    fixed_time: Res<Time<Fixed>>,
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
     ownership: UsfOwnershipQuery,
     semantic_positions: Query<&UsfPosition>,
-    handoff_inputs: Query<(&Transform, &FlightControlIntent)>,
+    handoff_inputs: Query<(&Transform, &FlightControlIntent, Option<&Collider>)>,
     subject: Single<
         (
             Entity,
@@ -47,7 +48,7 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
     let previous_kernel = execution.kernel();
     let previous_collision = execution.collision_policy();
     let previous_authority = motion.authority();
-    let (body, intent) = handoff_inputs
+    let (body, intent, runtime_collider) = handoff_inputs
         .get(entity)
         .expect("controlled motion handoff inputs");
     let before = MotionHandoffSnapshot {
@@ -66,6 +67,10 @@ pub(in crate::game::locomotion) fn resolve_locomotion_state(
             entity,
             layer: layer.scale(),
             detailed: detailed.0,
+            runtime_position: body.translation,
+            canonical_velocity: motion.velocity_metres_per_second(),
+            fixed_delta_seconds: fixed_time.delta().as_secs_f64(),
+            runtime_collision_ready: runtime_collider.is_some(),
             capabilities: *capabilities,
             enabled: enabled.0,
             inhibited: inhibition.is_inhibited(),

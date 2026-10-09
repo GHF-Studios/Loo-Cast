@@ -93,7 +93,9 @@ pub(super) fn bodies(seed: WorldSeed) -> [AuthoredCelestialBody; 2] {
 
 /// Construction-time source facts; not a cache of the evolving live orbital pose.
 #[derive(bevy::prelude::Resource)]
-pub(super) struct FixtureKnownPhenomena(pub(super) SparseConstructionAtlas<AuthoredCelestialBody>);
+pub(super) struct FixtureKnownPhenomena {
+    pub(super) _source_facts: SparseConstructionAtlas<AuthoredCelestialBody>,
+}
 
 /// Register authored bodies through the same sparse canonical construction
 /// interface used by future procedural phenomena. No chunks are constructed.

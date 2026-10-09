@@ -9,9 +9,10 @@ use bevy::prelude::*;
 use crate::{
     game::{
         InputSet,
+        control::LocalControlSubject,
         inventory::Hotbar,
         item::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItemRequest},
-        locomotion::CharacterStance,
+        locomotion::{CharacterStance, MotionExecution, MotionKernel},
         player::{
             CameraMode, Player, PlayerAction, PlayerAim, PlayerCamera, PlayerInputBindings,
             PlayerInputFrame, ViewCameraProfile, cursor::CursorCapture,
@@ -86,8 +87,12 @@ fn toggle_creative_menu(
     }
 }
 
-fn select_hotbar_slot(input: Res<PlayerInputFrame>, mut hotbar: ResMut<Hotbar>) {
-    if !input.gameplay_active() {
+fn select_hotbar_slot(
+    input: Res<PlayerInputFrame>,
+    execution: Single<&MotionExecution, With<LocalControlSubject>>,
+    mut hotbar: ResMut<Hotbar>,
+) {
+    if !input.gameplay_active() || execution.kernel() == MotionKernel::InertialFlight {
         return;
     }
 
@@ -101,11 +106,13 @@ fn select_hotbar_slot(input: Res<PlayerInputFrame>, mut hotbar: ResMut<Hotbar>) 
 fn scroll_hotbar(
     input: Res<PlayerInputFrame>,
     camera: Single<&PlayerCamera>,
+    execution: Single<&MotionExecution, With<LocalControlSubject>>,
     mut hotbar: ResMut<Hotbar>,
 ) {
     if !input.gameplay_active()
         || input.pressed(PlayerAction::ViewScaleModifier)
-        || camera.mode == CameraMode::ThirdPerson
+        || execution.kernel() == MotionKernel::InertialFlight
+        || camera.mode != CameraMode::FirstPerson
         || input.scroll_y() == 0.0
     {
         return;
@@ -117,6 +124,7 @@ fn scroll_hotbar(
 /// Produces one body-relative aim snapshot that every item can share this frame.
 fn update_aim(
     input: Res<PlayerInputFrame>,
+    camera: Single<&PlayerCamera>,
     player: Single<
         (
             Entity,
@@ -138,7 +146,7 @@ fn update_aim(
 
     let (actor, body, control, player_aim, stance, profile, layer) = player.into_inner();
     let rig_rotation = profile.rig_rotation(body, control);
-    let view_rotation = profile.view_rotation(body, control, player_aim);
+    let view_rotation = profile.view_rotation(body, control, player_aim, &camera);
     let origin =
         body.translation + rig_rotation * profile.eye_offset_native(Some(stance), layer.scale());
 

@@ -111,6 +111,7 @@ fn configure_game_schedule(app: &mut App) {
             orbit::OrbitalMechanicsSet::Propagate,
             crate::physics::gravity::GravitySet::Sample,
             navigation::NavigationSet::Observe,
+            flight::FlightSet::Safety,
             control::ControlSet::Request,
             navigation::NavigationSet::Plan,
             locomotion::LocomotionSet::Resolve,

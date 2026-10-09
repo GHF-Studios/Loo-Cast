@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use super::contract::{UsfCanonicalSweep, UsfCollisionCandidate};
+use super::contract::{UsfCanonicalSweep, UsfCollisionCandidate, UsfSweepResolution};
 
 /// Stable identifier for one request inside a collision-query frame.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -60,17 +60,14 @@ impl UsfCollisionCandidateObservation {
     }
 }
 
-/// Per-frame collision-query transaction.
-///
-/// This is deliberately an observation/query surface today. Motion executors do
-/// not consume it yet. The eventual transaction will become:
-///
-/// `prepare canonical motion -> providers/refinement -> accept one result -> commit`.
+/// One fixed-step collision transaction. Providers publish both diagnostics
+/// and a bounded answer before the motion executor commits its proposed path.
 #[derive(Resource, Debug, Default)]
 pub struct UsfCollisionQueryFrame {
     revision: u64,
     requests: Vec<UsfCollisionQueryRequest>,
     candidates: Vec<UsfCollisionCandidateObservation>,
+    resolutions: Vec<(UsfCollisionQueryRequestId, UsfSweepResolution)>,
 }
 
 impl UsfCollisionQueryFrame {
@@ -99,6 +96,38 @@ impl UsfCollisionQueryFrame {
             .map(UsfCollisionCandidateObservation::candidate)
     }
 
+    pub fn resolution_for(
+        &self,
+        request: UsfCollisionQueryRequestId,
+    ) -> Option<UsfSweepResolution> {
+        self.resolutions
+            .iter()
+            .filter_map(|(id, resolution)| (*id == request).then_some(*resolution))
+            .min_by(|left, right| {
+                left.safe_fraction()
+                    .total_cmp(&right.safe_fraction())
+                    .then_with(|| left.tie_priority().cmp(&right.tie_priority()))
+            })
+    }
+
+    pub fn request_for_subject(&self, subject: Entity) -> Option<UsfCollisionQueryRequest> {
+        self.requests
+            .iter()
+            .copied()
+            .find(|request| request.sweep().subject() == subject)
+    }
+
+    pub fn publish_resolution(
+        &mut self,
+        request: UsfCollisionQueryRequestId,
+        resolution: UsfSweepResolution,
+    ) {
+        if request.frame_revision != self.revision {
+            return;
+        }
+        self.resolutions.push((request, resolution));
+    }
+
     pub fn publish_candidate(
         &mut self,
         request: UsfCollisionQueryRequestId,
@@ -115,6 +144,7 @@ impl UsfCollisionQueryFrame {
         self.revision = self.revision.wrapping_add(1).max(1);
         self.requests.clear();
         self.candidates.clear();
+        self.resolutions.clear();
     }
 
     pub(super) fn submit_request(&mut self, sweep: UsfCanonicalSweep, target_error_metres: f64) {

@@ -11,8 +11,8 @@ use crate::game::{
     inventory::Hotbar,
     item::{ItemAction, ItemCatalog},
     locomotion::{
-        ControlledSubjectLocomotion, FlightActuation, LocomotionCapabilities, LocomotionRegime,
-        MotionExecution, MotionKernel,
+        ControlledSubjectLocomotion, DeveloperMotionOverride, FlightActuation,
+        LocomotionCapabilities, LocomotionRegime, MotionExecution, MotionKernel,
     },
     navigation::{NavigationCapabilities, TravelAssistance, TravelAssistanceState, TravelState},
     player::{CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings},
@@ -50,6 +50,7 @@ pub(super) fn update_context_actions(
             &TravelAssistanceState,
             &PilotAttitudeLaw,
             &AttitudeAutopilot,
+            Option<&DeveloperMotionOverride>,
         ),
         With<LocalControlSubject>,
     >,
@@ -77,6 +78,7 @@ pub(super) fn update_context_actions(
         assistance,
         attitude_law,
         autopilot,
+        developer_motion,
     ) = player.into_inner();
     let next = context_action_text(
         &bindings,
@@ -93,6 +95,7 @@ pub(super) fn update_context_actions(
         assistance,
         attitude_law,
         autopilot,
+        developer_motion.is_some_and(|state| state.characteristic_traversal()),
     );
     if text.0 != next {
         text.0 = next;
@@ -115,13 +118,18 @@ fn context_action_text(
     assistance: &TravelAssistanceState,
     attitude_law: &PilotAttitudeLaw,
     autopilot: &AttitudeAutopilot,
+    debug_traversal: bool,
 ) -> String {
     let mut lines = Vec::<String>::with_capacity(12);
     if autopilot.mode() != AttitudeAutopilotMode::Off {
         lines.push(format!("AUTOPILOT {:?}", autopilot.mode()));
     }
-    append_item_actions(&mut lines, hotbar, catalog, bindings);
-    append_movement_actions(&mut lines, execution, bindings);
+    let flying = execution.kernel() == MotionKernel::InertialFlight;
+    if !flying {
+        append_item_actions(&mut lines, hotbar, catalog, bindings);
+    } else {
+        append_view_actions(&mut lines, camera, execution, bindings);
+    }
     append_travel_actions(
         &mut lines,
         travel,
@@ -134,8 +142,11 @@ fn context_action_text(
         attitude_law,
         bindings,
     );
-    append_view_actions(&mut lines, camera, bindings);
-    const MAX_LINES: usize = 12;
+    append_movement_actions(&mut lines, execution, bindings, debug_traversal);
+    if !flying {
+        append_view_actions(&mut lines, camera, execution, bindings);
+    }
+    const MAX_LINES: usize = 16;
     lines.truncate(MAX_LINES);
     lines.join("\n")
 }
@@ -160,6 +171,7 @@ fn append_movement_actions(
     lines: &mut Vec<String>,
     execution: &MotionExecution,
     bindings: &PlayerInputBindings,
+    debug_traversal: bool,
 ) {
     let movement = bindings.movement_cluster_label();
     let vertical = format!(
@@ -181,8 +193,50 @@ fn append_movement_actions(
             ));
         }
         MotionKernel::InertialFlight => {
-            lines.push(format!("{movement:<10}Flight"));
+            lines.push(format!(
+                "{:<10}{}",
+                format!(
+                    "{}/{}",
+                    bindings.label(PlayerAction::MoveForward),
+                    bindings.label(PlayerAction::MoveBackward)
+                ),
+                if debug_traversal {
+                    "Forward/reverse"
+                } else {
+                    "Throttle"
+                },
+            ));
+            lines.push(format!(
+                "{:<10}Strafe",
+                format!(
+                    "{}/{}",
+                    bindings.label(PlayerAction::MoveLeft),
+                    bindings.label(PlayerAction::MoveRight)
+                )
+            ));
             lines.push(format!("{vertical:<10}Vertical"));
+            lines.push(format!(
+                "{:<10}Roll",
+                format!(
+                    "{}/{}",
+                    bindings.label(PlayerAction::RollLeft),
+                    bindings.label(PlayerAction::RollRight)
+                )
+            ));
+            lines.push(format!(
+                "{}/{}   Pitch • {}/{} Yaw",
+                bindings.label(PlayerAction::PitchUp),
+                bindings.label(PlayerAction::PitchDown),
+                bindings.label(PlayerAction::YawLeft),
+                bindings.label(PlayerAction::YawRight),
+            ));
+            if debug_traversal {
+                lines.push("WHEEL      Characteristic pace".to_string());
+            } else {
+                lines.push("WHEEL      Throttle trim".to_string());
+                lines.push("SHIFT+WHEEL Characteristic pace".to_string());
+            }
+            lines.push("CTRL+WHEEL Camera zoom".to_string());
             lines.push(format!("{:<10}Boost", bindings.label(PlayerAction::Boost)));
         }
         MotionKernel::Disabled => {}
@@ -205,18 +259,24 @@ fn append_travel_actions(
     if navigation_capabilities.cruise() {
         if cruising {
             lines.push(format!(
-                "{}/{}      Throttle",
-                bindings.label(PlayerAction::MoveForward),
-                bindings.label(PlayerAction::MoveBackward),
-            ));
-            lines.push(format!(
-                "{:<10}Disengage cruise",
+                "{:<10}Disengage Lattice Cruise",
                 bindings.label(PlayerAction::ToggleCruise),
             ));
-        } else if travel.cruise_entry_available {
+        } else if assistance.is_spooling() {
             lines.push(format!(
-                "{:<10}Engage cruise",
+                "{:<10}Cancel Lattice charge {:.1} s",
                 bindings.label(PlayerAction::ToggleCruise),
+                assistance.spool_remaining_seconds(),
+            ));
+        } else if travel.cruise_entry_available && assistance.drive_ready() {
+            lines.push(format!(
+                "{:<10}Charge Lattice Drive",
+                bindings.label(PlayerAction::ToggleCruise),
+            ));
+        } else if assistance.cooldown_remaining_seconds() > 0.0 {
+            lines.push(format!(
+                "Lattice Drive cooling {:.1} s",
+                assistance.cooldown_remaining_seconds()
             ));
         }
     }
@@ -245,6 +305,15 @@ fn append_travel_actions(
                 bindings.label(PlayerAction::ToggleRcs),
                 if actuation.rcs_enabled() { "off" } else { "on" }
             ));
+            lines.push(format!(
+                "{:<10}Flight assist {}",
+                bindings.label(PlayerAction::ToggleFlightAssist),
+                if actuation.angular_assist_enabled() {
+                    "off"
+                } else {
+                    "on"
+                }
+            ));
         }
     }
 }
@@ -252,21 +321,28 @@ fn append_travel_actions(
 fn append_view_actions(
     lines: &mut Vec<String>,
     camera: &PlayerCamera,
+    execution: &MotionExecution,
     bindings: &PlayerInputBindings,
 ) {
+    let flying = execution.kernel() == MotionKernel::InertialFlight;
     lines.push(format!(
         "{:<10}{}",
         bindings.label(PlayerAction::ToggleCameraMode),
         match camera.mode {
+            CameraMode::FirstPerson if flying => "Chase view",
             CameraMode::FirstPerson => "Third-person view",
+            CameraMode::ThirdPerson if flying => "Orbit view",
             CameraMode::ThirdPerson => "First-person view",
+            CameraMode::Orbit => "Cockpit view",
         },
     ));
-    let hotbar = bindings.hotbar_range_label();
-    lines.push(match camera.mode {
-        CameraMode::FirstPerson => format!("{hotbar}/WHEEL Hotbar"),
-        CameraMode::ThirdPerson => format!("{hotbar:<10}Hotbar • WHEEL camera"),
-    });
+    if !flying {
+        lines.push(format!(
+            "{}–{}  Hotbar",
+            bindings.label(PlayerAction::Hotbar1),
+            bindings.label(PlayerAction::Hotbar9)
+        ));
+    }
     lines.push(format!(
         "{:<10}Creative",
         bindings.label(PlayerAction::ToggleCreativeMenu),

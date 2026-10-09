@@ -6,9 +6,9 @@ const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
 const HUD_ACCENT: Color = Color::srgba(0.30, 0.84, 0.88, 0.84);
 const HUD_PANEL: Color = Color::srgba(0.01, 0.035, 0.045, 0.68);
 const HUD_WARNING: Color = Color::srgb(1.0, 0.72, 0.28);
-const WING_CENTER_GAP_PX: f32 = 104.0;
+const WING_CENTER_GAP_PX: f32 = 125.0;
 const WING_TOP_OFFSET_PX: f32 = -72.0;
-const WING_WIDTH_PX: f32 = 224.0;
+const WING_WIDTH_PX: f32 = 260.0;
 
 #[derive(Component)]
 pub(in crate::game::player) struct FlightHudLeft;
@@ -16,8 +16,29 @@ pub(in crate::game::player) struct FlightHudLeft;
 pub(in crate::game::player) struct FlightHudRight;
 #[derive(Component)]
 pub(in crate::game::player) struct FlightHudAlert;
+#[derive(Component)]
+pub(in crate::game::player) struct FlightHudVelocityMarker;
 
 pub(in crate::game::player) fn spawn_flight_hud_presentation(mut commands: Commands) {
+    commands.spawn((
+        Name::new("Flight Velocity Vector"),
+        FlightHudVelocityMarker,
+        GlobalZIndex(UiLayer::HUD),
+        Text::new("◇"),
+        TextFont {
+            font_size: FontSize::Px(22.0),
+            ..default()
+        },
+        TextColor(HUD_ACCENT),
+        Node {
+            position_type: PositionType::Absolute,
+            left: percent(50.0),
+            top: percent(50.0),
+            display: Display::None,
+            ..default()
+        },
+        UiTransform::from_translation(Val2::percent(-50.0, -50.0)),
+    ));
     commands.spawn((
         Name::new("Flight HUD Left Wing"),
         FlightHudLeft,

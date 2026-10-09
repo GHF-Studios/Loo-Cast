@@ -4,7 +4,7 @@ use super::super::{
     control::LocalControlSubject,
     flight::{
         AttitudeAutopilot, AttitudeAutopilotCommand, FlightCapabilities, FlightControlCommand,
-        FlightControlRequest, PilotAttitudeLaw,
+        FlightControlRequest, FlightSafetyLevel, FlightSafetyState, PilotAttitudeLaw,
     },
     locomotion::{
         ControlledSubjectLocomotion, DeveloperMotionOverride, FlightControlIntent,
@@ -16,6 +16,10 @@ use super::super::{
     },
 };
 use super::primary_view_context;
+use crate::game::{
+    control::LocalViewTarget,
+    player::{CameraMode, Player, PlayerCamera, ViewCameraProfile},
+};
 use crate::{
     console::{ConsoleCommandInvocation, ConsoleCommandResult},
     physics::gravity::GravitySample,
@@ -88,7 +92,7 @@ pub(super) fn speed_command(
 ) -> ConsoleCommandResult {
     let requested = invocation.args().first().map(String::as_str);
 
-    let mut query = world.query_filtered::<&mut TravelPace, With<LocalControlSubject>>();
+    let mut query = world.query_filtered::<&mut TravelPace, With<Player>>();
     let Some(mut speed) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
@@ -114,8 +118,50 @@ pub(super) fn speed_command(
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "manual locomotion pace = {:.3}x",
+        "characteristic movement pace = {:.3}x",
         speed.multiplier,
+    ))
+}
+
+pub(super) fn camera_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error("usage: camera [cockpit|chase|orbit]");
+    }
+    let available = world
+        .query_filtered::<&ViewCameraProfile, With<LocalViewTarget>>()
+        .iter(world)
+        .next()
+        .map(|profile| profile.supports_mode(CameraMode::Orbit))
+        .unwrap_or(false);
+    let mut cameras = world.query::<(&mut PlayerCamera, &Transform)>();
+    let Some((mut camera, transform)) = cameras.iter_mut(world).next() else {
+        return ConsoleCommandResult::error("primary camera unavailable");
+    };
+    if let Some(raw) = invocation.args().first() {
+        let requested = match raw.to_ascii_lowercase().as_str() {
+            "cockpit" | "first" | "firstperson" => CameraMode::FirstPerson,
+            "chase" | "third" | "thirdperson" => CameraMode::ThirdPerson,
+            "orbit" => CameraMode::Orbit,
+            _ => return ConsoleCommandResult::error("usage: camera [cockpit|chase|orbit]"),
+        };
+        if requested == CameraMode::Orbit && !available {
+            return ConsoleCommandResult::error("orbit view is unavailable for this subject");
+        }
+        if requested == CameraMode::Orbit && camera.mode != CameraMode::Orbit {
+            camera.orbit_rotation = transform.rotation;
+        }
+        camera.mode = requested;
+    }
+    ConsoleCommandResult::success_and_return_to_gameplay(format!(
+        "camera = {}",
+        match camera.mode {
+            CameraMode::FirstPerson => "first person / cockpit",
+            CameraMode::ThirdPerson => "third person / chase",
+            CameraMode::Orbit => "orbit",
+        }
     ))
 }
 
@@ -132,13 +178,14 @@ pub(super) fn cruise_command(
         &NavigationCapabilities,
         &TravelState,
         &TravelAssistanceState,
+        Option<&FlightSafetyState>,
     ), With<LocalControlSubject>>();
-    let Some((entity, capabilities, travel, assistance)) = query.iter(world).next() else {
+    let Some((entity, capabilities, travel, assistance, safety)) = query.iter(world).next() else {
         return ConsoleCommandResult::error("player locomotion state is unavailable");
     };
 
     let active = match invocation.args().first().map(String::as_str) {
-        None => assistance.mode() != TravelAssistance::Cruise,
+        None => assistance.mode() != TravelAssistance::Cruise && !assistance.is_spooling(),
         Some(value) if value.eq_ignore_ascii_case("on") => true,
         Some(value) if value.eq_ignore_ascii_case("off") => false,
         Some(value) => {
@@ -148,8 +195,23 @@ pub(super) fn cruise_command(
         }
     };
 
-    if active && (!capabilities.cruise() || !travel.cruise_entry_available) {
-        return ConsoleCommandResult::error("Cruise is unavailable for this subject or approach");
+    if active && !capabilities.cruise() {
+        return ConsoleCommandResult::error("This subject has no Lattice Drive");
+    }
+    if active && assistance.is_spooling() {
+        return ConsoleCommandResult::success("Lattice Drive is charging");
+    }
+    if active && !assistance.drive_ready() {
+        return ConsoleCommandResult::error(format!(
+            "Lattice Drive cooling ({:.1} s remaining)",
+            assistance.cooldown_remaining_seconds()
+        ));
+    }
+    if active
+        && (!travel.cruise_entry_available
+            || safety.is_some_and(|state| state.level() == FlightSafetyLevel::Emergency))
+    {
+        return ConsoleCommandResult::error("Lattice Cruise entry blocked by approach safety");
     }
     let requested = if active {
         TravelAssistance::Cruise
@@ -164,9 +226,9 @@ pub(super) fn cruise_command(
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(if active {
-        "adaptive Cruise enabled — W/S throttle, mouse steers"
+        "Lattice Drive charge requested — W/S adjusts throttle, mouse steers"
     } else {
-        "adaptive Cruise disabled"
+        "Lattice Drive cancel or disengage requested"
     })
 }
 
@@ -175,7 +237,7 @@ pub(super) fn attitude_command(
     invocation: &ConsoleCommandInvocation,
 ) -> ConsoleCommandResult {
     if invocation.args().len() > 1 {
-        return ConsoleCommandResult::error("usage: attitude [hold|view]");
+        return ConsoleCommandResult::error("usage: attitude [hold|manual]");
     }
     let mut query =
         world.query_filtered::<(Entity, &PilotAttitudeLaw), With<LocalControlSubject>>();
@@ -185,8 +247,8 @@ pub(super) fn attitude_command(
     let requested = if let Some(value) = invocation.args().first() {
         match value.to_ascii_lowercase().as_str() {
             "hold" => PilotAttitudeLaw::Hold,
-            "view" | "follow" => PilotAttitudeLaw::FollowView,
-            _ => return ConsoleCommandResult::error("usage: attitude [hold|view]"),
+            "manual" | "rate" | "view" | "follow" => PilotAttitudeLaw::ManualRate,
+            _ => return ConsoleCommandResult::error("usage: attitude [hold|manual]"),
         }
     } else {
         *law
@@ -258,6 +320,50 @@ pub(super) fn motion_override_command(
         world.entity_mut(entity).insert(override_);
     }
     ConsoleCommandResult::success_and_return_to_gameplay("developer motion override updated")
+}
+
+pub(super) fn debug_fly_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error("usage: debugfly [on|off]");
+    }
+    let mut query =
+        world.query_filtered::<(Entity, &LocomotionCapabilities), With<LocalControlSubject>>();
+    let Some((entity, capabilities)) = query.iter(world).next() else {
+        return ConsoleCommandResult::error("controlled subject unavailable");
+    };
+    if !capabilities.inertial_flight() {
+        return ConsoleCommandResult::error("debug traversal requires a flight subject");
+    }
+    let mut override_ = world
+        .get::<DeveloperMotionOverride>(entity)
+        .copied()
+        .unwrap_or_default();
+    let requested = match invocation.args().first().map(String::as_str) {
+        None => !override_.characteristic_traversal(),
+        Some(raw) if raw.eq_ignore_ascii_case("on") => true,
+        Some(raw) if raw.eq_ignore_ascii_case("off") => false,
+        _ => return ConsoleCommandResult::error("usage: debugfly [on|off]"),
+    };
+    override_.set_characteristic_traversal(requested);
+    if override_.is_clear() {
+        world.entity_mut(entity).remove::<DeveloperMotionOverride>();
+    } else {
+        world.entity_mut(entity).insert(override_);
+    }
+    if requested {
+        world.write_message(TravelAssistanceRequest::set(
+            entity,
+            TravelAssistance::Manual,
+        ));
+    }
+    ConsoleCommandResult::success_and_return_to_gameplay(if requested {
+        "debug traversal enabled; wheel changes characteristic pace"
+    } else {
+        "debug traversal disabled"
+    })
 }
 
 pub(super) fn autopilot_command(

@@ -6,16 +6,29 @@ use crate::game::control::LocalControlSubject;
 
 pub(in crate::game::player) fn toggle_camera_mode(
     input: Res<PlayerInputFrame>,
-    mut camera: Single<&mut PlayerCamera>,
+    profile: Single<&ViewCameraProfile, With<LocalViewTarget>>,
+    mut camera: Single<(&mut PlayerCamera, &Transform)>,
 ) {
     if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleCameraMode) {
         return;
     }
 
-    camera.mode = match camera.mode {
+    let (camera, transform) = &mut *camera;
+    let next = match camera.mode {
         CameraMode::FirstPerson => CameraMode::ThirdPerson,
-        CameraMode::ThirdPerson => CameraMode::FirstPerson,
+        CameraMode::ThirdPerson => {
+            if profile.supports_mode(CameraMode::Orbit) {
+                CameraMode::Orbit
+            } else {
+                CameraMode::FirstPerson
+            }
+        }
+        CameraMode::Orbit => CameraMode::FirstPerson,
     };
+    if next == CameraMode::Orbit {
+        camera.orbit_rotation = transform.rotation;
+    }
+    camera.mode = next;
 }
 
 /// Scroll changes persistent zoom intent, never the collision-constrained
@@ -28,12 +41,10 @@ pub(in crate::game::player) fn zoom_third_person(
     mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
     if presentation.is_embedded()
-        // Vehicle control owns ordinary wheel input as the high-dynamic-range
-        // pace dial. On foot, the existing third-person zoom behavior remains.
-        || !controlled_vehicle.is_empty()
+        || (!controlled_vehicle.is_empty() && !input.pressed(PlayerAction::Descend))
         || input.pressed(PlayerAction::ViewScaleModifier)
         || !input.gameplay_active()
-        || camera.mode != CameraMode::ThirdPerson
+        || !matches!(camera.mode, CameraMode::ThirdPerson | CameraMode::Orbit)
         || input.scroll_y() == 0.0
     {
         return;

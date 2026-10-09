@@ -107,9 +107,18 @@ pub(super) fn configure(app: &mut App) {
             name: "speed",
             aliases: &["movespeed", "travel-speed"],
             usage: "speed [<multiplier>|reset]",
-            summary: "Show or set manual locomotion pace; 1.0 is the natural baseline for the active locomotion mode.",
+            summary: "Show or set characteristic movement pace; 1.0 is the natural baseline.",
         },
         travel::speed_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "camera",
+            aliases: &["viewmode"],
+            usage: "camera [cockpit|chase|orbit]",
+            summary: "Select the local view mode supported by the current subject.",
+        },
+        travel::camera_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -124,8 +133,8 @@ pub(super) fn configure(app: &mut App) {
         ConsoleCommandSpec {
             name: "attitude",
             aliases: &["sas"],
-            usage: "attitude [hold|view]",
-            summary: "Choose whether the ship holds attitude or follows the pilot view.",
+            usage: "attitude [hold|manual]",
+            summary: "Choose attitude hold or manual angular-rate control.",
         },
         travel::attitude_command,
     )
@@ -155,6 +164,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Explicit developer override for controlled ship collision or gravity.",
         },
         travel::motion_override_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "debugfly",
+            aliases: &["noclipship"],
+            usage: "debugfly [on|off]",
+            summary: "Direct collision-free flight at characteristic pace; wheel adjusts pace.",
+        },
+        travel::debug_fly_command,
     )
     .register_console_command(
         ConsoleCommandSpec {

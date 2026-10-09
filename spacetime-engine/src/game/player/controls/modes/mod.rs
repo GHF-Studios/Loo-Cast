@@ -6,7 +6,7 @@ fn spacecraft_flight_active(locomotion: &ControlledSubjectLocomotion) -> bool {
     locomotion.regime() == LocomotionRegime::SpacecraftFlight
 }
 
-/// `V` selects whether the ship holds attitude or follows the pilot's view.
+/// `V` selects whether the ship holds attitude or accepts manual angular rates.
 pub(in crate::game::player) fn toggle_attitude_law(
     input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
@@ -25,8 +25,8 @@ pub(in crate::game::player) fn toggle_attitude_law(
         return;
     }
     let requested = match *law {
-        PilotAttitudeLaw::Hold => PilotAttitudeLaw::FollowView,
-        PilotAttitudeLaw::FollowView => PilotAttitudeLaw::Hold,
+        PilotAttitudeLaw::Hold => PilotAttitudeLaw::ManualRate,
+        PilotAttitudeLaw::ManualRate => PilotAttitudeLaw::Hold,
     };
     requests.write(FlightControlRequest::new(
         entity,
@@ -70,8 +70,8 @@ pub(in crate::game::player) fn toggle_thrusters(
     ));
 }
 
-/// `Z` toggles bounded RCS stabilization without changing gravity.
-pub(in crate::game::player) fn toggle_rcs(
+/// Translational RCS damping and angular flight assist are independent policies.
+pub(in crate::game::player) fn toggle_flight_stabilizers(
     input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
@@ -85,7 +85,10 @@ pub(in crate::game::player) fn toggle_rcs(
     >,
     mut requests: MessageWriter<FlightControlRequest>,
 ) {
-    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleRcs) {
+    if !input.gameplay_active()
+        || (!input.just_pressed(PlayerAction::ToggleRcs)
+            && !input.just_pressed(PlayerAction::ToggleFlightAssist))
+    {
         return;
     }
 
@@ -97,10 +100,18 @@ pub(in crate::game::player) fn toggle_rcs(
         return;
     }
 
-    requests.write(FlightControlRequest::new(
-        entity,
-        FlightControlCommand::SetReactionControl(!actuation.rcs_enabled()),
-    ));
+    if input.just_pressed(PlayerAction::ToggleRcs) {
+        requests.write(FlightControlRequest::new(
+            entity,
+            FlightControlCommand::SetReactionControl(!actuation.rcs_enabled()),
+        ));
+    }
+    if input.just_pressed(PlayerAction::ToggleFlightAssist) {
+        requests.write(FlightControlRequest::new(
+            entity,
+            FlightControlCommand::SetAngularAssist(!actuation.angular_assist_enabled()),
+        ));
+    }
 }
 
 /// `C` toggles an explicit Cruise request.

@@ -75,6 +75,17 @@ impl ResolvedTransition {
                 requeue: Some(request),
             });
         }
+        if let Some(position) = transitions.take_motion_reanchor_for(subject) {
+            return Some(Self {
+                position,
+                target_scale: previous_scale,
+                view_exponent: None,
+                velocity_policy: UsfTransitionVelocity::PreserveCanonical,
+                coverage: TransitionCoverageRequirement::NONE,
+                cause: UsfSpatialTransitionCause::MotionReanchor,
+                requeue: None,
+            });
+        }
         let requirement = transitions.interaction_requirement_for(subject)?;
         Some(Self {
             position: current_position,
@@ -101,6 +112,10 @@ impl ResolvedTransition {
         guards: &UsfInteractionHandoffGuards,
         wait_fingerprint: &mut Option<InteractionHandoffWaitFingerprint>,
     ) -> Option<Self> {
+        if self.cause == UsfSpatialTransitionCause::MotionReanchor {
+            active.cancel_handoff();
+            return Some(self);
+        }
         if self.cause == UsfSpatialTransitionCause::InteractionRequirement
             && self.target_scale == previous_scale
         {

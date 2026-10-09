@@ -16,60 +16,75 @@ pub(super) fn vec3_to_dvec3(value: Vec3) -> DVec3 {
     DVec3::new(f64::from(value.x), f64::from(value.y), f64::from(value.z))
 }
 
-fn flight_wish(intent: &FlightControlIntent, attitude: Quat) -> DVec3 {
-    let axes = intent.translation_axes();
+fn flight_wish(intent: &FlightControlIntent, attitude: Quat, throttle: f32) -> DVec3 {
+    let mut axes = intent.translation_axes();
+    axes.z = throttle;
     vec3_to_dvec3(
         (attitude * Vec3::X * axes.x
             + attitude * Vec3::NEG_Z * axes.z
             + attitude * Vec3::Y * axes.y)
-            .normalize_or_zero(),
+            .clamp_length_max(1.0),
     )
+}
+
+pub(super) fn capture_cruise_exit_velocity(velocity: DVec3, limit: f64) -> DVec3 {
+    velocity.clamp_length_max(limit.max(0.0))
 }
 
 pub(super) fn integrate_flight_attitude(
     current: Quat,
+    angular_velocity_world: DVec3,
     command: FlightAttitudeCommand,
+    flight_assist: bool,
     profile: &TravelProfile,
     dt_seconds: f32,
-) -> Quat {
+) -> (Quat, DVec3) {
     let current = current.normalize();
     let dt = dt_seconds.max(0.0);
-
-    match command {
-        FlightAttitudeCommand::Hold => current,
+    let limits = Vec3::new(
+        profile.flight.pitch_rate_radians_per_second.max(0.0),
+        profile.flight.yaw_rate_radians_per_second.max(0.0),
+        profile.flight.roll_rate_radians_per_second.max(0.0),
+    );
+    let maximum_rate = f64::from(limits.max_element());
+    let desired = match command {
+        FlightAttitudeCommand::Hold if !flight_assist => angular_velocity_world,
+        FlightAttitudeCommand::Hold => DVec3::ZERO,
         FlightAttitudeCommand::AngularVelocityLocal(requested) => {
-            let limits = Vec3::new(
-                profile.flight.pitch_rate_radians_per_second.max(0.0),
-                profile.flight.yaw_rate_radians_per_second.max(0.0),
-                profile.flight.roll_rate_radians_per_second.max(0.0),
-            );
-            let rate = requested.clamp(-limits, limits);
-            let delta = Quat::from_rotation_x(rate.x * dt)
-                * Quat::from_rotation_y(rate.y * dt)
-                * Quat::from_rotation_z(rate.z * dt);
-            (current * delta).normalize()
+            let local = requested.clamp(-limits, limits);
+            let world = current * local;
+            DVec3::new(f64::from(world.x), f64::from(world.y), f64::from(world.z))
         }
         FlightAttitudeCommand::TargetOrientation(target) => {
-            let mut target = target.normalize();
-            if current.dot(target) < 0.0 {
-                target = -target;
+            let mut delta = (target.normalize() * current.conjugate()).normalize();
+            if delta.w < 0.0 {
+                delta = -delta;
             }
-
-            let angle = 2.0 * current.dot(target).clamp(-1.0, 1.0).acos();
-            let maximum_step = profile
-                .flight
-                .target_attitude_response_radians_per_second
-                .max(0.0)
-                * dt;
-            if angle <= maximum_step || angle <= 1.0e-6 {
-                target
-            } else {
-                current
-                    .slerp(target, (maximum_step / angle).clamp(0.0, 1.0))
-                    .normalize()
-            }
+            let (axis, angle) = delta.to_axis_angle();
+            let rate = (f64::from(angle)
+                * f64::from(
+                    profile
+                        .flight
+                        .target_attitude_response_radians_per_second
+                        .max(0.0),
+                ))
+            .min(maximum_rate);
+            DVec3::new(f64::from(axis.x), f64::from(axis.y), f64::from(axis.z)) * rate
         }
+    };
+    let maximum_delta = maximum_rate * 4.0 * f64::from(dt);
+    let next_angular_velocity =
+        angular_velocity_world + (desired - angular_velocity_world).clamp_length_max(maximum_delta);
+    let angle = next_angular_velocity.length() * f64::from(dt);
+    if angle <= 1.0e-9 {
+        return (current, next_angular_velocity);
     }
+    let axis = next_angular_velocity.normalize();
+    let delta = Quat::from_axis_angle(
+        Vec3::new(axis.x as f32, axis.y as f32, axis.z as f32),
+        angle as f32,
+    );
+    ((delta * current).normalize(), next_angular_velocity)
 }
 
 fn integrate_local_inertial_velocity(
@@ -128,6 +143,8 @@ pub(super) struct FlightVelocityStep<'a> {
     pub(super) actuation: &'a FlightActuation,
     pub(super) capabilities: &'a FlightCapabilities,
     pub(super) intent: &'a FlightControlIntent,
+    pub(super) throttle: f32,
+    pub(super) characteristic_traversal: bool,
     pub(super) profile: &'a TravelProfile,
     pub(super) envelope: &'a TravelEnvelope,
     pub(super) travel: &'a TravelState,
@@ -146,6 +163,8 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
         actuation,
         capabilities,
         intent,
+        throttle,
+        characteristic_traversal,
         profile,
         envelope,
         travel,
@@ -158,9 +177,14 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
         delta_seconds_f32,
     } = step;
     let dt = delta_seconds;
-    let wish = flight_wish(intent, rotation);
+    let wish = flight_wish(intent, rotation, throttle);
     let pace = f64::from(intent.pace_multiplier().max(0.0));
     let boost = boost_multiplier(intent, profile);
+
+    if characteristic_traversal {
+        let direction = flight_wish(intent, rotation, intent.throttle_axis());
+        return direction * envelope.manual_speed_metres_per_second * pace * boost;
+    }
 
     if assistance.mode() != TravelAssistance::Cruise {
         cruise.was_active = false;
@@ -172,7 +196,7 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
             envelope,
             travel,
             profile,
-            intent,
+            throttle,
             current_velocity: motion.velocity_metres_per_second(),
             current_speed: motion.speed_metres_per_second(),
             rotation,
@@ -200,5 +224,63 @@ pub(super) fn step_flight_velocity(step: FlightVelocityStep<'_>) -> DVec3 {
             capabilities.reaction_control() && actuation.rcs_enabled(),
         ),
         MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flight_assist_off_preserves_angular_momentum_on_release() {
+        let profile = TravelProfile::spacecraft();
+        let (rotation, angular_velocity) = integrate_flight_attitude(
+            Quat::IDENTITY,
+            DVec3::Z,
+            FlightAttitudeCommand::Hold,
+            false,
+            &profile,
+            0.5,
+        );
+        assert!(rotation != Quat::IDENTITY);
+        assert!((angular_velocity.z - 1.0).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn flight_assist_on_brakes_angular_momentum_on_release() {
+        let profile = TravelProfile::spacecraft();
+        let (_, angular_velocity) = integrate_flight_attitude(
+            Quat::IDENTITY,
+            DVec3::Z,
+            FlightAttitudeCommand::Hold,
+            true,
+            &profile,
+            0.5,
+        );
+        assert!(angular_velocity.length() < 1.0);
+    }
+
+    #[test]
+    fn half_throttle_produces_half_forward_acceleration() {
+        let intent = FlightControlIntent::default();
+        let wish = flight_wish(&intent, Quat::IDENTITY, 0.5);
+        let velocity = integrate_local_inertial_velocity(
+            DVec3::ZERO,
+            wish,
+            DVec3::ZERO,
+            1.0,
+            10.0,
+            0.0,
+            true,
+            false,
+        );
+        assert!((velocity.z + 5.0).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn emergency_dropout_caps_extreme_cruise_speed_for_local_collision() {
+        let captured = capture_cruise_exit_velocity(DVec3::X * 1.0e10, 100.0);
+        assert!((captured.length() - 100.0).abs() < 1.0e-6);
+        assert!(captured.x > 0.0);
     }
 }

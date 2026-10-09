@@ -6,7 +6,8 @@ use super::*;
 /// spatial length currently being navigated.
 pub(in crate::game::navigation) fn sync_navigation_context(
     time: Res<Time>,
-    frame: Res<UsfRuntimeChartState>,
+    ownership: UsfOwnershipQuery,
+    semantic_positions: Query<&UsfPosition>,
     influences: Query<(
         Entity,
         &UsfPosition,
@@ -16,35 +17,45 @@ pub(in crate::game::navigation) fn sync_navigation_context(
     )>,
     subject: Single<
         (
-            &Transform,
+            Entity,
             &UsfScaleLayer,
+            &UsfCanonicalMotion,
             &mut UsfTravelNeighborhood,
             &mut UsfNavigationContext,
         ),
         With<LocalControlSubject>,
     >,
 ) {
-    let (body, layer, mut neighborhood, mut navigation) = subject.into_inner();
+    let (entity, layer, motion, mut neighborhood, mut navigation) = subject.into_inner();
     let scale = layer.scale();
-    let Ok(position) = frame.origin().translated_at_scale(scale, body.translation) else {
+    let Some(semantic) = ownership.semantic_of(entity) else {
+        return;
+    };
+    let Ok(position) = semantic_positions.get(semantic) else {
         return;
     };
 
-    neighborhood.refresh_if_needed(time.delta_secs().max(0.0), position, scale, || {
-        influences
-            .iter()
-            .map(|(entity, anchor, semantic_frame, influence, boundary)| {
-                (
-                    entity,
-                    *anchor,
-                    *semantic_frame,
-                    *influence,
-                    boundary.cloned(),
-                )
-            })
-    });
+    neighborhood.refresh_if_needed(
+        time.delta_secs().max(0.0),
+        *position,
+        scale,
+        motion.velocity_metres_per_second(),
+        || {
+            influences
+                .iter()
+                .map(|(entity, anchor, semantic_frame, influence, boundary)| {
+                    (
+                        entity,
+                        *anchor,
+                        *semantic_frame,
+                        *influence,
+                        boundary.cloned(),
+                    )
+                })
+        },
+    );
 
-    let resolved = UsfNavigationContext::resolve(&position, scale, &neighborhood);
+    let resolved = UsfNavigationContext::resolve(position, scale, &neighborhood);
     if *navigation != resolved {
         debug!(
             subject_scale = %scale,

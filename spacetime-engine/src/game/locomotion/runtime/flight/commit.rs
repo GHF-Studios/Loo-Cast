@@ -1,56 +1,74 @@
 //! Commit resolved flight motion across the runtime chart and semantic USF boundary.
 
 use crate::physics::{slice::UsfPhysicsSliceQuery, topology::KinematicQueryExclusions};
-use crate::spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState};
+use crate::spatial::{
+    SpatialScale, UsfCanonicalMotion, UsfPosition, UsfRuntimeChartState, UsfSpatialTransitions,
+};
+use crate::usf::{USF_CHUNK_NATIVE_SIZE, UsfPositionError};
 use avian3d::{
     character_controller::move_and_slide::{
         MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse,
     },
     prelude::{Collider, LinearVelocity},
 };
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 use std::time::Duration;
 
 pub(super) fn commit_canonical_motion(
-    dt_seconds: f64,
+    displacement_metres: DVec3,
     frame: &UsfRuntimeChartState,
     semantic_entity: Entity,
     layer: SpatialScale,
     body: &mut Transform,
     velocity_cache: &mut LinearVelocity,
-    motion: &UsfCanonicalMotion,
+    motion: &mut UsfCanonicalMotion,
+    accepted_velocity: DVec3,
     semantic_positions: &mut Query<&mut UsfPosition>,
-) {
+    transitions: &mut UsfSpatialTransitions,
+) -> bool {
     let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
         error!(
             subject = ?semantic_entity,
             "canonical flight subject has no semantic USF position"
         );
-        return;
+        return false;
     };
 
-    let delta_metres = motion.velocity_metres_per_second() * dt_seconds;
-    let Ok(next) = semantic.translated_metres_f64(delta_metres) else {
+    let Ok(next) = semantic.translated_metres_f64(displacement_metres) else {
         error!(
             subject = ?semantic_entity,
-            delta_metres = ?delta_metres,
+            displacement_metres = ?displacement_metres,
             "canonical flight integration failed"
         );
-        return;
+        return false;
     };
 
-    let Ok(runtime) = next.relative_at_scale_bounded(frame.origin(), layer, f32::MAX) else {
-        error!(
-            subject = ?semantic_entity,
-            scale = %layer,
-            "canonical flight position could not project into runtime chart"
-        );
-        return;
-    };
-
-    *semantic = next;
-    body.translation = runtime;
+    match next.relative_at_scale_bounded(frame.origin(), layer, USF_CHUNK_NATIVE_SIZE) {
+        Ok(runtime) => {
+            *semantic = next;
+            body.translation = runtime;
+            transitions.clear_motion_reanchor(semantic_entity);
+        }
+        Err(UsfPositionError::RelativePositionOutsideBound) => {
+            // The semantic step is authoritative even when the old f32 chart
+            // cannot represent it. Keep that position and ask the USF chart
+            // owner to reanchor the entire runtime projection in PostUpdate.
+            *semantic = next;
+            transitions.reanchor_motion(semantic_entity, next);
+        }
+        Err(error) => {
+            error!(
+                subject = ?semantic_entity,
+                scale = %layer,
+                ?error,
+                "canonical flight position could not enter runtime chart"
+            );
+            return false;
+        }
+    }
+    motion.set_velocity_metres_per_second(accepted_velocity);
     velocity_cache.0 = motion.native_velocity(layer);
+    true
 }
 
 /// Commit a collision-resolved runtime-chart pose back into canonical USF

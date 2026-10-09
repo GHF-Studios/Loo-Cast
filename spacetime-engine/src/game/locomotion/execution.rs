@@ -30,6 +30,7 @@ pub enum MotionAuthorityReason {
     #[default]
     RuntimeCollision,
     NumericalRange,
+    CollisionCoverage,
     NavigationAssistance,
     DeveloperOverride,
     Inhibited,
@@ -49,14 +50,21 @@ pub enum VelocitySemantics {
 pub struct DeveloperMotionOverride {
     ignore_collision: bool,
     ignore_gravity: bool,
+    characteristic_traversal: bool,
 }
 
 impl DeveloperMotionOverride {
     pub const fn ignore_collision(self) -> bool {
-        self.ignore_collision
+        self.ignore_collision || self.characteristic_traversal
     }
     pub const fn ignore_gravity(self) -> bool {
-        self.ignore_gravity
+        self.ignore_gravity || self.characteristic_traversal
+    }
+    pub const fn characteristic_traversal(self) -> bool {
+        self.characteristic_traversal
+    }
+    pub fn set_characteristic_traversal(&mut self, enabled: bool) {
+        self.characteristic_traversal = enabled;
     }
     pub fn set_ignore_collision(&mut self, enabled: bool) {
         self.ignore_collision = enabled;
@@ -65,7 +73,7 @@ impl DeveloperMotionOverride {
         self.ignore_gravity = enabled;
     }
     pub const fn is_clear(self) -> bool {
-        !self.ignore_collision && !self.ignore_gravity
+        !self.ignore_collision && !self.ignore_gravity && !self.characteristic_traversal
     }
 }
 

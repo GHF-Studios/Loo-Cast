@@ -2,6 +2,8 @@
 
 use super::*;
 use crate::game::locomotion::MotionAuthorityReason;
+use crate::spatial::runtime_step_is_representable;
+use bevy::math::DVec3;
 
 pub(super) fn regime_allowed(
     requested: LocomotionRegime,
@@ -17,26 +19,6 @@ pub(super) fn automatic_regime(capabilities: LocomotionCapabilities) -> Locomoti
         LocomotionRegime::SpacecraftFlight
     } else {
         LocomotionRegime::OnFoot
-    }
-}
-
-pub(super) fn canonical_motion_authoritative(
-    kernel: MotionKernel,
-    layer: SpatialScale,
-    detailed: SpatialScale,
-) -> bool {
-    match kernel {
-        // Runtime f32 charts cannot integrate ordinary SI motion once the
-        // interaction Scale is sufficiently coarse. At S+35, for example,
-        // 100 m/s is ~1e-33 native units/s: adding a fixed-tick displacement
-        // to an ordinary f32 runtime coordinate is numerically zero.
-        //
-        // Detailed interaction keeps runtime collision authority. Coarser
-        // flight/navigation must integrate canonical SI position and project
-        // the result back into the bounded chart.
-        MotionKernel::InertialFlight => layer != detailed,
-
-        MotionKernel::Character | MotionKernel::Disabled => false,
     }
 }
 
@@ -135,6 +117,10 @@ pub(super) struct MotionPolicyInputs<'a> {
     pub entity: Entity,
     pub layer: SpatialScale,
     pub detailed: SpatialScale,
+    pub runtime_position: Vec3,
+    pub canonical_velocity: DVec3,
+    pub fixed_delta_seconds: f64,
+    pub runtime_collision_ready: bool,
     pub capabilities: LocomotionCapabilities,
     pub enabled: bool,
     pub inhibited: bool,
@@ -198,8 +184,20 @@ pub(super) fn decide_motion_policy(
         && inputs
             .developer_motion
             .is_some_and(|override_| override_.ignore_collision());
-    let numerical_canonical = canonical_motion_authoritative(kernel, inputs.layer, inputs.detailed);
-    let authority = if inputs.cruise_active || developer_canonical || numerical_canonical {
+    let numerical_canonical = kernel == MotionKernel::InertialFlight
+        && !runtime_step_is_representable(
+            inputs.runtime_position,
+            inputs.canonical_velocity,
+            inputs.layer,
+            inputs.fixed_delta_seconds,
+        );
+    let collision_canonical = kernel == MotionKernel::InertialFlight
+        && (collision != CollisionPolicy::DetailedBody || !inputs.runtime_collision_ready);
+    let authority = if inputs.cruise_active
+        || developer_canonical
+        || numerical_canonical
+        || collision_canonical
+    {
         UsfMotionAuthority::CanonicalKinematics
     } else {
         UsfMotionAuthority::RuntimePhysics
@@ -210,6 +208,8 @@ pub(super) fn decide_motion_policy(
         MotionAuthorityReason::NavigationAssistance
     } else if numerical_canonical {
         MotionAuthorityReason::NumericalRange
+    } else if collision_canonical {
+        MotionAuthorityReason::CollisionCoverage
     } else {
         MotionAuthorityReason::RuntimeCollision
     };

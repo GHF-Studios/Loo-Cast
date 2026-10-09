@@ -1,7 +1,7 @@
 //! Canonical swept-collision query boundary.
 //!
-//! Local collision remains the contact backend. This module only gathers
-//! conservative future-motion evidence for providers and callers.
+//! Local collision remains the detailed contact backend. Canonical proposals
+//! are resolved before motion commits when local collider coverage is absent.
 //!
 //! ## Module map
 //!
@@ -18,5 +18,5 @@ mod runtime;
 
 pub use contract::*;
 pub use frame::*;
-pub use runtime::UsfCollisionQuerySet;
 pub(super) use runtime::configure;
+pub use runtime::{UsfCollisionQuerySet, UsfProposedSweeps};

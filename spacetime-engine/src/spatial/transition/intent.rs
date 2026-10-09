@@ -180,6 +180,7 @@ impl UsfInteractionRequirement {
 pub struct UsfSpatialTransitions {
     pending: VecDeque<UsfSpatialTransition>,
     interaction_requirements: HashMap<Entity, UsfInteractionRequirement>,
+    motion_reanchors: HashMap<Entity, UsfPosition>,
 }
 
 impl UsfSpatialTransitions {
@@ -189,7 +190,23 @@ impl UsfSpatialTransitions {
     /// at the old location. The planner publishes a fresh one afterward.
     pub fn relocate(&mut self, transition: UsfSpatialTransition) {
         self.interaction_requirements.remove(&transition.subject);
+        self.motion_reanchors.remove(&transition.subject);
         self.pending.push_back(transition);
+    }
+
+    /// Recenter the runtime chart around motion already committed in canonical
+    /// space. This preserves the continuous interaction requirement; it is not
+    /// an external relocation or a new movement authority.
+    pub fn reanchor_motion(&mut self, subject: Entity, position: UsfPosition) {
+        self.motion_reanchors.insert(subject, position);
+    }
+
+    pub fn clear_motion_reanchor(&mut self, subject: Entity) {
+        self.motion_reanchors.remove(&subject);
+    }
+
+    pub(super) fn take_motion_reanchor_for(&mut self, subject: Entity) -> Option<UsfPosition> {
+        self.motion_reanchors.remove(&subject)
     }
 
     pub fn require_interaction(&mut self, requirement: UsfInteractionRequirement) {
@@ -228,6 +245,9 @@ impl UsfSpatialTransitions {
         }
 
         self.pending = retained;
+        if latest.is_some() {
+            self.motion_reanchors.remove(&subject);
+        }
         latest
     }
 
@@ -250,6 +270,7 @@ pub enum UsfSpatialTransitionCause {
     ViewScale,
     Requested,
     InteractionRequirement,
+    MotionReanchor,
 }
 
 #[derive(Message, Debug, Clone, Copy)]

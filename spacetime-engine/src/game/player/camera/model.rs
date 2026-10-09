@@ -13,6 +13,7 @@ pub enum CameraMode {
     #[default]
     FirstPerson,
     ThirdPerson,
+    Orbit,
 }
 
 /// Which orientation authority a target-owned camera rig follows.
@@ -23,6 +24,10 @@ pub(in crate::game::player) enum ViewOrientationPolicy {
     ControllerLook,
     /// Vehicle-style camera locked to the resolved physical subject attitude.
     SubjectAttitude,
+    /// Follow subject heading and pitch with a horizon-stabilized external view.
+    HorizonStabilizedSubject,
+    /// Observer-owned free look, independent of physical subject attitude.
+    ObserverOrbit,
 }
 
 /// Persistent intent and transient collision result for a third-person boom.
@@ -112,7 +117,9 @@ impl Default for ThirdPersonCamera {
 #[reflect(Component)]
 pub struct ViewCameraProfile {
     pub preferred_mode: CameraMode,
-    orientation_policy: ViewOrientationPolicy,
+    first_person_orientation: ViewOrientationPolicy,
+    third_person_orientation: ViewOrientationPolicy,
+    orbit_orientation: Option<ViewOrientationPolicy>,
     pub standing_eye_offset_metres: Vec3,
     pub crouched_eye_offset_metres: Vec3,
     /// Near clipping distance for the local physical camera, authored in metres.
@@ -127,7 +134,9 @@ impl ViewCameraProfile {
     pub fn character() -> Self {
         Self {
             preferred_mode: CameraMode::FirstPerson,
-            orientation_policy: ViewOrientationPolicy::ControllerLook,
+            first_person_orientation: ViewOrientationPolicy::ControllerLook,
+            third_person_orientation: ViewOrientationPolicy::ControllerLook,
+            orbit_orientation: None,
             standing_eye_offset_metres: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
             crouched_eye_offset_metres: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
             near_clip_metres: 0.001,
@@ -153,8 +162,9 @@ impl ViewCameraProfile {
 
         Self {
             preferred_mode: CameraMode::ThirdPerson,
-            // View orientation is observer intent, not spacecraft attitude authority.
-            orientation_policy: ViewOrientationPolicy::ControllerLook,
+            first_person_orientation: ViewOrientationPolicy::SubjectAttitude,
+            third_person_orientation: ViewOrientationPolicy::HorizonStabilizedSubject,
+            orbit_orientation: Some(ViewOrientationPolicy::ObserverOrbit),
             standing_eye_offset_metres: Vec3::ZERO,
             crouched_eye_offset_metres: Vec3::ZERO,
             near_clip_metres: 0.001,
@@ -162,17 +172,31 @@ impl ViewCameraProfile {
         }
     }
 
-    pub const fn uses_controller_look(&self) -> bool {
-        matches!(
-            self.orientation_policy,
-            ViewOrientationPolicy::ControllerLook
-        )
+    pub const fn supports_mode(&self, mode: CameraMode) -> bool {
+        match mode {
+            CameraMode::FirstPerson | CameraMode::ThirdPerson => true,
+            CameraMode::Orbit => self.orbit_orientation.is_some(),
+        }
+    }
+
+    pub(in crate::game::player) const fn orientation_for(
+        &self,
+        mode: CameraMode,
+    ) -> ViewOrientationPolicy {
+        match mode {
+            CameraMode::FirstPerson => self.first_person_orientation,
+            CameraMode::ThirdPerson => self.third_person_orientation,
+            CameraMode::Orbit => match self.orbit_orientation {
+                Some(policy) => policy,
+                None => self.third_person_orientation,
+            },
+        }
     }
 
     pub fn rig_rotation(&self, body: &Transform, control: &CharacterControlFrame) -> Quat {
-        match self.orientation_policy {
+        match self.first_person_orientation {
             ViewOrientationPolicy::ControllerLook => control.rotation(),
-            ViewOrientationPolicy::SubjectAttitude => body.rotation.normalize(),
+            _ => body.rotation.normalize(),
         }
     }
 
@@ -181,10 +205,23 @@ impl ViewCameraProfile {
         body: &Transform,
         control: &CharacterControlFrame,
         aim: &PlayerAim,
+        camera: &PlayerCamera,
     ) -> Quat {
-        match self.orientation_policy {
+        match self.orientation_for(camera.mode) {
             ViewOrientationPolicy::ControllerLook => control.rotation() * aim.local_rotation(),
             ViewOrientationPolicy::SubjectAttitude => body.rotation.normalize(),
+            ViewOrientationPolicy::HorizonStabilizedSubject => {
+                let forward = (body.rotation * Vec3::NEG_Z).normalize_or_zero();
+                let reference_up = if forward.dot(Vec3::Y).abs() > 0.98 {
+                    body.rotation * Vec3::Y
+                } else {
+                    Vec3::Y
+                };
+                let right = forward.cross(reference_up).normalize_or_zero();
+                let up = right.cross(forward).normalize_or_zero();
+                Quat::from_mat3(&Mat3::from_cols(right, up, -forward)).normalize()
+            }
+            ViewOrientationPolicy::ObserverOrbit => camera.orbit_rotation.normalize(),
         }
     }
 
@@ -231,6 +268,7 @@ pub struct UsfProjectionCamera;
 #[reflect(Component)]
 pub struct PlayerCamera {
     pub mode: CameraMode,
+    pub orbit_rotation: Quat,
     /// Desired horizontal field of view in degrees.
     pub horizontal_fov_degrees: f32,
 }
@@ -239,6 +277,7 @@ impl Default for PlayerCamera {
     fn default() -> Self {
         Self {
             mode: CameraMode::FirstPerson,
+            orbit_rotation: Quat::IDENTITY,
             horizontal_fov_degrees: 110.0,
         }
     }

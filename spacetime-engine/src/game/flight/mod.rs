@@ -23,11 +23,15 @@ mod model;
 mod runtime;
 
 pub use model::*;
-use runtime::{apply_attitude_autopilot, resolve_flight_control_requests, sync_flight_telemetry};
+use runtime::{
+    apply_attitude_autopilot, evaluate_flight_safety, resolve_flight_control_requests,
+    sync_flight_telemetry,
+};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlightSet {
     Control,
+    Safety,
     Telemetry,
 }
 
@@ -60,6 +64,10 @@ impl Plugin for FlightPlugin {
                 (resolve_flight_control_requests, apply_attitude_autopilot)
                     .chain()
                     .in_set(FlightSet::Control),
+            )
+            .add_systems(
+                RunFixedMainLoop,
+                evaluate_flight_safety.in_set(FlightSet::Safety),
             )
             .add_systems(Update, sync_flight_telemetry.in_set(FlightSet::Telemetry));
     }

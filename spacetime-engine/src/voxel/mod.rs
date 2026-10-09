@@ -294,7 +294,7 @@ fn install_voxel_post_update_systems(app: &mut App) {
             .in_set(UsfCapabilitySet::Publish),
     )
     .add_systems(
-        PostUpdate,
+        FixedUpdate,
         collision_query::publish_collision_query_candidates.in_set(UsfCollisionQuerySet::Providers),
     );
 }

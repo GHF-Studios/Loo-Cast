@@ -69,10 +69,11 @@ fn scale_for_resolution(
 /// resolution is needed and how much finer reality should be realized ahead of
 /// the moving subject.
 pub(in crate::game::navigation) fn plan_approach_refinement(
-    frame: Res<UsfRuntimeChartState>,
+    ownership: UsfOwnershipQuery,
+    semantic_positions: Query<&UsfPosition>,
     subject: Single<
         (
-            &Transform,
+            Entity,
             &UsfScaleLayer,
             &TravelProfile,
             &TravelEnvelope,
@@ -89,13 +90,14 @@ pub(in crate::game::navigation) fn plan_approach_refinement(
         Option<&UsfTravelBoundaryProvider>,
     )>,
 ) {
-    let (body, layer, profile, envelope, mut state, mut realization_demand) = subject.into_inner();
+    let (entity, layer, profile, envelope, mut state, mut realization_demand) =
+        subject.into_inner();
 
     let observer_scale = layer.scale();
-    let Ok(observer) = frame
-        .origin()
-        .translated_at_scale(observer_scale, body.translation)
-    else {
+    let Some(semantic) = ownership.semantic_of(entity) else {
+        return;
+    };
+    let Ok(observer) = semantic_positions.get(semantic) else {
         return;
     };
 
@@ -107,7 +109,7 @@ pub(in crate::game::navigation) fn plan_approach_refinement(
                     let measurement = influence.measure_from_at_scale(
                         anchor,
                         *semantic_frame,
-                        &observer,
+                        observer,
                         observer_scale,
                         boundary,
                     )?;

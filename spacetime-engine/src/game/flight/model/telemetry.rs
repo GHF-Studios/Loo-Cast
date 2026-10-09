@@ -15,9 +15,14 @@ pub struct FlightTelemetry {
     pub(in crate::game::flight) landing_available: bool,
     pub(in crate::game::flight) safety: FlightSafetyLevel,
     pub(in crate::game::flight) speed_metres_per_second: f64,
+    pub(in crate::game::flight) forward_speed_metres_per_second: f64,
+    pub(in crate::game::flight) lateral_speed_metres_per_second: f64,
     pub(in crate::game::flight) throttle: f32,
+    pub(in crate::game::flight) lattice_cooldown_seconds: f32,
+    pub(in crate::game::flight) lattice_charge_seconds: f32,
     pub(in crate::game::flight) thrusters_enabled: bool,
     pub(in crate::game::flight) rcs_enabled: bool,
+    pub(in crate::game::flight) angular_assist_enabled: bool,
     pub(in crate::game::flight) interaction_scale: SpatialScale,
     pub(in crate::game::flight) detailed_interaction: bool,
     pub(in crate::game::flight) primary_body: Option<Entity>,
@@ -42,9 +47,14 @@ impl Default for FlightTelemetry {
             landing_available: false,
             safety: FlightSafetyLevel::Nominal,
             speed_metres_per_second: 0.0,
+            forward_speed_metres_per_second: 0.0,
+            lateral_speed_metres_per_second: 0.0,
             throttle: 0.0,
+            lattice_cooldown_seconds: 0.0,
+            lattice_charge_seconds: 0.0,
             thrusters_enabled: false,
             rcs_enabled: false,
+            angular_assist_enabled: false,
             interaction_scale: SpatialScale::MAX,
             detailed_interaction: false,
             primary_body: None,
@@ -90,8 +100,24 @@ impl FlightTelemetry {
         self.speed_metres_per_second
     }
 
+    pub const fn forward_speed_metres_per_second(self) -> f64 {
+        self.forward_speed_metres_per_second
+    }
+
+    pub const fn lateral_speed_metres_per_second(self) -> f64 {
+        self.lateral_speed_metres_per_second
+    }
+
     pub const fn throttle(self) -> f32 {
         self.throttle
+    }
+
+    pub const fn lattice_cooldown_seconds(self) -> f32 {
+        self.lattice_cooldown_seconds
+    }
+
+    pub const fn lattice_charge_seconds(self) -> f32 {
+        self.lattice_charge_seconds
     }
 
     pub const fn thrusters_enabled(self) -> bool {
@@ -100,6 +126,10 @@ impl FlightTelemetry {
 
     pub const fn rcs_enabled(self) -> bool {
         self.rcs_enabled
+    }
+
+    pub const fn angular_assist_enabled(self) -> bool {
+        self.angular_assist_enabled
     }
 
     pub const fn interaction_scale(self) -> SpatialScale {
@@ -154,7 +184,7 @@ impl FlightTelemetry {
         if self.contact.is_landed() {
             "LANDED"
         } else if matches!(self.assistance, TravelAssistance::Cruise) {
-            "CRUISE"
+            "LATTICE CRUISE"
         } else {
             match self.mode {
                 Some(mode) => mode.label(),

@@ -1,66 +1,42 @@
 //! ECS collection and provider ordering for canonical collision queries.
 
-use super::{
-    UsfCollisionQueryFrame,
-    contract::{UsfCanonicalSweep, UsfCollisionQueryDemand},
-};
-use crate::spatial::UsfPosition;
+use super::{UsfCollisionQueryFrame, contract::UsfCanonicalSweep};
 use bevy::prelude::*;
+
+#[derive(Resource, Default)]
+pub struct UsfProposedSweeps {
+    sweeps: Vec<(UsfCanonicalSweep, f64)>,
+}
+
+impl UsfProposedSweeps {
+    pub fn clear(&mut self) {
+        self.sweeps.clear();
+    }
+
+    pub fn submit(&mut self, sweep: UsfCanonicalSweep, target_error_metres: f64) {
+        self.sweeps.push((sweep, target_error_metres));
+    }
+}
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfCollisionQuerySet {
+    Reset,
     Collect,
     Providers,
     Finalize,
 }
 
-fn collect_shadow_collision_sweeps(
-    fixed_time: Res<Time<Fixed>>,
-    ownership: crate::ecs::UsfOwnershipQuery,
-    runtimes: Query<(
-        Entity,
-        &crate::spatial::UsfCanonicalMotion,
-        &UsfCollisionQueryDemand,
-    )>,
-    semantic_positions: Query<&UsfPosition>,
+fn reset_proposed_sweeps(mut proposals: ResMut<UsfProposedSweeps>) {
+    proposals.clear();
+}
+
+fn collect_proposed_collision_sweeps(
+    proposals: Res<UsfProposedSweeps>,
     mut frame: ResMut<UsfCollisionQueryFrame>,
 ) {
     frame.begin_transaction();
-
-    let duration = fixed_time.delta().as_secs_f64();
-    if !duration.is_finite() || duration <= 0.0 {
-        return;
-    }
-
-    let mut seen = std::collections::HashSet::<Entity>::new();
-
-    for (runtime, motion, demand) in &runtimes {
-        let Some(subject) = ownership.semantic_of(runtime) else {
-            continue;
-        };
-        if !seen.insert(subject) {
-            continue;
-        }
-
-        let Ok(&start) = semantic_positions.get(subject) else {
-            continue;
-        };
-
-        let displacement = motion.velocity_metres_per_second() * duration;
-        if !displacement.is_finite() || displacement.length_squared() <= f64::EPSILON {
-            continue;
-        }
-
-        frame.submit_request(
-            UsfCanonicalSweep::new(
-                subject,
-                start,
-                displacement,
-                duration,
-                demand.bounding_radius_metres(),
-            ),
-            demand.target_error_metres(),
-        );
+    for (sweep, target_error_metres) in &proposals.sweeps {
+        frame.submit_request(*sweep, *target_error_metres);
     }
 }
 
@@ -70,24 +46,33 @@ fn finalize_collision_query_frame(mut frame: ResMut<UsfCollisionQueryFrame>) {
 
 pub(in crate::physics) fn configure(app: &mut App) {
     app.init_resource::<UsfCollisionQueryFrame>()
+        .init_resource::<UsfProposedSweeps>()
         .configure_sets(
-            PostUpdate,
-            UsfCollisionQuerySet::Collect.after(crate::spatial::UsfSpatialSet::SyncSemantic),
+            FixedUpdate,
+            UsfCollisionQuerySet::Reset.before(crate::game::locomotion::LocomotionSet::Prepare),
         )
         .configure_sets(
-            PostUpdate,
+            FixedUpdate,
+            UsfCollisionQuerySet::Collect.after(crate::game::locomotion::LocomotionSet::Prepare),
+        )
+        .configure_sets(
+            FixedUpdate,
             UsfCollisionQuerySet::Providers.after(UsfCollisionQuerySet::Collect),
         )
         .configure_sets(
-            PostUpdate,
+            FixedUpdate,
             UsfCollisionQuerySet::Finalize.after(UsfCollisionQuerySet::Providers),
         )
         .add_systems(
-            PostUpdate,
-            collect_shadow_collision_sweeps.in_set(UsfCollisionQuerySet::Collect),
+            FixedUpdate,
+            reset_proposed_sweeps.in_set(UsfCollisionQuerySet::Reset),
         )
         .add_systems(
-            PostUpdate,
+            FixedUpdate,
+            collect_proposed_collision_sweeps.in_set(UsfCollisionQuerySet::Collect),
+        )
+        .add_systems(
+            FixedUpdate,
             finalize_collision_query_frame.in_set(UsfCollisionQuerySet::Finalize),
         );
 }

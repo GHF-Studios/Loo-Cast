@@ -36,21 +36,21 @@ impl FlightCapabilities {
     }
 }
 
-/// Interpretation of a human pilot's look state for physical attitude.
+/// Pilot authority for physical attitude.
 /// AI and autopilot controllers may write `FlightControlIntent` directly.
 #[derive(Component, Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[reflect(Component)]
 pub enum PilotAttitudeLaw {
     #[default]
     Hold,
-    FollowView,
+    ManualRate,
 }
 
 impl PilotAttitudeLaw {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Hold => "HOLD",
-            Self::FollowView => "FOLLOW VIEW",
+            Self::ManualRate => "MANUAL RATE",
         }
     }
 }
@@ -67,6 +67,7 @@ pub enum FlightControlCommand {
     SetPilotAttitudeLaw(PilotAttitudeLaw),
     SetMainPropulsion(bool),
     SetReactionControl(bool),
+    SetAngularAssist(bool),
     SetAutopilot(AttitudeAutopilotCommand),
 }
 

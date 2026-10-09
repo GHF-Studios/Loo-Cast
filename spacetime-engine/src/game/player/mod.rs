@@ -136,6 +136,10 @@ impl Plugin for PlayerPlugin {
                 input::sample_player_input.in_set(input::PlayerInputSet::Sample),
             )
             .add_systems(
+                PreUpdate,
+                controls::write_player_view_intent.after(input::PlayerInputSet::Sample),
+            )
+            .add_systems(
                 RunFixedMainLoop,
                 controls::sample_flight_control_intent.in_set(ControlSet::Sample),
             )
@@ -144,7 +148,7 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::toggle_attitude_law,
                     controls::toggle_thrusters,
-                    controls::toggle_rcs,
+                    controls::toggle_flight_stabilizers,
                     controls::toggle_adaptive_cruise,
                 )
                     .chain()
@@ -166,10 +170,9 @@ impl Plugin for PlayerPlugin {
                     // Consume it exactly once here; fixed-step simulation may
                     // run zero or multiple ticks for the same render frame.
                     camera::update_freecam,
-                    controls::write_player_view_intent,
                     controls::toggle_spatial_demand,
                     controls::adjust_view_scale_bias,
-                    controls::adjust_manual_travel_pace,
+                    controls::adjust_ship_scroll_controls,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )

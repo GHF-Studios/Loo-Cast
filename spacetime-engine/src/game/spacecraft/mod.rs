@@ -36,7 +36,7 @@ use crate::{
         },
         locomotion::{
             ControlledSubjectLocomotion, DetailedBodyScale, FlightActuation, FlightControlIntent,
-            LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
+            FlightThrottle, LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
             LocomotionInhibitionReason, LocomotionRegime, LocomotionSet, MotionExecution,
             ScaleInteractionProxy,
         },

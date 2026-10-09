@@ -39,7 +39,7 @@ impl Default for PlayerController {
     }
 }
 
-/// Live yaw/pitch intent owned by the human controller.
+/// Live yaw/pitch/roll intent owned by the human controller.
 ///
 /// The controlled subject supplies the physical/control frame; this component
 /// supplies only the local controller-relative orientation intent.
@@ -48,6 +48,7 @@ impl Default for PlayerController {
 pub struct PlayerAim {
     pub yaw: f32,
     pub pitch: f32,
+    pub roll: f32,
     pub min_pitch: f32,
     pub max_pitch: f32,
 }
@@ -57,6 +58,7 @@ impl Default for PlayerAim {
         Self {
             yaw: 0.0,
             pitch: 0.0,
+            roll: 0.0,
             min_pitch: -1.5,
             max_pitch: 1.5,
         }
@@ -69,6 +71,6 @@ impl PlayerAim {
     }
 
     pub fn local_rotation(&self) -> Quat {
-        self.yaw_rotation() * Quat::from_rotation_x(self.pitch)
+        self.yaw_rotation() * Quat::from_rotation_x(self.pitch) * Quat::from_rotation_z(self.roll)
     }
 }

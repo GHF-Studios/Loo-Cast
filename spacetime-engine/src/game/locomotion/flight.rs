@@ -2,6 +2,39 @@
 
 use super::*;
 
+/// Ship-owned signed throttle. Positive commands forward thrust, negative
+/// commands reverse thrust, and the setting survives release of the controls.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct FlightThrottle {
+    value: f32,
+}
+
+impl FlightThrottle {
+    pub const fn value(self) -> f32 {
+        self.value
+    }
+
+    pub fn advance(&mut self, axis: f32, dt_seconds: f32) {
+        if axis.is_finite() && dt_seconds.is_finite() {
+            self.value =
+                (self.value + axis.clamp(-1.0, 1.0) * dt_seconds.max(0.0) * 0.5).clamp(-1.0, 1.0);
+        }
+    }
+
+    pub fn set(&mut self, value: f32) {
+        if value.is_finite() {
+            self.value = value.clamp(-1.0, 1.0);
+        }
+    }
+
+    pub fn nudge(&mut self, amount: f32) {
+        if amount.is_finite() {
+            self.value = (self.value + amount).clamp(-1.0, 1.0);
+        }
+    }
+}
+
 /// Available ship actuators and their pilot-selected enable state. Solver
 /// policy reads this state; changing it never changes locomotion identity.
 #[derive(Component, Reflect, Debug, Default, Clone, Copy)]
@@ -9,6 +42,7 @@ use super::*;
 pub struct FlightActuation {
     thrusters_enabled: bool,
     rcs_enabled: bool,
+    angular_assist_enabled: bool,
 }
 
 impl FlightActuation {
@@ -17,6 +51,7 @@ impl FlightActuation {
         Self {
             thrusters_enabled: true,
             rcs_enabled: true,
+            angular_assist_enabled: true,
         }
     }
 
@@ -26,11 +61,17 @@ impl FlightActuation {
     pub const fn rcs_enabled(self) -> bool {
         self.rcs_enabled
     }
+    pub const fn angular_assist_enabled(self) -> bool {
+        self.angular_assist_enabled
+    }
     pub fn set_thrusters_enabled(&mut self, enabled: bool) {
         self.thrusters_enabled = enabled;
     }
     pub fn set_rcs_enabled(&mut self, enabled: bool) {
         self.rcs_enabled = enabled;
+    }
+    pub fn set_angular_assist_enabled(&mut self, enabled: bool) {
+        self.angular_assist_enabled = enabled;
     }
 }
 
@@ -56,6 +97,7 @@ pub enum FlightAttitudeCommand {
 #[reflect(Component)]
 pub struct FlightControlIntent {
     translation_axes: Vec3,
+    throttle_axis: f32,
     attitude: FlightAttitudeCommand,
     pace_multiplier: f32,
     boost: bool,
@@ -66,6 +108,7 @@ impl Default for FlightControlIntent {
     fn default() -> Self {
         Self {
             translation_axes: Vec3::ZERO,
+            throttle_axis: 0.0,
             attitude: FlightAttitudeCommand::Hold,
             pace_multiplier: 1.0,
             boost: false,
@@ -91,6 +134,7 @@ impl FlightControlIntent {
 
     pub fn clear(&mut self) {
         self.translation_axes = Vec3::ZERO;
+        self.throttle_axis = 0.0;
         self.attitude = FlightAttitudeCommand::Hold;
         self.boost = false;
         self.active = false;
@@ -98,6 +142,14 @@ impl FlightControlIntent {
 
     pub fn set_attitude(&mut self, attitude: FlightAttitudeCommand) {
         self.attitude = attitude;
+    }
+
+    pub fn set_throttle_axis(&mut self, axis: f32) {
+        self.throttle_axis = axis.clamp(-1.0, 1.0);
+    }
+
+    pub const fn throttle_axis(self) -> f32 {
+        self.throttle_axis
     }
 
     pub const fn translation_axes(self) -> Vec3 {

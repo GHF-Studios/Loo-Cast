@@ -1,7 +1,7 @@
 //! Observer-local cache and selection policy for nearby travel influences.
 
 use super::*;
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 const NEIGHBORHOOD_HARD_BY_RELATIVE_PROXIMITY: usize = 6;
 const NEIGHBORHOOD_HARD_BY_ABSOLUTE_PROXIMITY: usize = 4;
@@ -95,7 +95,13 @@ impl UsfTravelNeighborhood {
         self.age_seconds += dt_seconds.max(0.0);
     }
 
-    fn needs_refresh(&self, observer: &UsfPosition, observer_scale: SpatialScale) -> bool {
+    fn needs_refresh(
+        &self,
+        observer: &UsfPosition,
+        observer_scale: SpatialScale,
+        velocity_metres_per_second: DVec3,
+        step_seconds: f32,
+    ) -> bool {
         let (Some(sampled), Some(sampled_scale)) = (self.sampled_position, self.sampled_scale)
         else {
             return true;
@@ -109,6 +115,21 @@ impl UsfTravelNeighborhood {
         // world/bootstrap streaming may publish influences after this cache was
         // first evaluated. Keep probing until at least one influence exists.
         if self.influences.is_empty() {
+            return true;
+        }
+
+        // The cache's spatial validity also has a temporal deadline. A fast
+        // subject can traverse the whole unsampled margin between two ordinary
+        // age-based refreshes, even when the previous frame barely moved.
+        // Refresh before the next step reaches half the measured margin.
+        let speed = velocity_metres_per_second.length();
+        if !speed.is_finite() {
+            return true;
+        }
+        if speed > 0.0
+            && (f64::from(self.age_seconds) + f64::from(step_seconds.max(0.0))) * speed
+                >= self.refresh_distance_metres * 0.5
+        {
             return true;
         }
 
@@ -156,6 +177,7 @@ impl UsfTravelNeighborhood {
         dt_seconds: f32,
         observer: UsfPosition,
         observer_scale: SpatialScale,
+        velocity_metres_per_second: DVec3,
         influences: F,
     ) -> bool
     where
@@ -171,7 +193,12 @@ impl UsfTravelNeighborhood {
         >,
     {
         self.advance(dt_seconds);
-        if !self.needs_refresh(&observer, observer_scale) {
+        if !self.needs_refresh(
+            &observer,
+            observer_scale,
+            velocity_metres_per_second,
+            dt_seconds,
+        ) {
             return false;
         }
 

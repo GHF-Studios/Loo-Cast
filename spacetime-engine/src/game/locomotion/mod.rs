@@ -43,7 +43,7 @@ pub use execution::{
     CollisionPolicy, DeveloperMotionOverride, MotionAuthorityReason, MotionExecution, MotionKernel,
     VelocitySemantics,
 };
-pub use flight::{FlightActuation, FlightAttitudeCommand, FlightControlIntent};
+pub use flight::{FlightActuation, FlightAttitudeCommand, FlightControlIntent, FlightThrottle};
 pub use state::{
     ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, LocomotionRegime,
     LocomotionRegimeOverride, LocomotionRequest, LocomotionTransitionReason, MotionHandoffSnapshot,
@@ -54,6 +54,7 @@ pub use state::{
 pub enum LocomotionSet {
     Resolve,
     Realize,
+    Prepare,
     Motion,
 }
 
@@ -62,6 +63,7 @@ pub struct LocomotionPlugin;
 impl Plugin for LocomotionPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<LocomotionRegime>()
+            .init_resource::<runtime::PreparedFlightMotion>()
             .register_type::<LocomotionRequest>()
             .register_type::<LocomotionRegimeOverride>()
             .register_type::<LocomotionTransitionReason>()
@@ -79,6 +81,7 @@ impl Plugin for LocomotionPlugin {
             .register_type::<CharacterStance>()
             .register_type::<FlightAttitudeCommand>()
             .register_type::<FlightControlIntent>()
+            .register_type::<FlightThrottle>()
             .register_type::<FlightActuation>()
             .register_type::<ScaleInteractionProxy>()
             .register_type::<DetailedBodyScale>()
@@ -93,9 +96,15 @@ impl Plugin for LocomotionPlugin {
             )
             .add_systems(
                 FixedUpdate,
+                runtime::prepare_flight_movement
+                    .in_set(LocomotionSet::Prepare)
+                    .after(CharacterMovementSet::Simulate),
+            )
+            .add_systems(
+                FixedUpdate,
                 runtime::flight_movement
                     .in_set(LocomotionSet::Motion)
-                    .after(CharacterMovementSet::Simulate),
+                    .after(crate::physics::collision_query::UsfCollisionQuerySet::Finalize),
             )
             .add_systems(
                 PostUpdate,

@@ -2,6 +2,124 @@
 
 use super::*;
 
+/// Editor-only organization. This relationship has no Transform parentage,
+/// simulation ownership, constituency, or linked-spawn lifetime semantics.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = EditorGroupMembers)]
+pub struct EditorGroupOf(Entity);
+
+#[derive(Component, Debug)]
+#[relationship_target(relationship = EditorGroupOf)]
+pub struct EditorGroupMembers(Vec<Entity>);
+
+#[derive(Component, Debug)]
+pub(super) struct EditorGroup;
+
+pub(super) fn draw_editor_groups(
+    ui: &mut egui::Ui,
+    world: &mut World,
+    selected: &mut SelectedEntities,
+) {
+    ui.horizontal(|ui| {
+        ui.strong("Editor groups");
+        if ui.small_button("+ Group").clicked() {
+            let group = world.spawn((Name::new("New Group"), EditorGroup)).id();
+            selected.select_replace(group);
+        }
+    });
+
+    let groups = world
+        .query_filtered::<Entity, With<EditorGroup>>()
+        .iter(world)
+        .collect::<Vec<_>>();
+    if let [entity] = selected.as_slice() {
+        let entity = *entity;
+        let mut target = None;
+        ui.menu_button("Move selected entity into…", |ui| {
+            for &group in &groups {
+                if !can_group(world, entity, group) {
+                    continue;
+                }
+                if ui.button(entity_name(world, group)).clicked() {
+                    target = Some(group);
+                    ui.close();
+                }
+            }
+        });
+        if let Some(group) = target {
+            world.entity_mut(entity).insert(EditorGroupOf(group));
+        }
+        if world.get::<EditorGroupOf>(entity).is_some()
+            && ui
+                .small_button("Remove selected entity from group")
+                .clicked()
+        {
+            world.entity_mut(entity).remove::<EditorGroupOf>();
+        }
+    }
+
+    for group in groups {
+        if world.get::<EditorGroupOf>(group).is_none() {
+            draw_group_node(ui, world, selected, group, 0);
+        }
+    }
+    ui.separator();
+}
+
+fn can_group(world: &World, entity: Entity, group: Entity) -> bool {
+    if entity == group || !world.entities().contains(entity) {
+        return false;
+    }
+    let mut cursor = Some(group);
+    for _ in 0..64 {
+        let Some(current) = cursor else {
+            return true;
+        };
+        if current == entity {
+            return false;
+        }
+        cursor = world.get::<EditorGroupOf>(current).map(|parent| parent.0);
+    }
+    false
+}
+
+fn draw_group_node(
+    ui: &mut egui::Ui,
+    world: &World,
+    selected: &mut SelectedEntities,
+    group: Entity,
+    depth: usize,
+) {
+    if depth >= 32 {
+        ui.weak("Group nesting limit reached");
+        return;
+    }
+    let children = world
+        .get::<EditorGroupMembers>(group)
+        .map(|members| members.0.clone())
+        .unwrap_or_default();
+    egui::CollapsingHeader::new(entity_name(world, group))
+        .id_salt(group)
+        .show(ui, |ui| {
+            if ui
+                .selectable_label(selected.as_slice() == [group], "Select group")
+                .clicked()
+            {
+                selected.select_replace(group);
+            }
+            for child in children {
+                if world.get::<EditorGroup>(child).is_some() {
+                    draw_group_node(ui, world, selected, child, depth + 1);
+                } else if ui
+                    .selectable_label(selected.as_slice() == [child], entity_name(world, child))
+                    .clicked()
+                {
+                    selected.select_replace(child);
+                }
+            }
+        });
+}
+
 pub(super) fn sync_hierarchy_selection(selected: &mut SelectedEntities, entity: Option<Entity>) {
     let desired = entity.map(|entity| vec![entity]).unwrap_or_default();
     if selected.as_slice() == desired.as_slice() {
@@ -179,4 +297,21 @@ fn entity_name(world: &World, entity: Entity) -> String {
         .map(Name::as_str)
         .map(str::to_owned)
         .unwrap_or_else(|| "Unnamed".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn editor_grouping_rejects_cycles_without_transform_parentage() {
+        let mut world = World::new();
+        let root = world.spawn((Name::new("Root"), EditorGroup)).id();
+        let child = world
+            .spawn((Name::new("Child"), EditorGroup, EditorGroupOf(root)))
+            .id();
+        assert!(!can_group(&world, root, child));
+        assert!(can_group(&world, child, root));
+        assert!(world.get::<ChildOf>(child).is_none());
+    }
 }

@@ -16,7 +16,7 @@
 use bevy::prelude::*;
 
 use super::{
-    Player,
+    CameraMode, Player, PlayerCamera,
     input::{PlayerAction, PlayerInputBindings},
 };
 
@@ -24,8 +24,10 @@ use crate::{
     game::{
         control::LocalControlSubject,
         flight::{FlightMode, FlightTelemetry},
-        navigation::{TravelAssistance, TravelPace},
+        locomotion::DeveloperMotionOverride,
+        navigation::{TravelAssistance, TravelEnvelope, TravelPace},
     },
+    spatial::UsfCanonicalMotion,
     ui::UiLayer,
 };
 
@@ -35,5 +37,5 @@ mod systems;
 
 use format::{format_alert, format_left_metrics, format_right_metrics};
 pub(super) use layout::spawn_flight_hud_presentation;
-use layout::{FlightHudAlert, FlightHudLeft, FlightHudRight};
+use layout::{FlightHudAlert, FlightHudLeft, FlightHudRight, FlightHudVelocityMarker};
 pub(super) use systems::project_flight_hud;

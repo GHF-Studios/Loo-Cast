@@ -84,7 +84,9 @@ pub(super) fn construct_celestial_fixture(
     }
     // Retain source constraints after runtime realization. Evolving canonical
     // position remains authoritative on the live semantic body, not here.
-    commands.insert_resource(definition::FixtureKnownPhenomena(catalog));
+    commands.insert_resource(definition::FixtureKnownPhenomena {
+        _source_facts: catalog,
+    });
 }
 
 pub(super) use celestial::audit_fixture_semantic_authority;
