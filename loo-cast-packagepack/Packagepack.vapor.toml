@@ -3,6 +3,7 @@ schema = 1
 [packagepack]
 name = "loo-cast-packagepack"
 version.workspace = true
+binaries = ["loo-cast-packagepack"]
 
 [packagepack.steam]
 app-id = 2122620

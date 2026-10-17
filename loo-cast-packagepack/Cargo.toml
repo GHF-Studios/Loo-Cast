@@ -4,8 +4,11 @@ version.workspace = true
 edition.workspace = true
 autotests = false
 
-[lib]
+[[bin]]
+name = "loo-cast-packagepack"
+path = "src/main.rs"
 test = false
-doctest = false
 
 [dependencies]
+spacetime-engine = { path = "../spacetime-engine" }
+loo-cast-game = { path = "../loo-cast-game" }

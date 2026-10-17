@@ -8,11 +8,6 @@ autotests = false
 test = false
 doctest = false
 
-[[bin]]
-name = "spacetime-engine"
-path = "src/main.rs"
-test = false
-
 [features]
 default = []
 profiling-tracy = ["bevy/trace_tracy", "dep:tracy-client"]

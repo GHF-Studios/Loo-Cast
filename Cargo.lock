@@ -3887,6 +3887,10 @@ dependencies = [
 [[package]]
 name = "loo-cast-packagepack"
 version = "0.5.0"
+dependencies = [
+ "loo-cast-game",
+ "spacetime-engine",
+]
 
 [[package]]
 name = "loom"
