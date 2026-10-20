@@ -47,3 +47,8 @@ features = ["profiling-tracy"]
 name = "profiling-memory"
 extends = "profiling"
 features = ["profiling-tracy-memory"]
+
+[[run]]
+name = "full-debug"
+extends = "default"
+profile = "full-debug"
