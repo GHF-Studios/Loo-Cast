@@ -6,6 +6,12 @@ organization = "ghf-studios"
 version = "0.5.0"
 repository = "https://github.com/GHF-Studios/Loo-Cast"
 
+[workspace.runtime]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-gnullvm",
+]
+
 [[workspace.projects]]
 path = "loo-cast-packagepack"
 
