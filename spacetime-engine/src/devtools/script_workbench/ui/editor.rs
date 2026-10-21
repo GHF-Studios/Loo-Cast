@@ -3,6 +3,7 @@
 use super::super::document::ScriptTarget;
 use super::*;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
+use std::collections::BTreeSet;
 
 /// The UI issues one document action per frame; the workbench owns all state transitions.
 #[derive(Clone, Copy)]
@@ -202,7 +203,7 @@ fn draw_source_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbenc
             .with_rows(rows)
             .with_fontsize(14.0)
             .with_theme(ColorTheme::GRUVBOX)
-            .with_syntax(Syntax::rust())
+            .with_syntax(rhai_syntax())
             .with_numlines(true)
             .vscroll(true)
             .show(ui, &mut document.source);
@@ -222,5 +223,43 @@ fn draw_diagnostic(ui: &mut egui::Ui, workbench: &DeveloperScriptWorkbench) {
             ui.strong("Diagnostics");
             ui.colored_label(status_color, diagnostic);
         });
+    }
+}
+
+fn rhai_syntax() -> Syntax {
+    let keywords = vapor_telemetry::RhaiLanguage::keywords();
+    let types = vapor_telemetry::RhaiLanguage::types();
+    let literals = vapor_telemetry::RhaiLanguage::literals();
+    Syntax::new("Rhai")
+        .with_comment("//")
+        .with_comment_multiline(["/*", "*/"])
+        .with_keywords(keywords.iter().copied().collect::<BTreeSet<_>>())
+        .with_types(types.iter().copied().collect::<BTreeSet<_>>())
+        .with_special(literals.iter().copied().collect::<BTreeSet<_>>())
+}
+
+#[cfg(test)]
+mod tests {
+    use egui_code_editor::{Token, TokenType};
+
+    use super::rhai_syntax;
+
+    #[test]
+    fn script_workbench_highlighting_uses_rhai_tokens() {
+        let tokens = Token::default().tokens(&rhai_syntax(), "let enabled = true; // script");
+
+        assert!(
+            tokens
+                .iter()
+                .any(|token| { token.ty() == TokenType::Keyword && token.buffer() == "let" })
+        );
+        assert!(
+            tokens
+                .iter()
+                .any(|token| { token.ty() == TokenType::Special && token.buffer() == "true" })
+        );
+        assert!(tokens.iter().any(|token| {
+            token.ty() == TokenType::Comment(false) && token.buffer().contains("script")
+        }));
     }
 }

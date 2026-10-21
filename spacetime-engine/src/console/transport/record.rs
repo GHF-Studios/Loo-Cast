@@ -3,6 +3,7 @@
 use crate::console::ConsoleCommandSource;
 use bevy::log::tracing::Level as TracingLevel;
 use std::time::{SystemTime, UNIX_EPOCH};
+use vapor_telemetry::{ConsoleField, ConsoleLevel, ConsoleRecord as SharedConsoleRecord};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::console) enum ConsoleRecordOrigin {
@@ -34,15 +35,6 @@ impl ConsoleLogLevel {
         }
     }
 
-    pub(in crate::console) const fn label(self) -> &'static str {
-        match self {
-            Self::Trace => "TRACE",
-            Self::Debug => "DEBUG",
-            Self::Info => "INFO",
-            Self::Warn => "WARN",
-            Self::Error => "ERROR",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,11 +50,8 @@ pub(in crate::console) enum ConsoleRecordKind {
 pub(in crate::console) struct ConsoleRecord {
     pub(in crate::console) origin: ConsoleRecordOrigin,
     pub(in crate::console) kind: ConsoleRecordKind,
-    pub(in crate::console) timestamp_millis: u64,
     pub(in crate::console) source: Option<ConsoleCommandSource>,
-    pub(in crate::console) target: Option<String>,
-    pub(in crate::console) text: String,
-    pub(in crate::console) fields: Vec<(String, String)>,
+    pub(in crate::console) semantic: SharedConsoleRecord,
 }
 
 impl ConsoleRecord {
@@ -70,11 +59,14 @@ impl ConsoleRecord {
         Self {
             origin: ConsoleRecordOrigin::Command,
             kind: ConsoleRecordKind::Command,
-            timestamp_millis: capture_timestamp_millis(),
             source: Some(source),
-            target: None,
-            text: raw.to_string(),
-            fields: Vec::new(),
+            semantic: SharedConsoleRecord::new(
+                capture_timestamp_millis(),
+                ConsoleLevel::Input,
+                "console",
+                raw,
+            )
+            .target(source.label()),
         }
     }
 
@@ -82,11 +74,13 @@ impl ConsoleRecord {
         Self {
             origin: ConsoleRecordOrigin::Command,
             kind: ConsoleRecordKind::Output,
-            timestamp_millis: capture_timestamp_millis(),
             source: None,
-            target: None,
-            text: text.into(),
-            fields: Vec::new(),
+            semantic: SharedConsoleRecord::new(
+                capture_timestamp_millis(),
+                ConsoleLevel::Info,
+                "console",
+                text,
+            ),
         }
     }
 
@@ -94,11 +88,13 @@ impl ConsoleRecord {
         Self {
             origin: ConsoleRecordOrigin::Command,
             kind: ConsoleRecordKind::Error,
-            timestamp_millis: capture_timestamp_millis(),
             source: None,
-            target: None,
-            text: text.into(),
-            fields: Vec::new(),
+            semantic: SharedConsoleRecord::new(
+                capture_timestamp_millis(),
+                ConsoleLevel::Error,
+                "console",
+                text,
+            ),
         }
     }
 
@@ -106,11 +102,13 @@ impl ConsoleRecord {
         Self {
             origin: ConsoleRecordOrigin::Command,
             kind: ConsoleRecordKind::Clear,
-            timestamp_millis: capture_timestamp_millis(),
             source: None,
-            target: None,
-            text: String::new(),
-            fields: Vec::new(),
+            semantic: SharedConsoleRecord::new(
+                capture_timestamp_millis(),
+                ConsoleLevel::System,
+                "console",
+                "",
+            ),
         }
     }
 
@@ -123,11 +121,24 @@ impl ConsoleRecord {
         Self {
             origin: ConsoleRecordOrigin::Tracing,
             kind: ConsoleRecordKind::Trace(level),
-            timestamp_millis: capture_timestamp_millis(),
             source: None,
-            target: Some(target.to_string()),
-            text,
-            fields,
+            semantic: SharedConsoleRecord {
+                timestamp_unix_ms: capture_timestamp_millis(),
+                level: match level {
+                    ConsoleLogLevel::Trace => ConsoleLevel::Trace,
+                    ConsoleLogLevel::Debug => ConsoleLevel::Debug,
+                    ConsoleLogLevel::Info => ConsoleLevel::Info,
+                    ConsoleLogLevel::Warn => ConsoleLevel::Warn,
+                    ConsoleLogLevel::Error => ConsoleLevel::Error,
+                },
+                source: vapor_telemetry::ConsoleSource("tracing".to_owned()),
+                target: Some(target.to_owned()),
+                message: text,
+                fields: fields
+                    .into_iter()
+                    .map(|(key, value)| ConsoleField { key, value })
+                    .collect(),
+            },
         }
     }
 }

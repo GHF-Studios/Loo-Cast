@@ -57,18 +57,18 @@ pub(in crate::console) fn write_terminal_record(record: &ConsoleRecord) {
         ConsoleRecordKind::Error => {
             let stderr = std::io::stderr();
             let mut stderr = stderr.lock();
-            let _ = writeln!(stderr, "{}", record.text);
+            let _ = writeln!(stderr, "{}", record.semantic.message);
         }
         ConsoleRecordKind::Command => {
             let stdout = std::io::stdout();
             let mut stdout = stdout.lock();
             let source = record.source.map_or("command", ConsoleCommandSource::label);
-            let _ = writeln!(stdout, "[{source}] {}", record.text);
+            let _ = writeln!(stdout, "[{source}] {}", record.semantic.message);
         }
         ConsoleRecordKind::Output => {
             let stdout = std::io::stdout();
             let mut stdout = stdout.lock();
-            let _ = writeln!(stdout, "{}", record.text);
+            let _ = writeln!(stdout, "{}", record.semantic.message);
         }
         ConsoleRecordKind::Trace(_) => {
             // Bevy's normal tracing formatter already owns terminal log output.

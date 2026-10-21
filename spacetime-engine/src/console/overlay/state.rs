@@ -1,11 +1,9 @@
 //! Prompt editing and bounded command history.
 
-const MAX_HISTORY: usize = 128;
-
 #[derive(Default)]
 pub(in crate::console) struct ConsolePrompt {
     pub(super) input: String,
-    history: Vec<String>,
+    history: vapor_telemetry::PromptHistory,
     history_cursor: Option<usize>,
 }
 
@@ -21,12 +19,7 @@ impl ConsolePrompt {
             return None;
         }
 
-        if self.history.last() != Some(&command) {
-            self.history.push(command.clone());
-            if self.history.len() > MAX_HISTORY {
-                self.history.remove(0);
-            }
-        }
+        self.history.push(command.clone());
 
         Some(command)
     }
@@ -41,7 +34,9 @@ impl ConsolePrompt {
             Some(index) => index - 1,
         };
         self.history_cursor = Some(next);
-        self.input.clone_from(&self.history[next]);
+        if let Some(command) = self.history.get(next) {
+            self.input = command.to_owned();
+        }
     }
 
     pub(super) fn history_down(&mut self) {
@@ -54,7 +49,9 @@ impl ConsolePrompt {
         } else {
             let next = index + 1;
             self.history_cursor = Some(next);
-            self.input.clone_from(&self.history[next]);
+            if let Some(command) = self.history.get(next) {
+                self.input = command.to_owned();
+            }
         }
     }
 }

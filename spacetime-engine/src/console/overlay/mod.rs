@@ -11,7 +11,7 @@
 //!
 
 use super::completion::{char_to_byte_index, complete_command_input, completion_candidates};
-use super::transport::{ConsoleLogLevel, ConsoleRecord, ConsoleRecordKind, timestamp_label};
+use super::transport::{ConsoleRecord, ConsoleRecordKind, timestamp_label};
 use super::{
     CONSOLE_FOCUS_OWNER, ConsoleCommandRegistry, ConsoleCommandSource, ConsoleTransport,
     RuntimeVariableRegistry,
