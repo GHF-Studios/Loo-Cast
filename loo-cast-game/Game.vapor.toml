@@ -3,6 +3,7 @@ schema = 1
 [game]
 name = "loo-cast-game"
 version.workspace = true
+libraries = ["loo_cast_game"]
 
 [game.engine]
 id = "ghf-studios/loo-cast/spacetime-engine"
