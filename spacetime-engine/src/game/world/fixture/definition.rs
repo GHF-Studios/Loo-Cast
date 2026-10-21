@@ -3,8 +3,10 @@
 use bevy::{math::DVec3, prelude::*};
 
 use crate::game::orbit::KeplerianElements;
-use crate::worldgen::{ConstructionConstraint, PhenomenonGeneration, SparseConstructionAtlas, WorldSeed, unit_sample};
 use crate::usf::{SpatialScale, UsfPosition};
+use crate::worldgen::{
+    ConstructionConstraint, PhenomenonGeneration, SparseConstructionAtlas, WorldSeed, unit_sample,
+};
 
 pub(super) const GENERATOR_REVISION: u64 = 1;
 
@@ -36,18 +38,24 @@ pub(super) fn bodies(seed: WorldSeed) -> [AuthoredCelestialBody; 2] {
     // of cosmological evolution to rediscover the actual Solar System.
     // If a future recipe leaves this parameter free, the same construction
     // path obtains a deterministic procedural value from the ONE world seed.
-    let earth_generation = PhenomenonGeneration::new(seed, generation_key("earth"), GENERATOR_REVISION);
-    let moon_generation = PhenomenonGeneration::new(seed, generation_key("moon"), GENERATOR_REVISION);
-    let earth_radius = earth_generation.resolve(
-        "radius-metres",
-        ConstructionConstraint::Exact(6_371_000.0),
-        |sample| 4_000_000.0 + unit_sample(sample) * 4_000_000.0,
-    ).into_value();
-    let moon_radius = moon_generation.resolve(
-        "radius-metres",
-        ConstructionConstraint::Exact(1_737_400.0),
-        |sample| 1_000_000.0 + unit_sample(sample) * 2_000_000.0,
-    ).into_value();
+    let earth_generation =
+        PhenomenonGeneration::new(seed, generation_key("earth"), GENERATOR_REVISION);
+    let moon_generation =
+        PhenomenonGeneration::new(seed, generation_key("moon"), GENERATOR_REVISION);
+    let earth_radius = earth_generation
+        .resolve(
+            "radius-metres",
+            ConstructionConstraint::Exact(6_371_000.0),
+            |sample| 4_000_000.0 + unit_sample(sample) * 4_000_000.0,
+        )
+        .into_value();
+    let moon_radius = moon_generation
+        .resolve(
+            "radius-metres",
+            ConstructionConstraint::Exact(1_737_400.0),
+            |sample| 1_000_000.0 + unit_sample(sample) * 2_000_000.0,
+        )
+        .into_value();
     let earth_center = DVec3::new(0.0, -earth_radius, 0.0);
     let lunar_a = 384_400_000.0;
     let lunar_e = 0.0549;
@@ -89,8 +97,6 @@ pub(super) fn bodies(seed: WorldSeed) -> [AuthoredCelestialBody; 2] {
     ]
 }
 
-
-
 /// Construction-time source facts; not a cache of the evolving live orbital pose.
 #[derive(bevy::prelude::Resource)]
 pub(super) struct FixtureKnownPhenomena {
@@ -103,9 +109,13 @@ pub(super) fn catalog(seed: WorldSeed) -> SparseConstructionAtlas<AuthoredCelest
     let mut known = SparseConstructionAtlas::default();
     for body in bodies(seed) {
         let position = UsfPosition::from_scale_native_f64(
-            body.center_metres, SpatialScale::ZERO, SpatialScale::MIN,
-        ).expect("fixture body has a canonical initial position");
-        known.declare(generation_key(body.id), position, body.radius_metres, body)
+            body.center_metres,
+            SpatialScale::ZERO,
+            SpatialScale::MIN,
+        )
+        .expect("fixture body has a canonical initial position");
+        known
+            .declare(generation_key(body.id), position, body.radius_metres, body)
             .expect("fixture has unique valid authored construction facts");
     }
     known
@@ -125,7 +135,10 @@ mod seeded_fixture_tests {
             assert_eq!(original.id, alternative.id);
             assert_eq!(original.center_metres, alternative.center_metres);
             assert_eq!(original.radius_metres, alternative.radius_metres);
-            assert_eq!(original.gravity_metres_per_second2, alternative.gravity_metres_per_second2);
+            assert_eq!(
+                original.gravity_metres_per_second2,
+                alternative.gravity_metres_per_second2
+            );
         }
         assert!(first[1].orbit.is_some());
         assert_eq!(first[0].radius_metres, 6_371_000.0);

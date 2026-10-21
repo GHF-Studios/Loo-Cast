@@ -400,7 +400,6 @@ pub(in crate::voxel) fn schedule_dense_materialization_generation(
 ///
 /// Worlds without a semantic authority replay edits from their local
 /// modification layer through the same publication boundary.
-
 fn catch_up_generated_chunk_with_authority(
     world: &VoxelScaleRealization,
     authority: Option<(

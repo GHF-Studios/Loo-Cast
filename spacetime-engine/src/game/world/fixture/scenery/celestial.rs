@@ -12,8 +12,9 @@ use crate::{
     physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralPresentationAssets,
     spatial::{
-        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfSemanticBounds, UsfCanonicalMotion, UsfPosition,
-        UsfScaleSliceMask, UsfSemanticFrame, UsfTravelBoundaryProvider, UsfTravelInfluence,
+        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfCanonicalMotion, UsfPosition,
+        UsfScaleSliceMask, UsfSemanticBounds, UsfSemanticFrame, UsfTravelBoundaryProvider,
+        UsfTravelInfluence,
     },
     voxel::{
         CelestialVoxelField, CelestialVoxelRealizationPolicy, VoxelScaleDomain,
@@ -86,7 +87,10 @@ pub(super) fn construct_authored_celestial_body(
                 scale_domain,
                 CelestialVoxelRealizationPolicy::new(assets.debug_grid.clone()),
                 VoxelSemanticAuthority::default(),
-                UsfTravelInfluence::hard_body(nav_scale, nav_scale.metres_to_native_f64(radius_metres)),
+                UsfTravelInfluence::hard_body(
+                    nav_scale,
+                    nav_scale.metres_to_native_f64(radius_metres),
+                ),
                 UsfTravelBoundaryProvider::new(field),
                 RadialGravitySource::new(
                     radius_metres,
@@ -94,15 +98,15 @@ pub(super) fn construct_authored_celestial_body(
                     definition.gravity_metres_per_second2,
                 ),
             ),
-            (
-                UsfApproachRefinement::new(SpatialScale::MIN)
-            )
+            (UsfApproachRefinement::new(SpatialScale::MIN)),
         ))
         .id();
 
     // Disposable broadphase evidence for any observer/capability; the
     // authoritative body geometry remains in CelestialVoxelField.
-    commands.entity(semantic).insert(UsfSemanticBounds::sphere(radius_metres));
+    commands
+        .entity(semantic)
+        .insert(UsfSemanticBounds::sphere(radius_metres));
 
     // One ordinary unsplit authority partition owns every scale-local voxel
     // realization. Scale is realization identity, never semantic identity.

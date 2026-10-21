@@ -27,4 +27,3 @@ impl UsfSemanticBounds {
         self.radius_metres
     }
 }
-

@@ -14,8 +14,8 @@ use bevy::prelude::*;
 use super::{FixtureArrivalSite, definition, landmarks::UniverseLandmarkIndex};
 use crate::game::orbit::KeplerianOrbitPropagation;
 use crate::procedural_assets::ProceduralPresentationAssets;
-use crate::worldgen::{PhenomenonGeneration, WorldSeed};
 use crate::usf::{SpatialScale, UsfChunkAddress, UsfPosition};
+use crate::worldgen::{PhenomenonGeneration, WorldSeed};
 
 mod celestial;
 
@@ -36,7 +36,8 @@ pub(super) fn construct_celestial_fixture(
     let system_context = UsfChunkAddress::containing(
         UsfPosition::zero(SpatialScale::MIN),
         SpatialScale::new(8).expect("authored solar-system context scale"),
-    ).expect("solar-system context is canonically representable");
+    )
+    .expect("solar-system context is canonically representable");
     info!(
         known = catalog.len(),
         selected = catalog.intersecting(system_context).count(),
@@ -46,11 +47,9 @@ pub(super) fn construct_celestial_fixture(
     let mut spawned = HashMap::<&'static str, Entity>::new();
     for record in catalog.intersecting(system_context) {
         let body = record.recipe();
-        let provenance = PhenomenonGeneration::new(
-            *world_seed,
-            record.key(),
-            definition::GENERATOR_REVISION,
-        ).provenance(true);
+        let provenance =
+            PhenomenonGeneration::new(*world_seed, record.key(), definition::GENERATOR_REVISION)
+                .provenance(true);
         let entity = celestial::construct_authored_celestial_body(
             &mut commands,
             root,

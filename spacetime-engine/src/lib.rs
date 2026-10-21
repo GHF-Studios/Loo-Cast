@@ -115,6 +115,10 @@ pub fn engine_app() -> EngineApp {
     let mut app = App::new();
     app.add_plugins(
         DefaultPlugins
+            .set(bevy::asset::AssetPlugin {
+                file_path: asset_directory().to_string_lossy().into_owned(),
+                ..default()
+            })
             .set(bevy::log::LogPlugin {
                 custom_layer: console::console_log_layer,
                 ..default()
@@ -132,9 +136,37 @@ pub fn engine_app() -> EngineApp {
     app
 }
 
+fn asset_directory() -> std::path::PathBuf {
+    asset_directory_from(std::env::var_os("VAPOR_ENGINE_ROOT").map(std::path::PathBuf::from))
+}
+
+fn asset_directory_from(engine_root: Option<std::path::PathBuf>) -> std::path::PathBuf {
+    engine_root
+        .map(|root| root.join("assets"))
+        .unwrap_or_else(|| std::path::PathBuf::from("assets"))
+}
+
 /// Run one statically composed Spacetime Engine game.
 pub fn run(install_game: impl FnOnce(&mut EngineApp)) {
     let mut app = engine_app();
     install_game(&mut app);
     app.run();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::asset_directory_from;
+    use std::path::PathBuf;
+
+    #[test]
+    fn vapor_engine_root_owns_runtime_assets_when_composed() {
+        let asset_root = asset_directory_from(Some(PathBuf::from("/installed/engine")));
+
+        assert_eq!(asset_root, PathBuf::from("/installed/engine/assets"));
+    }
+
+    #[test]
+    fn source_development_keeps_bevy_default_asset_directory() {
+        assert_eq!(asset_directory_from(None), PathBuf::from("assets"));
+    }
 }

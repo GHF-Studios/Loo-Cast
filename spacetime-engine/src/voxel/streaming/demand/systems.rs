@@ -34,14 +34,8 @@ pub(in crate::voxel) fn reconcile_voxel_materialization_residency(
     runtime_roles.clear();
     let mut runtime_roles_ready = false;
 
-    for (
-        world_entity,
-        mut world,
-        mut streaming,
-        layer,
-        collision_disabled,
-        editing_disabled,
-    ) in &mut worlds
+    for (world_entity, mut world, mut streaming, layer, collision_disabled, editing_disabled) in
+        &mut worlds
     {
         voxel_demands.clear();
         voxel_demands.extend(realization_demand.requests_for(world_entity));

@@ -120,7 +120,7 @@ pub(crate) fn resolve_portal_splits(
                     CrossingContext {
                         entity,
                         peer,
-                        split_box: split_box,
+                        split_box,
                         active,
                         source,
                         destination,

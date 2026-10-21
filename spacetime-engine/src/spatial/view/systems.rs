@@ -188,11 +188,14 @@ fn contextual_scale_projection_pose(
 
     // Preserve the existing direct bounded projection whenever it works.
     let direct = (|| -> Option<(Vec3, f32)> {
-        let relative = presentation.anchor().relative_at_scale_bounded(
-            view.anchor(),
-            presentation.scale(),
-            PRESENTATION_RELATIVE_BOUND,
-        ).ok()?;
+        let relative = presentation
+            .anchor()
+            .relative_at_scale_bounded(
+                view.anchor(),
+                presentation.scale(),
+                PRESENTATION_RELATIVE_BOUND,
+            )
+            .ok()?;
         let factor = view.direct_projection_factor(presentation.scale())?;
         let projected = view.project_relative_native_from_eye(relative, presentation.scale())?;
         if projected.abs().max_element() > f64::from(PRESENTATION_RELATIVE_BOUND) {
@@ -216,7 +219,8 @@ fn contextual_scale_projection_pose(
     // explicitly published conservative bound may enter the far-field path.
     let (semantic_center, bound) = semantic_observation?;
     let ratio = view.distant_presentation_compression(semantic_center, bound.radius_metres())?;
-    let relative_metres = presentation.anchor()
+    let relative_metres = presentation
+        .anchor()
         .relative_at_scale_bounded_f64(view.anchor(), SpatialScale::ZERO, f64::MAX)
         .ok()?;
     let projected = view.project_relative_metres_from_eye(relative_metres)? * ratio;

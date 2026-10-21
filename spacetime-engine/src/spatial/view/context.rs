@@ -206,9 +206,7 @@ impl UsfViewContext {
             - self.projection_eye_offset_metres;
         let distance_metres = delta_metres.length();
         // A far-field adapter must not compete with near-field physical depth.
-        if !distance_metres.is_finite()
-            || distance_metres <= conservative_radius_metres * 4.0
-        {
+        if !distance_metres.is_finite() || distance_metres <= conservative_radius_metres * 4.0 {
             return None;
         }
         let metres_to_view = 10.0_f64.powf(-f64::from(self.continuous_exponent()));
@@ -282,11 +280,17 @@ mod distant_projection_tests {
 
         for exponent in [0.0, 1.0, 2.0] {
             view.set_continuous_exponent(exponent);
-            let ratio = view.distant_presentation_compression(&distant, 1_737_400.0).unwrap();
+            let ratio = view
+                .distant_presentation_compression(&distant, 1_737_400.0)
+                .unwrap();
             let point = view
                 .project_relative_metres_from_eye(DVec3::X * 384_400_000.0)
-                .unwrap() * ratio;
-            let scale = view.projection_factor_f64(SpatialScale::new(5).unwrap()).unwrap() * ratio;
+                .unwrap()
+                * ratio;
+            let scale = view
+                .projection_factor_f64(SpatialScale::new(5).unwrap())
+                .unwrap()
+                * ratio;
             let rendered_radius = 17.374 * scale;
             let rendered_angular_ratio = rendered_radius / point.length();
             let canonical_angular_ratio = 1_737_400.0 / 384_400_000.0;
@@ -298,10 +302,15 @@ mod distant_projection_tests {
     #[test]
     fn nearby_semantic_world_must_not_enter_distant_projection() {
         let observer = UsfPosition::zero(SpatialScale::ZERO);
-        let near = observer.translated_metres_f64(DVec3::Y * 6_371_000.0).unwrap();
+        let near = observer
+            .translated_metres_f64(DVec3::Y * 6_371_000.0)
+            .unwrap();
         let mut view = UsfViewContext::default();
         view.sync_observer(observer, Vec3::ZERO, Vec3::ZERO, DVec3::ZERO);
         view.set_continuous_exponent(0.0);
-        assert!(view.distant_presentation_compression(&near, 6_371_000.0).is_none());
+        assert!(
+            view.distant_presentation_compression(&near, 6_371_000.0)
+                .is_none()
+        );
     }
 }

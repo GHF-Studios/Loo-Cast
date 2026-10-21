@@ -146,8 +146,24 @@ fn modified_time(path: &Path) -> Option<SystemTime> {
 }
 
 fn configured_path() -> PathBuf {
-    if let Some(path) = env::var_os("SPACETIME_ENGINE_CONFIG") {
-        return PathBuf::from(path);
+    configured_path_from(
+        env::var_os("SPACETIME_ENGINE_CONFIG").map(PathBuf::from),
+        env::var_os("VAPOR_ENGINE_ROOT").map(PathBuf::from),
+        &env::current_dir().unwrap_or_default(),
+    )
+}
+
+fn configured_path_from(
+    explicit_config: Option<PathBuf>,
+    engine_root: Option<PathBuf>,
+    current_dir: &Path,
+) -> PathBuf {
+    if let Some(path) = explicit_config {
+        return path;
+    }
+
+    if let Some(engine_root) = engine_root {
+        return engine_root.join("assets/config/engine.ron");
     }
 
     [
@@ -155,6 +171,49 @@ fn configured_path() -> PathBuf {
         PathBuf::from("spacetime-engine/assets/config/engine.ron"),
     ]
     .into_iter()
+    .map(|candidate| current_dir.join(candidate))
     .find(|candidate| candidate.exists())
-    .unwrap_or_else(|| PathBuf::from("assets/config/engine.ron"))
+    .unwrap_or_else(|| current_dir.join("assets/config/engine.ron"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::configured_path_from;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn explicit_config_overrides_the_composed_engine_root() {
+        let explicit = PathBuf::from("/custom/engine.ron");
+        let configured = configured_path_from(
+            Some(explicit.clone()),
+            Some(PathBuf::from("/installed/engine")),
+            Path::new("/packagepack"),
+        );
+
+        assert_eq!(configured, explicit);
+    }
+
+    #[test]
+    fn installed_engine_config_resolves_from_vapor_engine_root() {
+        let configured = configured_path_from(
+            None,
+            Some(PathBuf::from("/installed/engine")),
+            Path::new("/packagepack"),
+        );
+
+        assert_eq!(
+            configured,
+            PathBuf::from("/installed/engine/assets/config/engine.ron")
+        );
+    }
+
+    #[test]
+    fn source_run_uses_the_current_directory_config_fallback() {
+        let configured = configured_path_from(None, None, Path::new("/source"));
+
+        assert_eq!(
+            configured,
+            PathBuf::from("/source/assets/config/engine.ron")
+        );
+    }
 }

@@ -126,7 +126,7 @@ pub(crate) fn reconcile_rigid_splits(
                         },
                         PeerMaterialization {
                             entity: peer_entity,
-                            split_box: split_box,
+                            split_box,
                             source,
                             destination,
                             authority_collider: &mut authority_collider,
