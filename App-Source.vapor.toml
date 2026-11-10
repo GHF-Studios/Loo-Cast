@@ -30,6 +30,13 @@ to = "loo-cast-packagepack"
 target = "x86_64-unknown-linux-gnu"
 required = true
 
+[[root.steam.depots.linux.include]]
+root = "installation"
+from = "bin/x86_64-unknown-linux-gnu/vapor-entrypoint"
+to = "bin/x86_64-unknown-linux-gnu/vapor-entrypoint"
+target = "x86_64-unknown-linux-gnu"
+required = true
+
 [root.steam.depots.windows]
 id = 2122623
 
@@ -37,6 +44,13 @@ id = 2122623
 root = "installation"
 from = "bin/x86_64-pc-windows-gnullvm/loo-cast-packagepack.exe"
 to = "loo-cast-packagepack.exe"
+target = "x86_64-pc-windows-gnullvm"
+required = true
+
+[[root.steam.depots.windows.include]]
+root = "installation"
+from = "bin/x86_64-pc-windows-gnullvm/vapor-entrypoint.exe"
+to = "bin/x86_64-pc-windows-gnullvm/vapor-entrypoint.exe"
 target = "x86_64-pc-windows-gnullvm"
 required = true
 

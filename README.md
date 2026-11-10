@@ -24,11 +24,14 @@ publications.
 
 `App-Source.vapor.toml` owns the Steam app/depot allowlist. The
 shared depot contains only the Packagepack's `Packagepack.vapor.toml`; each OS
-depot contains one matching Packagepack executable and may contain explicitly
-allowlisted runtime DLL/shared-library sidecars if that executable needs them.
-The Packagepack executable links the Engine and Game crates into the runnable
+depot contains one matching Packagepack executable, the small target-specific
+`vapor-entrypoint` Steam locator, and explicitly allowlisted runtime
+DLL/shared-library sidecars if needed. The locator calls the independently
+installed Vapor Home and never stores Vapor state in the Steam app. The
+Packagepack executable links the Engine and Game crates into the runnable
 product. The depot contains no `App.vapor.toml`, separate Engine/Game folders,
-Vapor runtime, tools, source checkout, cache, or writable state.
+Vapor CLI/GUI/service/installer, tools, source checkout, cache, or writable
+runtime state.
 
 ## Vapor content workflow
 
