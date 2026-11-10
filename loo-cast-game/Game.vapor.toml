@@ -7,13 +7,3 @@ libraries = ["loo_cast_game"]
 
 [game.engine]
 id = "ghf-studios/loo-cast/spacetime-engine"
-workshop-id = "3762162251"
-
-[game.steam]
-app-id = 2122620
-published-file-id = "3762162407"
-visibility = "public"
-title = "Loo-Cast Game"
-description = "First-party Vapor game content for Loo-Cast."
-tags = ["game", "first-party", "loo-cast"]
-change-note = "Vapor content update."

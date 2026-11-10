@@ -5,15 +5,6 @@ name = "spacetime-engine"
 version.workspace = true
 libraries = ["spacetime_engine"]
 
-[engine.steam]
-app-id = 2122620
-published-file-id = "3762162251"
-visibility = "public"
-title = "Spacetime Engine"
-description = "First-party Vapor engine content for Loo-Cast."
-tags = ["engine", "first-party", "loo-cast"]
-change-note = "Vapor content update."
-
 [[traits]]
 name = "replacement-render-backend"
 cardinality = "zero-or-one"
