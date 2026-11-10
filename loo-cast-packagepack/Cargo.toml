@@ -2,12 +2,9 @@
 name = "loo-cast-packagepack"
 version.workspace = true
 edition.workspace = true
-autotests = false
-
 [[bin]]
 name = "loo-cast-packagepack"
 path = "src/main.rs"
-test = false
 
 [dependencies]
 spacetime-engine = { path = "../spacetime-engine" }
