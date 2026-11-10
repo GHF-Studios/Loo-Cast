@@ -48,3 +48,10 @@ serde_json = "1"
 # Bevy's tracing subscriber/integration.
 tracy-client = { version = "0.18", default-features = false, features = ["ondemand"], optional = true }
 vapor_telemetry = { git = "https://github.com/GHF-Studios/Vapor", package = "vapor_telemetry" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Linux Steam depots are cross-built from Windows by Vapor's Zig toolchain.
+# winit's static Wayland backend otherwise probes the Windows host for Linux
+# Wayland development libraries through pkg-config. Dynamically loading the
+# host's Wayland libraries avoids linking host libraries into the Linux game.
+winit = { version = "0.30", default-features = false, features = ["wayland-dlopen"] }
