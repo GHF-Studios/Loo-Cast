@@ -7,11 +7,11 @@ libraries = ["spacetime_engine"]
 
 [engine.steam]
 app-id = 2122620
-published-file-id = "3762162251"
+published-file-id = "3844227069"
 visibility = "public"
 title = "Spacetime Engine"
 description = "First-party Vapor engine content for Loo-Cast."
-tags = ["engine", "first-party", "loo-cast"]
+tags = ["engine", "first-party", "loo-cast", "bevy", "avian3d", "rhai"]
 change-note = "Vapor content update."
 
 [[traits]]

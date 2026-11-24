@@ -102,6 +102,15 @@ fn locate_workspace_roots() -> ScriptWorkspaceRoots {
         };
     }
 
+    if let Some(user_data) = environment_path("VAPOR_USER_DATA_ROOT") {
+        let runtime = user_data.join("apps/loo-cast/runtime");
+        return ScriptWorkspaceRoots {
+            defaults_root: runtime.join("script-defaults"),
+            live_root: runtime.join("scripts"),
+            mode: "Vapor user data",
+        };
+    }
+
     let game_root = std::env::current_exe()
         .ok()
         .and_then(|path| path.parent().map(Path::to_path_buf))
