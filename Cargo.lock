@@ -5613,6 +5613,7 @@ dependencies = [
  "serde_json",
  "tracy-client",
  "vapor_telemetry",
+ "winit",
 ]
 
 [[package]]
