@@ -7,28 +7,13 @@ version = "0.5.0"
 edition = "2024"
 
 [profile.dev]
-opt-level = 1
 # Line tables retain actionable backtraces without carrying full variable/type
-# debug data through the large game and engine dependency graph.
+# debug data through the game and engine dependency graph.
 debug = "line-tables-only"
 incremental = true
-lto = false
 
-# Keep engine code debuggable while fully optimizing dependency hot loops.
-# Avian explicitly recommends this for development runtime performance.
-[profile.dev.package."*"]
-opt-level = 3
-debug = 0
-
-[profile.profiling]
-inherits = "release"
-debug = 1
-strip = "none"
-
-# Use `--profile full-debug` only when stepping through values/types is needed.
-[profile.full-debug]
-inherits = "dev"
-debug = true
+[profile.release]
+lto = "thin"
 
 [workspace.dependencies]
 glam = "0.32.1"

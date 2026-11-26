@@ -40,15 +40,9 @@ telemetry = true
 [[run]]
 name = "profiling"
 extends = "default"
-profile = "profiling"
 features = ["profiling-tracy"]
 
 [[run]]
 name = "profiling-memory"
 extends = "profiling"
 features = ["profiling-tracy-memory"]
-
-[[run]]
-name = "full-debug"
-extends = "default"
-profile = "full-debug"
